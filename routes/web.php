@@ -187,6 +187,7 @@ Route::middleware('auth')->group(function () {
 
     // 캘린더 (조회: 전체, 수정: 권한 필요)
     Route::get('/calendar', [CalendarController::class, 'index'])->name('calendar');
+    Route::get('/calendar/write', [CalendarController::class, 'writeMode'])->name('calendar.write'); // 작성 모드 — 일정 1건 전용 독립 창
     Route::view('/calendar/widget', 'calendar.widget')->name('calendar.widget'); // 데스크탑 위젯용 컴팩트 뷰
     Route::get('/calendar/history', [CalendarController::class, 'historyIndex'])->name('calendar.history');
     Route::get('/api/events', [CalendarController::class, 'events'])->name('api.events');
@@ -283,6 +284,7 @@ Route::middleware('auth')->group(function () {
     // 의뢰자 (create가 {client} 와일드카드보다 먼저)
     Route::middleware('permission:clients.edit')->group(function () {
         Route::get('/clients/create', [ClientController::class, 'create'])->name('clients.create');
+        Route::get('/clients/create/write', [ClientController::class, 'createWriteMode'])->name('clients.create.write'); // 작성 모드로 신규 등록 (독립 창)
         Route::post('/clients', [ClientController::class, 'store'])->name('clients.store');
         Route::get('/clients/{client}/edit', [ClientController::class, 'edit'])->name('clients.edit');
         Route::put('/clients/{client}', [ClientController::class, 'update'])->name('clients.update');
@@ -326,6 +328,7 @@ Route::middleware('auth')->group(function () {
         Route::get('/projects', [ProjectController::class, 'index'])->name('projects.index');
         Route::get('/projects-billing', [ProjectController::class, 'billingIndex'])->name('projects.billing');
         Route::get('/projects/{project}', [ProjectController::class, 'show'])->name('projects.show');
+        Route::get('/projects/{project}/write', [ProjectController::class, 'writeMode'])->name('projects.write'); // 작성 모드 — 프로젝트 1건 전용 독립 창
         Route::get('/api/projects/{project}/payment-estimates', [ProjectController::class, 'paymentEstimates']);
         Route::get('/api/projects/{project}/payments', [ProjectController::class, 'payments']);
         Route::get('/api/projects/{project}/summary', [ProjectController::class, 'summary']);

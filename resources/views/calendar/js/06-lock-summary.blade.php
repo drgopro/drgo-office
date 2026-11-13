@@ -155,7 +155,7 @@ function renderLockSummary(){
                 const label=`견적서 #${m.display_no??id}`;
                 const meta=[m.name?_esc(m.name):'', m.total?`${m.total.toLocaleString()}원`:''].filter(Boolean).join(' · ');
                 return `<div style="display:flex;align-items:center;gap:8px;font-size:12.5px;min-width:0;">
-                    <a href="/estimates/${id}/edit" target="_blank" style="color:var(--accent);text-decoration:none;font-weight:700;white-space:nowrap;" title="견적서 편집 화면 열기">${label} →</a>
+                    <a href="/estimates/${id}/edit" target="_blank" onclick="event.preventDefault(); drgoWriteMode.open(this.href, 'est_${id}')" style="color:var(--accent);text-decoration:none;font-weight:700;white-space:nowrap;" title="견적서 편집 화면 열기">${label} →</a>
                     <span style="color:var(--text-muted);min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${meta}</span>
                     <button onclick="event.stopPropagation();window.open('/estimates/${id}/print','estimate_print_'+${id},'width=900,height=700,scrollbars=yes,resizable=yes')" data-always-active style="margin-left:auto;background:none;border:1px solid var(--border);color:var(--text-muted);padding:2px 9px;border-radius:6px;font-size:10.5px;cursor:pointer;flex-shrink:0;">출력 보기</button>
                 </div>`;
@@ -575,7 +575,7 @@ async function lsLoadProjectSummary(pid){
             <div style="margin-top:8px;">
                 <div class="ls-info-label">연동 견적서</div>
                 ${p.estimates.map(e=>`<div style="display:flex;align-items:center;gap:6px;margin-top:3px;font-size:12px;">
-                    <a href="/estimates/${e.id}/edit" target="_blank" style="color:var(--accent);text-decoration:none;font-weight:600;">#${e.no ?? e.id}</a>
+                    <a href="/estimates/${e.id}/edit" target="_blank" onclick="event.preventDefault(); drgoWriteMode.open(this.href, 'est_${e.id}')" style="color:var(--accent);text-decoration:none;font-weight:600;">#${e.no ?? e.id}</a>
                     <span>${fmt(e.total_amount)}원</span>
                     <span class="ls-type-pill">${_esc(e.status)}</span>
                     ${e.date?`<span style="color:var(--text-muted);font-size:11px;">${_esc(e.date)}</span>`:''}

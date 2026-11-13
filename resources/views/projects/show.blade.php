@@ -1,4 +1,4 @@
-@extends(config('view.tab_mode') ? 'layouts.tab-content' : 'layouts.app')
+@extends(config('view.standalone') ? 'layouts.standalone' : (config('view.tab_mode') ? 'layouts.tab-content' : 'layouts.app'))
 
 @section('title', $project->name . ' - 닥터고블린 오피스')
 
@@ -389,10 +389,12 @@
         <div class="page-header-left">
             <div style="display:flex; align-items:center; gap:8px; flex-wrap:wrap;">
                 {{-- 같은 탭에서 프로젝트 목록으로 (새 탭 생성 안 함) --}}
+                @unless(config('view.standalone')){{-- 작성 모드 창은 이 프로젝트 전용 — 목록 이동 없음 --}}
                 <a href="{{ route('projects.index') }}" class="back-btn" onclick="event.preventDefault(); goProjectList();">← 프로젝트 목록</a>
+                @endunless
                 @if($project->client)
                     {{-- 의뢰자 이름 클릭 → 의뢰자 상세 --}}
-                    <a href="{{ route('clients.index', ['open' => $project->client->id]) }}" class="back-btn" style="color:var(--accent); border-color:var(--accent);" onclick="event.preventDefault(); if(window.parent && window.parent.drgoTabs) window.parent.drgoTabs.openClientDetail({{ $project->client->id }}); else window.location.href=this.href;">👤 {{ $project->client->name ?? $project->client->nickname ?? '의뢰자' }}</a>
+                    <a href="{{ route('clients.index', ['open' => $project->client->id]) }}" class="back-btn" style="color:var(--accent); border-color:var(--accent);" onclick="event.preventDefault(); if(window.DRGO_STANDALONE) drgoWriteMode.open('/clients/{{ $project->client->id }}/write','client-{{ $project->client->id }}'); else if(window.parent && window.parent.drgoTabs) window.parent.drgoTabs.openClientDetail({{ $project->client->id }}); else window.location.href=this.href;">👤 {{ $project->client->name ?? $project->client->nickname ?? '의뢰자' }}</a>
                 @else
                     <span class="back-btn" style="cursor:default;">👤 {{ $project->manual_client_name ?: '의뢰자 미상' }} <span style="font-size:10px; color:var(--text-muted);">(확인불가)</span></span>
                 @endif
@@ -459,6 +461,9 @@
                 @elseif($project->stage !== 'cancelled')
                     <button class="btn-edit" style="background:var(--accent);border:1px solid var(--accent);color:var(--accent-text,#fff);padding:8px 14px;border-radius:8px;font-size:12px;cursor:pointer;font-weight:700;" onclick="anonCompleteProject()" title="이 프로젝트를 완료 상태로 처리합니다">완료 처리</button>
                 @endif
+            @endunless
+            @unless(config('view.standalone'))
+            <span class="wm-split"><button type="button" class="btn-edit" style="background:none;border:1px solid var(--border);color:var(--text-muted);padding:8px 12px;border-radius:8px;font-size:12px;cursor:pointer;" onclick="drgoWriteMode.open('/projects/{{ $project->id }}/write','project-{{ $project->id }}')" title="이 프로젝트만 독립된 창으로 띄워 작성합니다">↗ 작성 모드</button><button type="button" class="btn-edit" style="background:none;border:1px solid var(--border);color:var(--text-muted);padding:8px 7px;border-radius:8px;font-size:12px;cursor:pointer;" onclick="drgoWriteMode.menu(event,'/projects/{{ $project->id }}/write','project-{{ $project->id }}')" title="새 창 / 새 탭 선택">▾</button></span>
             @endunless
             <button class="btn-edit" style="background:none;border:1px solid var(--border);color:var(--text-muted);padding:8px 14px;border-radius:8px;font-size:12px;cursor:pointer;" onclick="openActivityLog('Project',{{ $project->id }},'프로젝트 {{ $project->name }} 수정 로그')">📋 로그</button>
             <button class="btn-edit" style="background:none;border:1px solid var(--accent);color:var(--accent);padding:8px 14px;border-radius:8px;font-size:12px;cursor:pointer;font-weight:600;" onclick="openProjectEditModal()">✏️ 프로젝트 수정</button>
@@ -4062,7 +4067,7 @@ async function openEstimateInfoModal() {
                 <div style="font-size:13px; font-weight:600;">#${e.no ?? e.id} · ${pcfEsc(name)} <span style="font-size:11px; color:var(--text-muted); font-weight:400;">${e.is_linked?'★ 연결됨':''}</span></div>
                 <div style="font-size:11px; color:var(--text-muted); margin-top:2px;">${(e.total_amount||0).toLocaleString()}원 · ${status} · ${e.issued_at||e.created_at||'-'} · 상품 ${e.items_summary.products}건/서비스 ${e.items_summary.services}건</div>
             </div>
-            <a href="/estimates/${e.id}/edit" target="_blank" style="background:none; border:1px solid var(--border); color:var(--text-muted); padding:3px 8px; border-radius:5px; font-size:11px; text-decoration:none;" onclick="event.stopPropagation();">열기 ↗</a>
+            <a href="/estimates/${e.id}/edit" target="_blank" style="background:none; border:1px solid var(--border); color:var(--text-muted); padding:3px 8px; border-radius:5px; font-size:11px; text-decoration:none;" onclick="event.stopPropagation(); event.preventDefault(); drgoWriteMode.open(this.href, 'est_${e.id}');">열기 ↗</a>
         </label>`;
     }).join('');
 }
@@ -5199,5 +5204,21 @@ if (editorEl) {
         document.addEventListener('keydown', function(e){ if (e.key === 'Escape' && popup) removePopup(); });
     })();
 }
+</script>
+<script>
+// 다른 창(작성 모드 ↔ 메인)에서 이 프로젝트가 저장되면 새로고침 안내 — 입력 중일 수 있어 자동 새로고침 대신 배너
+(function () {
+    const PID = {{ $project->id }};
+    if (!window.drgoWriteMode) return;
+    drgoWriteMode.onMutation(({ path }) => {
+        if (!new RegExp('^/api/projects/' + PID + '(/|$)').test(path || '')) return;
+        if (document.getElementById('wmStaleBanner')) return;
+        const b = document.createElement('div');
+        b.id = 'wmStaleBanner';
+        b.style.cssText = 'position:fixed;left:50%;bottom:18px;transform:translateX(-50%);z-index:9600;background:#1d2d3d;color:#fff;padding:10px 14px;border-radius:10px;font-size:13px;box-shadow:0 6px 20px rgba(0,0,0,.25);display:flex;gap:10px;align-items:center;';
+        b.innerHTML = '다른 창에서 이 프로젝트가 수정되었습니다 <button style="background:#fff;color:#1d2d3d;border:none;border-radius:6px;padding:5px 10px;font-weight:700;cursor:pointer;" onclick="location.reload()">새로고침</button><button style="background:none;border:none;color:#fff;opacity:.7;cursor:pointer;" onclick="this.parentElement.remove()">✕</button>';
+        document.body.appendChild(b);
+    });
+})();
 </script>
 @endpush

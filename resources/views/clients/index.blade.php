@@ -56,13 +56,6 @@
     /* 작성 모드 — 의뢰자 1명 전용 창: 목록·의뢰자 탭 숨기고 상세만 전체 폭으로 */
     body.client-focus .crm-sidebar, body.client-focus .client-tab-bar, body.client-focus .sidebar-overlay { display:none !important; }
     body.client-focus .crm-wrap { height:100vh; height:100dvh; }
-    .write-mode-split { display:inline-flex; }
-    .write-mode-split .btn-log:first-child { border-top-right-radius:0; border-bottom-right-radius:0; }
-    .write-mode-split .btn-log + .btn-log { border-top-left-radius:0; border-bottom-left-radius:0; border-left:none; padding-left:7px; padding-right:7px; }
-    .write-mode-menu { position:absolute; right:0; top:calc(100% + 4px); background:var(--surface); border:1px solid var(--border); border-radius:8px; box-shadow:0 6px 20px rgba(0,0,0,.15); padding:4px; z-index:50; min-width:150px; }
-    .write-mode-menu button { display:block; width:100%; text-align:left; background:none; border:none; padding:8px 10px; font-size:12.5px; border-radius:6px; cursor:pointer; color:var(--text); }
-    .write-mode-menu button:hover { background:var(--surface2); }
-    .write-mode-menu button.on::after { content:' ✓'; color:var(--accent); font-weight:700; }
     .client-tab-bar::-webkit-scrollbar { display:none; }
     .client-tab { display:flex; align-items:center; gap:5px; padding:6px 12px; font-size:12px; cursor:pointer; color:var(--text-muted); border:none; background:none; white-space:nowrap; border-radius:5px 5px 0 0; border:1px solid transparent; border-bottom:none; transition:all 0.12s; flex-shrink:0; }
     .client-tab:hover { color:var(--text); background:var(--surface2); }
@@ -404,6 +397,9 @@
             <div class="ncm-head-top">
                 <div class="ncm-meta"><b>신규 의뢰자</b><span>·</span><span id="ncmToday"></span></div>
                 <div class="ncm-actions">
+                    @if(empty($newClientWrite))
+                    <button type="button" class="ncm-btn" onclick="openNewClientWriteMode()" title="이 등록 화면을 독립된 창으로 띄웁니다 — 상담하면서 다른 화면과 오가며 작성하기 편합니다. 등록하면 그 창이 그대로 의뢰자 작성 모드가 됩니다">↗ 작성 모드로 열기</button>
+                    @endif
                     <button type="button" class="ncm-btn" id="ncCtBtn" onclick="toggleCtPanel()" title="채널톡 상담 고객을 검색해 이름/연락처를 불러옵니다">채널톡 연동</button>
                     <button type="button" class="ncm-btn" onclick="closeNewClientModal()">취소</button>
                     <button type="button" class="ncm-btn primary" onclick="createClient()">등록</button>
@@ -866,69 +862,35 @@ if (__savedClientState.platform) {
     });
 }
 
-// ── 작성 모드 (의뢰자 1명 전용 창) ──
+// ── 작성 모드 (의뢰자 1명 전용 창) — 공용 오프너는 partials/write-mode (drgoWriteMode) ──
 const CLIENT_FOCUS_ID = @json(isset($focusClient) ? $focusClient->id : null);
-const CLIENT_SYNC = ('BroadcastChannel' in window) ? new BroadcastChannel('drgo-client-sync') : null;
-let __syncRefreshing = false; // 다른 창 알림으로 갱신 중 — 다시 알리지 않음(창끼리 핑퐁 방지)
-// 다른 창(작성 모드 ↔ 메인 목록)에서 저장하면 같은 의뢰자를 띄워 둔 창이 자동 갱신
-if (CLIENT_SYNC) {
-    CLIENT_SYNC.onmessage = async e => {
-        const id = e.data && e.data.updated;
-        if (!id || !openClientTabs.find(t => t.id === id)) return;
-        const saveBtn = document.getElementById('ce-save-' + id);
-        if (saveBtn && saveBtn.style.display !== 'none') return; // 이 창에서 수정 중이면 입력 보호 — 덮어쓰지 않음
-        __syncRefreshing = true;
-        try { await refreshClientData(id); } finally { __syncRefreshing = false; }
-    };
-}
-function notifyClientUpdated(id) { if (__syncRefreshing) return; try { CLIENT_SYNC && CLIENT_SYNC.postMessage({ updated: id }); } catch (e) {} }
-
-function writeModePref() { try { return localStorage.getItem('drgo_write_mode_target') || 'window'; } catch (e) { return 'window'; } }
-function openWriteMode(id, target) {
-    const url = `/clients/${id}/write`;
-    if ((target || writeModePref()) === 'tab') { window.open(url, `drgo-client-${id}`); return; }
-    // 같은 의뢰자는 같은 이름의 창을 재사용 — 다시 눌러도 창이 늘어나지 않고 기존 창이 앞으로
-    const w = Math.min(1280, screen.availWidth - 40), h = Math.min(980, screen.availHeight - 40);
-    const win = window.open(url, `drgo-client-${id}`, `width=${w},height=${h},left=${Math.max(0, (screen.availWidth - w) / 2)},top=20,resizable=yes,scrollbars=yes`);
-    if (win) win.focus();
-}
-function toggleWriteModeMenu(e, id) {
-    e.stopPropagation();
-    document.querySelectorAll('.write-mode-menu').forEach(m => m.remove());
-    const pref = writeModePref();
-    const m = document.createElement('div');
-    m.className = 'write-mode-menu';
-    m.innerHTML = `<button class="${pref === 'window' ? 'on' : ''}" data-t="window">새 창으로 열기</button><button class="${pref === 'tab' ? 'on' : ''}" data-t="tab">새 탭으로 열기</button>`;
-    m.querySelectorAll('button').forEach(b => b.onclick = ev => {
-        ev.stopPropagation();
-        try { localStorage.setItem('drgo_write_mode_target', b.dataset.t); } catch (_) {}
-        m.remove();
-        openWriteMode(id, b.dataset.t);
-    });
-    e.currentTarget.parentElement.appendChild(m);
-}
-document.addEventListener('click', () => document.querySelectorAll('.write-mode-menu').forEach(m => m.remove()));
-
-if (CLIENT_FOCUS_ID) {
-    document.body.classList.add('client-focus');
-    // 작성 모드 창에서 프로젝트·견적서 등을 열면 메인 오피스 창의 탭으로 보낸다 (이 창은 의뢰자 작성 전용)
-    const __origOpenTopTab = window.openTopTab;
-    window.openTopTab = function (type, url, title) {
-        try {
-            if (window.opener && !window.opener.closed && window.opener.top.drgoTabs && typeof window.opener.top.drgoTabs.openNav === 'function') {
-                window.opener.top.drgoTabs.openNav(type, url, title);
-                window.opener.top.focus();
-                return;
-            }
-        } catch (e) { /* 다른 출처 등 */ }
-        window.open(url, '_blank');
-    };
-}
+const CLIENT_NEW_WRITE = @json(! empty($newClientWrite)); // 작성 모드로 신규 등록
+function openWriteMode(id) { drgoWriteMode.open(`/clients/${id}/write`, `client-${id}`); }
+// 다른 창(작성 모드 ↔ 메인 목록)에서 이 의뢰자를 저장하면 같은 의뢰자를 띄워 둔 창이 자동 갱신
+const __syncTimers = {};
+drgoWriteMode.onMutation(({ path }) => {
+    // 견적서 창에서 저장 → 그 견적서를 가진 의뢰자 갱신 (견적서 탭 금액·상태)
+    const em = /^\/api\/estimates\/(\d+)/.exec(path || '');
+    const owner = em ? openClientTabs.find(t => (t.data?.estimates || []).some(e => e.id === parseInt(em[1], 10))) : null;
+    const m = owner ? [null, String(owner.id)] : /^\/api\/clients\/(\d+)/.exec(path || '');
+    if (!m) return;
+    const id = parseInt(m[1], 10);
+    if (!openClientTabs.find(t => t.id === id)) return;
+    const saveBtn = document.getElementById('ce-save-' + id);
+    if (saveBtn && saveBtn.style.display !== 'none') return; // 이 창에서 수정 중이면 입력 보호 — 덮어쓰지 않음
+    clearTimeout(__syncTimers[id]);
+    __syncTimers[id] = setTimeout(() => drgoWriteMode.quietly(() => refreshClientData(id)), 250);
+});
+function notifyClientUpdated(id) { drgoWriteMode.notify(`/api/clients/${id}`, 'SYNC'); }
+if (CLIENT_FOCUS_ID || CLIENT_NEW_WRITE) document.body.classList.add('client-focus');
 
 // ── 초기화 ──
 loadCustomFieldDefs();
 loadConsultationTypes();
-if (CLIENT_FOCUS_ID) {
+if (CLIENT_NEW_WRITE) {
+    document.title = '의뢰자 등록 · 작성 모드 - 닥터고블린 오피스';
+    setTimeout(openNewClientModal, 0); // 페이지 스크립트(뒤쪽 let 선언 포함)가 끝까지 실행된 뒤 연다
+} else if (CLIENT_FOCUS_ID) {
     openClient(CLIENT_FOCUS_ID).then(() => {
         const t = openClientTabs.find(x => x.id === CLIENT_FOCUS_ID);
         document.title = `${(t && (t.nickname || t.name)) || '의뢰자'} · 작성 모드 - 닥터고블린 오피스`;
@@ -1190,10 +1152,7 @@ function renderClientContent(id) {
                 </div>
             </div>
             <div class="detail-actions">
-                ${CLIENT_FOCUS_ID ? '' : `<span class="write-mode-split" style="position:relative;">
-                    <button class="btn-log" onclick="openWriteMode(${id})" title="이 의뢰자만 독립된 창으로 띄워 작성합니다 (여러 의뢰자를 각각의 창으로 동시에 작업 가능)">↗ 작성 모드</button>
-                    <button class="btn-log" onclick="toggleWriteModeMenu(event, ${id})" title="새 창 / 새 탭 선택">▾</button>
-                </span>`}
+                ${CLIENT_FOCUS_ID ? '' : drgoWriteMode.buttonHtml(`/clients/${id}/write`, `client-${id}`, 'btn-log')}
                 <button class="btn-log" onclick="openActivityLog('Client',${id},'${_esc((d.name||'').replace(/'/g,"\\'"))} 수정 로그')"><svg viewBox=\"0 0 24 24\" width=\"13\" height=\"13\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2.1\" stroke-linecap=\"round\" stroke-linejoin=\"round\" style=\"vertical-align:-0.15em\"><path d=\"M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z\"/><path d=\"M14 2v6h6M9 13h6M9 17h4\"/></svg> 로그</button>
                 ${CAN_CLIENT_EDIT ? `
                 <button class="btn-save" id="ce-edit-${id}" onclick="clientEditMode(${id},true)">수정</button>
@@ -1498,6 +1457,7 @@ function renderProjectList(projects, clientId, order) {
                 </div>
                 <div style="display:flex; align-items:center; gap:6px;">
                     <span style="font-size:10px; padding:3px 8px; border-radius:4px; background:var(--surface2); color:var(--accent); font-weight:600;">${_esc(p.stage_label||STAGE_LABELS[p.stage]||p.stage)}</span>
+                    <button style="padding:3px 8px; font-size:10px; background:none; border:1px solid var(--border); color:var(--text-muted); border-radius:5px; cursor:pointer;" onclick="event.stopPropagation(); drgoWriteMode.open('/projects/${p.id}/write','project-${p.id}')" title="이 프로젝트를 작성 모드(독립 창)로 열기">↗ 작성 모드</button>
                     ${CAN_PROJECT_EDIT && p.stage !== 'cancelled' ? `<button class="btn-cancel-sm" style="padding:3px 8px; font-size:10px; background:none; border:1px solid var(--border); color:var(--text-muted); border-radius:5px; cursor:pointer;" onclick="event.stopPropagation(); cancelProject(${p.id}, ${clientId})" title="프로젝트 취소 (데이터 보존)">취소</button>` : ''}
                     ${CAN_PROJECT_EDIT ? `<button class="btn-delete" style="padding:3px 8px; font-size:10px;" onclick="event.stopPropagation(); deleteProject(${p.id}, ${clientId})" title="프로젝트 완전 삭제">삭제</button>` : ''}
                 </div>
@@ -1562,7 +1522,7 @@ async function createEstimateForClient(clientId) {
     });
     if (!res.ok) { alert('견적서 생성에 실패했습니다.'); return; }
     const est = await res.json();
-    window.open(`/estimates/${est.id}/edit`, 'est_' + est.id, 'width=1200,height=800,scrollbars=yes,resizable=yes');
+    drgoWriteMode.open(`/estimates/${est.id}/edit`, 'est_' + est.id);
 }
 
 function renderEstimateList(estimates, clientId) {
@@ -2119,7 +2079,22 @@ function openNewClientModal() {
     ncmBind();
     ncmRefresh();
 }
-function closeNewClientModal() { document.getElementById('newClientOverlay').classList.remove('open'); }
+function closeNewClientModal() {
+    document.getElementById('newClientOverlay').classList.remove('open');
+    // 작성 모드 등록 창 — 등록 없이 닫으면 빈 화면 대신 안내 (창 닫기 / 다시 작성)
+    if (CLIENT_NEW_WRITE) {
+        const box = document.getElementById('clientContent');
+        if (box) box.innerHTML = `<div class="client-empty" style="flex-direction:column; gap:14px;">등록을 취소했습니다.
+            <div style="display:flex; gap:8px;"><button class="btn-log" onclick="window.close()">창 닫기</button><button class="btn-save" onclick="openNewClientModal()">다시 작성</button></div></div>`;
+    }
+}
+// 등록 모달 → 작성 모드 창으로 (입력해 둔 내용이 없을 때 바로 전환, 있으면 확인)
+function openNewClientWriteMode() {
+    const typed = [...document.querySelectorAll('#newClientOverlay input:not([type=checkbox]):not([type=radio]), #newClientOverlay textarea')].some(el => el.value.trim());
+    if (typed && !confirm('입력 중인 내용은 새 창으로 옮겨지지 않습니다. 새 창에서 처음부터 작성할까요?')) return;
+    drgoWriteMode.open('/clients/create/write', 'client-new');
+    closeNewClientModal();
+}
 
 // ── 작성 현황 사이드바 (섹션별 채움 카운트 + 전체 % + 남은 필수) ──
 let NCM_BOUND = false;
@@ -2413,6 +2388,7 @@ async function createClient(forceDuplicate = false) {
             r.closest('label')?.classList.remove('on');
         });
         document.getElementById('budget-nc-etc').style.display = 'none';
+        if (CLIENT_NEW_WRITE) { location.replace(`/clients/${data.id}/write`); return; } // 등록 창이 그대로 그 의뢰자의 작성 모드 창이 됨
         await loadClientList();
         openClient(data.id);
         showToast('등록되었습니다');
@@ -3149,7 +3125,7 @@ function showToast(msg) {
 
 // ── 의뢰자 탭 상태 저장/복원 ──
 function saveClientTabs() {
-    if (CLIENT_FOCUS_ID) return; // 작성 모드 창은 메인 목록의 열린 탭 상태를 건드리지 않음
+    if (CLIENT_FOCUS_ID || CLIENT_NEW_WRITE) return; // 작성 모드 창은 메인 목록의 열린 탭 상태를 건드리지 않음
     const data = {
         tabs: openClientTabs.map(t => t.id),
         activeId: activeClientId,

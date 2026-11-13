@@ -2,6 +2,7 @@
 <html lang="ko" data-theme="light">
 <head>
 @include('partials.ajax-fetch-header')
+@include('partials.write-mode')
 @include('partials.loading-indicator')
 @include('partials.phone-format')
 <script>

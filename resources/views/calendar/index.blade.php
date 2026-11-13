@@ -1,4 +1,4 @@
-@extends(config('view.tab_mode') ? 'layouts.tab-content' : 'layouts.app')
+@extends(config('view.standalone') ? 'layouts.standalone' : (config('view.tab_mode') ? 'layouts.tab-content' : 'layouts.app'))
 
 @section('title', '캘린더 - 닥터고블린 오피스')
 {{-- 캘린더 전용 PWA — 홈 화면에 추가 시 캘린더로 시작 --}}
@@ -15,6 +15,20 @@
 
 @push('styles')
 @include('calendar.partials.styles-v2')
+@endpush
+
+@push('styles')
+<style>
+/* 작성 모드 — 일정 창만 전체 화면(그리드는 가림), 메인 캘린더의 진입 버튼 */
+body.cal-write #modalOverlay { background:var(--bg); backdrop-filter:none; }
+body.cal-write .cal-wm-new, body.cal-write #calAddFab { display:none !important; }
+#calWriteIdle { display:none; position:fixed; inset:0; z-index:250; background:var(--bg); align-items:center; justify-content:center; }
+#calWriteIdle .cwi-in { text-align:center; }
+#calWriteIdle .cwi-msg { font-size:15px; color:var(--text-muted); margin-bottom:14px; }
+#calWriteIdle .cwi-btns { display:flex; gap:8px; justify-content:center; }
+.cal-wm-btn { width:auto !important; padding:0 9px !important; font-size:12px !important; white-space:nowrap; }
+@media (max-width:768px) { .cal-wm-new { display:none; } }
+</style>
 @endpush
 
 @section('content')
@@ -36,6 +50,7 @@
 @include('calendar.js.08-ship-reqitems')
 @include('calendar.js.09-modal-open-edit')
 @include('calendar.js.10-save')
+@include('calendar.js.12-write-mode')
 @include('calendar.js.11-misc')
 </script>
 @endpush

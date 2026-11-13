@@ -3,12 +3,14 @@
 namespace Tests\Feature;
 
 use App\Models\Client;
+use App\Models\Project;
+use App\Models\Schedule;
 use App\Models\Team;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Tests\TestCase;
 
-/** 작성 모드 — 의뢰자 1명만 띄우는 독립 창(새 창/새 탭) */
+/** 작성 모드 — 의뢰자·프로젝트·캘린더 한 건만 띄우는 독립 창(새 창/새 탭) */
 class ClientWriteModeTest extends TestCase
 {
     use RefreshDatabase;
@@ -52,5 +54,53 @@ class ClientWriteModeTest extends TestCase
         $this->actingAs($this->userWith(['calendar.view']))
             ->get("/clients/{$this->client->id}/write")
             ->assertForbidden();
+    }
+
+    public function test_new_client_write_mode_opens_registration_in_standalone_window(): void
+    {
+        $res = $this->actingAs($this->userWith(['clients.view', 'clients.edit']))
+            ->get('/clients/create/write')
+            ->assertOk();
+        $res->assertSee('const CLIENT_NEW_WRITE = true;', false);
+        $res->assertSee('<meta name="csrf-token"', false); // 독립 문서 — 자체 CSRF 메타
+        $res->assertDontSee('작성 모드로 열기'); // 이미 작성 모드 창이므로 진입 버튼 없음
+
+        // 등록 권한 없으면 차단
+        $this->actingAs($this->userWith(['clients.view']))->get('/clients/create/write')->assertForbidden();
+    }
+
+    public function test_project_write_mode_renders_standalone_without_entry_button(): void
+    {
+        $project = Project::create(['client_id' => $this->client->id, 'name' => '작성모드 프로젝트', 'project_type' => 'visit', 'stage' => 'consulting']);
+        $user = $this->userWith(['projects.view', 'clients.view']);
+
+        // 일반 상세(앱 탭)에는 진입 버튼 — 테스트 앱은 요청 간 config가 이어지므로 일반 화면을 먼저 요청
+        $this->actingAs($user)->get("/projects/{$project->id}?_tab=1")->assertOk()
+            ->assertSee("drgoWriteMode.open('/projects/{$project->id}/write'", false);
+
+        $res = $this->actingAs($user)->get("/projects/{$project->id}/write")->assertOk();
+        $res->assertSee('window.DRGO_STANDALONE = true', false);
+        $res->assertSee('작성모드 프로젝트');
+        $res->assertDontSee("drgoWriteMode.open('/projects/{$project->id}/write'", false);
+    }
+
+    public function test_calendar_write_mode_focus_and_new(): void
+    {
+        $user = $this->userWith(['calendar.view']);
+        $schedule = Schedule::create(['title' => '작성모드 일정', 'start_date' => now()->toDateString(), 'end_date' => now()->toDateString(), 'color' => 'gold', 'created_by' => $user->id]);
+
+        // 일반 캘린더는 작성 모드 아님 (요청 간 config 유지 — 먼저 확인)
+        $this->actingAs($user)->get('/calendar')->assertOk()->assertSee('const CAL_WRITE = false;', false);
+
+        $this->actingAs($user)->get("/calendar/write?focus={$schedule->id}")->assertOk()
+            ->assertSee('const CAL_WRITE = true;', false)
+            ->assertSee('const CAL_WRITE_NEW_DATE = null;', false);
+
+        $this->actingAs($user)->get('/calendar/write?new=1&date=2026-12-24')->assertOk()
+            ->assertSee('const CAL_WRITE_NEW_DATE = "2026-12-24";', false);
+
+        // 잘못된 날짜는 오늘로
+        $this->actingAs($user)->get('/calendar/write?new=1&date=bad')->assertOk()
+            ->assertSee('const CAL_WRITE_NEW_DATE = "'.now()->toDateString().'";', false);
     }
 }

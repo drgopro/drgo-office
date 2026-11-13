@@ -53,6 +53,14 @@ class ClientController extends Controller
         return view('clients.index', ['clients' => null, 'focusClient' => $client]);
     }
 
+    /** 작성 모드로 신규 등록 — 등록 화면만 띄운 독립 창. 등록하면 그 창이 해당 의뢰자의 작성 모드로 바뀐다 */
+    public function createWriteMode()
+    {
+        config(['view.tab_mode' => true, 'view.standalone' => true]);
+
+        return view('clients.index', ['clients' => null, 'newClientWrite' => true]);
+    }
+
     // 상세
     public function show(Client $client)
     {

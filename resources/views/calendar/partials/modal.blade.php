@@ -33,6 +33,7 @@
             </div>
             <div class="modal-header-btns">
                 <span id="privateModeBadge" style="display:none;font-size:11px;background:#a78bfa22;color:#a78bfa;border:1px solid #a78bfa55;border-radius:6px;padding:2px 8px;font-weight:600;">🔒 개인</span>
+                <span id="calWmSlot"></span>
                 <button class="icon-btn" id="lockBtn" onclick="toggleLock()" title="요약 보기" style="width:auto;padding:0 10px;font-size:12px;white-space:nowrap;">☐ 요약</button>
                 <button class="btn-save-top" onclick="saveEvent()">저장</button>
                 <button class="icon-btn close-btn" onclick="closeModal()">✕</button>

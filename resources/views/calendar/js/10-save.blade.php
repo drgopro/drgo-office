@@ -195,6 +195,7 @@ async function doSaveEvent(){
         const hasFiles=Object.values(pendingAttachments).some(arr=>arr.length);
         if(hasFiles) await uploadPendingAttachments(saved.id);
         if(typeof rememberRecentAssignees==='function') rememberRecentAssignees(selectedAssignees); // 담당자 패널 '최근 선택 3명'
+        if(CAL_WRITE){ window.__calFocusId=saved.id; window.__calWriteKeep=true; } // 작성 모드 — 저장 후에도 이 일정을 계속 띄움
         closeModal();loadEvents();
     }else{
         const err=await res.json();

@@ -10,5 +10,18 @@
 </head>
 <body style="margin:0; background:var(--bg, #f4f5f7);">
 @include('layouts.tab-content')
+<script>
+// 작성 모드 창 — 이 창은 한 건 작성 전용. 다른 화면(프로젝트·견적서 등)을 열면 메인 오피스 창의 탭으로 보낸다
+window.DRGO_STANDALONE = true;
+(function () {
+    window.openTopTab = function (type, url, title) {
+        try {
+            const top = window.opener && !window.opener.closed ? window.opener.top : null;
+            if (top && top.drgoTabs && typeof top.drgoTabs.openNav === 'function') { top.drgoTabs.openNav(type, url, title); top.focus(); return; }
+        } catch (e) { /* 다른 출처 등 */ }
+        window.open(url, '_blank');
+    };
+})();
+</script>
 </body>
 </html>

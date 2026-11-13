@@ -27,6 +27,22 @@ use Illuminate\Support\Str;
 class CalendarController extends Controller
 {
     // 캘린더 메인 뷰 — 첫 화면(이번 달 42칸)의 이벤트를 서버에서 주입해 초기 API 왕복 제거
+    /**
+     * 작성 모드 — 일정 한 건만 띄우는 독립 창. ?focus={id} 기존 일정, ?new=1&date=YYYY-MM-DD 새 일정.
+     * 캘린더 화면을 그대로 재사용하고 그리드는 가린 채 일정 창만 전체 화면으로 보여준다.
+     */
+    public function writeMode(Request $request)
+    {
+        config(['view.tab_mode' => true, 'view.standalone' => true]);
+        $date = (string) $request->query('date', '');
+
+        return view('calendar.index', [
+            'initialEvents' => null,
+            'calWriteMode' => true,
+            'calWriteNewDate' => $request->boolean('new') ? (preg_match('/^\d{4}-\d{2}-\d{2}$/', $date) ? $date : now()->toDateString()) : null,
+        ]);
+    }
+
     public function index()
     {
         $first = now()->startOfMonth();

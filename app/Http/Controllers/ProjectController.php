@@ -238,6 +238,14 @@ class ProjectController extends Controller
         return view('projects.show', compact('project'));
     }
 
+    /** 작성 모드 — 프로젝트 한 건만 띄우는 독립 창(앱 메뉴·탭 없음). 기존 상세 화면을 그대로 재사용 */
+    public function writeMode(Project $project)
+    {
+        config(['view.tab_mode' => true, 'view.standalone' => true]);
+
+        return $this->show($project);
+    }
+
     // 피드백 추가
     public function storeMemo(Request $request, Project $project)
     {
