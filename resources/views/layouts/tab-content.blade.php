@@ -47,6 +47,13 @@ input, button, textarea, select { font-family:inherit; }
 h1, h2, h3 { text-wrap:balance; }
 .num, .text-right, td.num, .tabular { font-variant-numeric:tabular-nums; }
 [data-theme="light"] { --bg:#f4f5f7; --surface:#ffffff; --surface2:#eceef2; --surface3:#dfe2e8; --border:#b8bcc8; --text:#1a1e28; --text-muted:#5a6070; --accent:#3b5ea0; --accent2:#2e6a8a; --accent-text:#ffffff; --red:#c03838; --green:#1e7a32; --blue:#2e6a9a; --gold:#907030; --teal:#b85c18; --purple:#5c2e90; }
+/* 캘린더 분류 색 — app 레이아웃과 같은 값 (작성 모드 창·탭 안 페이지에서도 분류 색이 보이도록) */
+:root {
+@foreach(\App\Models\CalendarCategory::map() as $__tk => $__tc)
+    --chip-{{ $__tk }}-bg: {{ $__tc['color'] }}; --chip-{{ $__tk }}-text: {{ $__tc['text_color'] }};
+@endforeach
+    --chip-single-bg: #e6e8ee;
+}
 /* 라이트모드 버튼/입력 보정 */
 [data-theme="light"] body { background:var(--bg); color:var(--text); }
 [data-theme="light"] .btn-edit, [data-theme="light"] .btn-outline { border-color:#a0a8b4; color:#4a5060; }

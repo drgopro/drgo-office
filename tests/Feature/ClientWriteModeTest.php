@@ -117,4 +117,15 @@ class ClientWriteModeTest extends TestCase
             ->assertSee('const WM_CAN_NEW_CLIENT = false;', false)
             ->assertSee('const WM_CAN_NEW_EVENT = false;', false);
     }
+
+    public function test_write_window_has_shared_navigation_bar(): void
+    {
+        // 의뢰자·프로젝트·캘린더 작성 모드는 한 창(drgo-write) 안에서 이동 바로 오간다
+        $this->actingAs($this->userWith(['clients.view']))
+            ->get("/clients/{$this->client->id}/write")
+            ->assertOk()
+            ->assertSee('id="wmTrail"', false)
+            ->assertSee("window.name = 'drgo-write'", false)
+            ->assertSee('function toWriteUrl(type, url)', false);
+    }
 }

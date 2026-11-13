@@ -29,7 +29,10 @@
          * @param {string} key  예: client-12, project-3, schedule-88, est_41
          */
         open(url, key, target) {
-            const name = key || '_blank';
+            // 의뢰자·프로젝트·캘린더 작성 모드는 창 하나를 같이 쓴다 — 그 창 안에서 서로 오간다 (견적서는 건별 창 유지)
+            const shared = WM.isShared(url);
+            if (shared && window.DRGO_STANDALONE) { location.href = url; return window; }
+            const name = shared ? WM.SHARED_NAME : (key || '_blank');
             if ((target || WM.pref()) === 'tab') { const t = window.open(url, name); if (t) t.focus(); return t; }
             const w = Math.min(1280, (screen.availWidth || 1300) - 40), h = Math.min(980, (screen.availHeight || 1000) - 40);
             const left = Math.max(0, ((screen.availWidth || w) - w) / 2);
@@ -37,6 +40,9 @@
             if (win) win.focus();
             return win;
         },
+        SHARED_NAME: 'drgo-write',
+        /** 한 창을 같이 쓰는 작성 모드 주소인가 — /clients/{id}/write, /clients/create/write, /projects/{id}/write, /calendar/write */
+        isShared(url) { return /^\/(clients\/(\d+|create)\/write|projects\/\d+\/write|calendar\/write)(\b|\?|$)/.test(String(url).replace(location.origin, '')); },
         /** ▾ 버튼 — 새 창 / 새 탭 선택 메뉴 (선택은 기억되고 바로 연다) */
         menu(e, url, key) {
             e.preventDefault(); e.stopPropagation();
