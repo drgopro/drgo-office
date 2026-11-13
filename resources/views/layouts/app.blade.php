@@ -480,6 +480,7 @@ document.addEventListener('click', function(e){
         }
     </style>
     @stack('styles')
+    @include('partials.ux-v2-theme', ['scope' => '.main'])
 </head>
 <body>
 <div class="drgo-modal-dock" id="drgoModalDock" aria-label="최소화된 모달"></div>

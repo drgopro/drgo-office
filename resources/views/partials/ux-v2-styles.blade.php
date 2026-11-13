@@ -34,6 +34,10 @@ html.ux-v2 .ux2-big { font-size:21px; font-weight:800; letter-spacing:-.04em; li
 html.ux-v2 .ux2-big small { font-size:13px; font-weight:600; color:var(--ux-ink-2); margin-left:6px; letter-spacing:-.01em; }
 html.ux-v2 .ux2-mini { font-size:13px; color:var(--ux-ink-2); margin-top:3px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
 html.ux-v2 .ux2-mini b { color:var(--ux-star); }
+html.ux-v2 .ux2-pswitch { display:flex; flex-wrap:wrap; align-items:center; gap:6px; margin:0 0 10px; padding-bottom:10px; border-bottom:1px solid var(--ux-line); }
+html.ux-v2 .ux2-pswitch span { font-size:12px; font-weight:700; color:var(--ux-star); margin-right:2px; white-space:nowrap; }
+html.ux-v2 .ux2-pswitch button { height:28px; max-width:220px; padding:0 11px; border-radius:999px; border:1px solid var(--ux-line); background:var(--ux-paper); font-size:12px; color:var(--ux-ink-2); cursor:pointer; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+html.ux-v2 .ux2-pswitch button.on { background:var(--ux-ink); border-color:var(--ux-ink); color:#fff; font-weight:600; }
 html.ux-v2 .ux2-empty { font-size:14px; color:var(--ux-sub); padding:4px 0; }
 html.ux-v2 .ux2-switch { white-space:nowrap; }
 
@@ -67,7 +71,13 @@ html.ux-v2 .client-pane .ux2-blank { margin:6px 0 0; padding-top:10px; border-to
 html.ux-v2 .client-pane .ux2-blank button { border:0; background:none; padding:0; color:var(--ux-ink); font-weight:700; text-decoration:underline; text-underline-offset:3px; cursor:pointer; font-size:13px; }
 
 /* 관계자 카드 */
-html.ux-v2 .client-pane .ux2-contacts { background:var(--ux-paper); border:1px solid var(--ux-line); border-radius:14px; padding:14px 16px !important; }
+html.ux-v2 .client-pane .ux2-info > .ux2-contacts.info-narrow { background:var(--ux-paper); border:1px solid var(--ux-line); border-radius:14px; padding:14px 16px !important; }
+html.ux-v2 .client-pane .ux2-contacts > .field-label { font-size:15px !important; font-weight:800 !important; color:var(--ux-ink); }
+html.ux-v2 .client-pane .ux2-contacts > .field-label > span { display:block; margin-top:2px; font-size:12px; font-weight:400; line-height:1.5; }
+/* 좁은 열에서 입력칸이 찌그러지지 않게: 2칸씩 쌓고 버튼은 한 줄 전체 */
+html.ux-v2 .client-pane .ux2-contacts > div[style*="flex-wrap"] { display:grid !important; grid-template-columns:minmax(0,1fr) minmax(0,1fr); gap:6px !important; }
+html.ux-v2 .client-pane .ux2-contacts > div[style*="flex-wrap"] > input { min-width:0 !important; width:100%; box-sizing:border-box; flex:none !important; }
+html.ux-v2 .client-pane .ux2-contacts > div[style*="flex-wrap"] > button { grid-column:1 / -1; }
 
 /* 기록(메모): 입력칸 + 노란 메모지 */
 html.ux-v2 .client-pane .ux2-memos > .field-label { font-size:15px !important; font-weight:800 !important; color:var(--ux-ink); }

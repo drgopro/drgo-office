@@ -1453,12 +1453,17 @@ function renderClientContent(id) {
 }
 
 // ── 새 화면 디자인(UX v2) — 요약 줄. 스타일은 partials/ux-v2-styles (html.ux-v2 일 때만 보임) ──
-function uxActiveProject(projects) {
+// 상단 프로젝트 카드 기준: 완료·취소가 아닌 프로젝트(최신순). 여러 건이면 이름 버튼으로 바꿔 본다. 없으면 가장 최근 프로젝트 1건.
+function uxFlowProjects(projects) {
     const list = [...(projects || [])].sort((a, b) => String(b.created_at || '').localeCompare(String(a.created_at || '')));
-    return list.find(p => !['done', 'cancelled'].includes(p.stage)) || list[0] || null;
+    const active = list.filter(p => !['done', 'cancelled'].includes(p.stage));
+    return active.length ? active : list.slice(0, 1);
 }
-function uxFlowCard(p) {
-    if (!p) { return `<div class="ux2-g flow"><h3>진행 중인 프로젝트</h3><div class="ux2-empty">아직 프로젝트가 없어요</div></div>`; }
+window.__uxFlowSel = window.__uxFlowSel || {};
+function uxFlowCard(clientId, projects) {
+    const list = uxFlowProjects(projects);
+    const p = list.find(x => x.id === window.__uxFlowSel[clientId]) || list[0];
+    if (!p) { return `<div class="ux2-g flow" id="ux2-flow-${clientId}"><h3>진행 중인 프로젝트</h3><div class="ux2-empty">아직 프로젝트가 없어요</div></div>`; }
     const stages = p.stages || [];
     const cancelled = p.stage === 'cancelled';
     const curCode = cancelled ? (p.cancelled_from_stage || '') : p.stage;
@@ -1467,12 +1472,23 @@ function uxFlowCard(p) {
     const cls = i => (cancelled ? '' : (i < curIdx ? 'd' : (i === curIdx ? 'n' : '')));
     const cur = stages[curIdx];
     const state = cancelled ? '취소됨' : (p.stage === 'done' ? '완료' : '진행');
-    return `<div class="ux2-g flow click" onclick="openTopTab('projects','/projects/${p.id}')" title="프로젝트 열기">
+    const activeCount = (projects || []).filter(x => !['done', 'cancelled'].includes(x.stage)).length;
+    const switcher = list.length > 1
+        ? `<div class="ux2-pswitch" onclick="event.stopPropagation()"><span>진행 중 ${activeCount}건</span>${list.map(x => `<button type="button" class="${x.id === p.id ? 'on' : ''}" onclick="uxFlowSelect(${clientId}, ${x.id})">${_esc(x.name)}</button>`).join('')}</div>`
+        : '';
+    return `<div class="ux2-g flow click" id="ux2-flow-${clientId}" onclick="openTopTab('projects','/projects/${p.id}')" title="프로젝트 열기">
+        ${switcher}
         <h3><b>${_esc(p.name)}</b><span>${state}</span><span class="more">프로젝트 열기</span></h3>
         ${stages.length ? `<div class="ux2-bars ${cancelled ? 'cancel' : ''}">${stages.map((s, i) => `<span class="${cls(i)}"></span>`).join('')}</div>
         <div class="ux2-steps">${stages.map((s, i) => `<span class="${cls(i)}" title="${_esc(s.label)}">${i === curIdx && !cancelled ? '★ ' : ''}${_esc(s.label)}${dates[s.code] ? `<small>${String(dates[s.code]).replace('-', '.')}</small>` : ''}</span>`).join('')}</div>
         <div class="ux2-now"><b>${cur ? `<i>★</i>${_esc(cur.label)}` : _esc(state)}</b><span>${cur && dates[cur.code] ? String(dates[cur.code]).replace('-', '.') : ''}</span><em>${curIdx + 1}/${stages.length}</em></div>` : '<div class="ux2-empty">진행 단계가 없는 유형이에요</div>'}
     </div>`;
+}
+function uxFlowSelect(clientId, projectId) {
+    window.__uxFlowSel[clientId] = projectId;
+    const tab = openClientTabs.find(t => t.id === clientId);
+    const box = document.getElementById(`ux2-flow-${clientId}`);
+    if (tab && box) { box.outerHTML = uxFlowCard(clientId, tab.data.projects); }
 }
 function uxOpenSub(clientId, key) {
     const btn = [...document.querySelectorAll(`#subtabs-${clientId} .sub-tab`)].find(b => (b.getAttribute('onclick') || '').includes(`'${key}'`));
@@ -1487,7 +1503,7 @@ function renderClientGlance(d) {
             <div class="ux2-mini">${_esc(est.created_at || '')}${(d.estimates || []).length > 1 ? `, 견적서 ${(d.estimates || []).length}개` : ''}</div></div>`
         : `<div class="ux2-g"><h3>최근 견적</h3><div class="ux2-empty">아직 견적서가 없어요</div></div>`;
     return `<div class="ux2-glance" id="ux2-glance-${d.id}">
-        ${uxFlowCard(uxActiveProject(d.projects))}
+        ${uxFlowCard(d.id, d.projects)}
         <div class="ux2-g" id="ux2-next-${d.id}"><h3>다음 일정</h3><div class="ux2-empty">불러오는 중…</div></div>
         ${estCard}
     </div>`;

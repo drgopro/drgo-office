@@ -1,6 +1,7 @@
 @include('partials.ajax-fetch-header')
 @include('partials.write-mode')
 @include('partials.ux-flag')
+@include('partials.ux-v2-theme')
 @include('partials.loading-indicator')
 @include('partials.phone-format')
 <script>
