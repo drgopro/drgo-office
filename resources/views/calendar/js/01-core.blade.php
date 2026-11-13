@@ -5,8 +5,15 @@ const DAYS_KO = ['일','월','화','수','목','금','토'];
 const CAL_V2 = document.documentElement.classList.contains('cal-v2');
 function calMobileV2(){ return CAL_V2 && window.innerWidth<=768; }
 let calV2MonthAlias=false; // 모바일에서 '월'을 칩형 월간(monthc)으로 대신 보여주는 중 — 데스크탑 폭으로 넓히면 월간으로 복귀
-function toggleCalDesign(){ try{ localStorage.setItem('calDesign', CAL_V2?'v1':'v2'); }catch(e){} location.reload(); }
-(function(){ const l=document.getElementById('calDesignToggleLabel'); if(l) l.textContent=CAL_V2?'이전 디자인으로 보기':'새 디자인으로 보기'; })();
+// 디자인 전환 버튼 하나 — 오피스 새 디자인(drgoUx)이 켜져 있으면 그 상태를 기준으로, 꺼져 있으면(서버 롤백) 캘린더 디자인만 전환
+function calDesignOn(){ return (window.drgoUx && drgoUx.allowed) ? drgoUx.on : CAL_V2; }
+function toggleCalDesign(){
+    const next = !calDesignOn();
+    try{ localStorage.setItem('calDesign', next?'v2':'v1'); }catch(e){}
+    if (window.drgoUx && drgoUx.allowed) { drgoUx.set(next?'v2':'v1'); return; } // 새로고침 포함
+    location.reload();
+}
+(function(){ const l=document.getElementById('calDesignToggleLabel'); if(l) l.textContent=calDesignOn()?'이전 디자인으로 보기':'새 디자인으로 보기'; })();
 // 뷰 → 탭 버튼 id (v2 모바일은 월 탭이 칩형 월간(monthc)을 담당)
 function calTabId(view){
     if(view==='monthc'&&calMobileV2()) view='month';

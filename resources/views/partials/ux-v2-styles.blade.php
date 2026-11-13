@@ -129,13 +129,14 @@ html.ux-v2 .page-wrap .page-header-left { min-width:0; }
 /* ── 캘린더 ── */
 @media (min-width: 769px) {
     /* 상단 한 줄: 왼쪽 [오늘] ‹ 연·월 › · 새로고침 · 검색 / 오른쪽 범례 · 보기 · 주 수 · 작성 모드 · 휴지통 · 더보기 */
-    html.ux-v2 .cal-header { flex-wrap:nowrap; padding:14px 24px; gap:8px; }
+    html.ux-v2 .cal-header { flex-wrap:wrap; padding:14px 24px; gap:8px; row-gap:10px; }
     html.ux-v2 .cal-header::before { display:none; }
-    html.ux-v2 .cal-header-left { flex-wrap:nowrap; gap:6px; margin-right:auto; min-width:0; }
+    html.ux-v2 .cal-header-left { flex-wrap:nowrap; gap:6px; margin-right:auto; flex-shrink:0; } /* 줄어들지 않게 — 범례 밑으로 깔리던 문제 */
     html.ux-v2 .cal-header .cal-center-nav { position:static; transform:none; order:-1; gap:2px; margin-right:8px; }
     html.ux-v2 .cal-header .cal-center-nav .cal-today-btn { position:static; transform:none; margin:0 6px 0 0; height:32px; border-radius:8px; }
     html.ux-v2 .cal-header .cal-center-nav .month-label { font-size:22px; font-weight:800; letter-spacing:-.04em; margin:0 2px; }
-    html.ux-v2 .cal-header .cal-legend { position:static; order:9; height:auto; margin:0 8px 0 0; }
+    html.ux-v2 .cal-header .cal-legend { position:static; order:9; height:auto; margin:0 8px 0 0; flex-shrink:0; }
+    html.ux-v2 .cal-header .cal-legend .lg-hint { display:none; }
     html.ux-v2 .cal-header .view-toggle-group { order:10; margin-left:0; background:#e9ebef; border-radius:10px; padding:3px; }
     html.ux-v2 .cal-header .view-toggle-btn { padding:5px 13px; border-radius:7px; font-size:13px; }
     html.ux-v2 .cal-header .view-toggle-btn.active { background:#fff; color:var(--ux-ink); font-weight:700; box-shadow:0 1px 2px rgba(23,26,32,.12); }

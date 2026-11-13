@@ -9,7 +9,8 @@
     window.drgoUx = {
         allowed: allowed,
         on: on,
-        set: function (v) { try { localStorage.setItem('drgo_ux', v); } catch (e) {} location.reload(); },
+        // 디자인 설정은 하나 — 캘린더 디자인(calDesign)도 같은 값으로 맞춘다
+        set: function (v) { try { localStorage.setItem('drgo_ux', v); localStorage.setItem('calDesign', v); } catch (e) {} location.reload(); },
         toggleHtml: function (cls) {
             if (!allowed) { return ''; }
             return '<button type="button" class="' + (cls || '') + ' ux2-switch" onclick="drgoUx.set(drgoUx.on ? \'v1\' : \'v2\')" title="화면 디자인 전환 (나만 적용)">' + (on ? '이전 디자인' : '새 디자인') + '</button>';
