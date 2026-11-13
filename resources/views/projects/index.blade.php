@@ -173,6 +173,7 @@
 @endpush
 
 @section('content')
+@include('partials.assignee-options')
 <div class="proj-shell" id="projShell">
     <div class="proj-tabstrip" id="projTabStrip"></div>
     <div class="proj-pane-wrap" id="projPaneWrap">
@@ -600,6 +601,10 @@
                     <select id="npWorkType" style="width:100%; padding:9px 12px; background:var(--surface2); border:1px solid var(--border); border-radius:8px; color:var(--text); font-size:14px; outline:none; box-sizing:border-box;"></select>
                 </div>
             </div>
+            <div>
+                <div style="font-size:12px; color:var(--text-muted); margin-bottom:4px;">담당자 <span style="opacity:.8;">기본은 작성자</span></div>
+                <span id="npAssigneeWrap"></span>
+            </div>
             <div id="npMemoRow">
                 <div style="font-size:12px; color:var(--text-muted); margin-bottom:4px;">프로젝트 개요</div>
                 <textarea id="npMemo" rows="2" placeholder="간단한 프로젝트 개요" style="width:100%; padding:9px 12px; background:var(--surface2); border:1px solid var(--border); border-radius:8px; color:var(--text); font-size:14px; outline:none; box-sizing:border-box; resize:vertical;"></textarea>
@@ -734,6 +739,7 @@ async function openNewProjectModal() {
     document.getElementById('npManualName').value = '';
     toggleNpNoClient();
     document.getElementById('npName').value = '';
+    document.getElementById('npAssigneeWrap').innerHTML = assigneeSelectHtml('npAssignee', null, '', 'width:100%; padding:9px 12px; background:var(--surface2); border:1px solid var(--border); border-radius:8px; color:var(--text); font-size:14px; outline:none; box-sizing:border-box;');
     document.getElementById('npScale').value = 'personal';
     document.getElementById('npMemo').value = '';
     document.getElementById('npPaymentOnly').checked = false;
@@ -878,6 +884,7 @@ async function submitNewProject() {
         };
     }
     body.tags = CrmTagPicker.value('np'); // 대분류/소분류
+    body.assigned_user_id = assigneeValue('npAssignee');
     if (noClient) {
         body.manual_client_name = document.getElementById('npManualName').value.trim() || null;
     }

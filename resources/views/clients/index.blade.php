@@ -364,6 +364,7 @@
 @endpush
 
 @section('content')
+@include('partials.assignee-options')
 <div class="crm-wrap">
     {{-- 좌측 사이드바 --}}
     <div class="crm-sidebar">
@@ -461,6 +462,7 @@
                         <option value="studio">스튜디오</option>
                     </select>
                 </label>
+                <label class="ncm-pill">담당자 <span id="ncAssigneeWrap"></span></label>
             </div>
         </div>
 
@@ -1251,6 +1253,7 @@ function renderClientContent(id) {
                                 <option value="rental" ${d.grade==='rental'?'selected':''}>렌탈</option>
                             </select>
                         </div>
+                        <div><div class="ncm-label">담당자</div>${assigneeSelectHtml(`f-assignee-${id}`, d.assigned_user_id, 'field-input field-select', '', true)}</div>
                         <div><div class="ncm-label">성별</div>
                             <select class="field-input field-select" id="f-gender-${id}">
                                 <option value="">미지정</option>
@@ -1408,6 +1411,10 @@ function renderClientContent(id) {
                             <option value="as">A/S</option>
                         </select>
                     </div>
+                </div>
+                <div class="field" style="margin-top:10px;">
+                    <div class="field-label">담당자 <span style="font-weight:400; color:var(--text-muted);">기본은 작성자</span></div>
+                    ${assigneeSelectHtml(`pf-assignee-${id}`, null, 'field-input field-select')}
                 </div>
                 <div class="field" style="margin-top:10px;">
                     <div class="field-label">프로젝트 개요</div>
@@ -1821,6 +1828,7 @@ async function createProject(clientId) {
         work_type: document.getElementById('pf-work_type-' + clientId).value,
         overview: document.getElementById('pf-memo-' + clientId).value,
         tags: CrmTagPicker.value('client-' + clientId),
+        assigned_user_id: assigneeValue('pf-assignee-' + clientId),
     };
     const res = await fetch(`/clients/${clientId}/projects`, {
         method:'POST', headers:{'Content-Type':'application/json','X-CSRF-TOKEN':CSRF,'Accept':'application/json'},
@@ -2132,6 +2140,7 @@ async function saveClient(id) {
         nickname: document.getElementById(`f-nickname-${id}`).value,
         phone: document.getElementById(`f-phone-${id}`).value,
         grade: document.getElementById(`f-grade-${id}`).value,
+        assigned_user_id: assigneeValue(`f-assignee-${id}`),
         affiliation: document.getElementById(`f-affiliation-${id}`)?.value || '',
         gender: document.getElementById(`f-gender-${id}`)?.value || null,
         address: document.getElementById(`f-address-${id}`)?.value || '',
@@ -2209,6 +2218,7 @@ function openNewClientModal() {
     document.getElementById('ncPlatformsWrap').innerHTML = renderCheckboxGroup('platforms', 'nc', PLATFORM_OPTIONS, [], '');
     document.getElementById('stationAddrWrap-nc').innerHTML = ''; // 방송국 주소 입력폼 초기화
     document.getElementById('ncTopicsWrap').innerHTML = renderCheckboxGroup('topics', 'nc', TOPIC_OPTIONS, [], '');
+    document.getElementById('ncAssigneeWrap').innerHTML = assigneeSelectHtml('ncAssignee', null); // 기본: 작성자(나)
     // 헤더 날짜 + 작성 현황 초기화
     const n = new Date();
     document.getElementById('ncmToday').textContent = `${n.getFullYear()}.${String(n.getMonth()+1).padStart(2,'0')}.${String(n.getDate()).padStart(2,'0')} 등록`;
@@ -2485,6 +2495,7 @@ async function createClient(forceDuplicate = false) {
         grade: document.getElementById('ncGrade').value,
         inflow_source: getRadioValue('ncInflow') || null,
         client_type: document.getElementById('ncClientType').value || null,
+        assigned_user_id: assigneeValue('ncAssignee'),
         platforms: p.values,
         platform_etc: p.values.includes('기타') ? p.etc : null,
         station_addresses: collectStationAddresses('nc'),
@@ -2643,6 +2654,7 @@ function renderClientView(d) {
         ${cvField('소속', d.affiliation)}
         ${cvField('유입경로', CV_SRC[d.inflow_source] || '')}
         ${cvField('의뢰자 유형', CV_TYPE[d.client_type] || '')}
+        ${cvField('담당자', d.assigned_user)}
         ${cvField('등록일', d.created_at)}
         <div><div class="cv-l">마케팅 활용 동의</div><div class="cv-v">${d.marketing_consent_count ? `<span style="color:var(--accent);font-weight:700;">동의 ${d.marketing_consent_count}회</span>` : '<span class="dim">동의 이력 없음</span>'}${d.marketing_denied_count ? ` <span style="color:var(--red, #dc2626);font-size:13px;">· 거부 ${d.marketing_denied_count}회</span>` : ''}</div></div>
         ${cvField(((d.extra_addresses||[]).length ? '주소 1 (메인)' : '주소') + (d.address_label ? ` · ${d.address_label}` : ''), addr, true)}

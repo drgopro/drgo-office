@@ -175,6 +175,7 @@ class ProjectController extends Controller
             'tags.major.*' => 'string|max:60',
             'tags.minor' => 'nullable|array',
             'tags.minor.*' => 'string|max:60',
+            'assigned_user_id' => 'nullable|integer|exists:users,id', // 담당자 — 비우면 작성자
         ];
         if (! $client) {
             $rules['manual_client_name'] = 'nullable|string|max:100';
@@ -187,7 +188,7 @@ class ProjectController extends Controller
         unset($validated['memo']);
 
         $validated['client_id'] = $client?->id;
-        $validated['assigned_user_id'] = Auth::id();
+        $validated['assigned_user_id'] = $validated['assigned_user_id'] ?? Auth::id(); // 담당자를 고르지 않으면 작성자가 담당
         $validated['stage'] = 'consulting';
         $validated['status'] = 'active';
 
@@ -381,6 +382,7 @@ class ProjectController extends Controller
             'visit_report' => 'sometimes|nullable|string',
             'marketing_consent' => 'sometimes|nullable|boolean', // null=미확인, true=동의, false=거부
             'marketing_posted' => 'sometimes|boolean', // 마케팅 포스팅 완료 여부 — true면 완료 시각 기록, false면 해제
+            'assigned_user_id' => 'sometimes|nullable|integer|exists:users,id', // 담당자 변경
             'custom_data' => 'nullable|array',
             'tags' => 'sometimes|nullable|array',
             'tags.major' => 'nullable|array',

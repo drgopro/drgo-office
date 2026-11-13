@@ -372,6 +372,7 @@
 @endpush
 
 @section('content')
+@include('partials.assignee-options')
 @php
     $projectDocs = $project->documents->sortByDesc('created_at')->values()->map(fn($d) => [
         'name' => $d->file_name,
@@ -967,6 +968,10 @@
                             <div style="font-size:12px; color:var(--text-muted); margin-bottom:4px;">작업 유형</div>
                             <select id="peWorkType" style="width:100%; padding:9px 12px; background:var(--surface2); border:1px solid var(--border); border-radius:8px; color:var(--text); font-size:14px; outline:none; box-sizing:border-box;"></select>
                         </div>
+                    </div>
+                    <div style="margin-top:12px;">
+                        <div style="font-size:12px; color:var(--text-muted); margin-bottom:4px;">담당자</div>
+                        <span id="peAssigneeWrap"></span>
                     </div>
                 </div>
                 <div style="display:flex; gap:8px; justify-content:flex-end; padding:14px 20px; border-top:1px solid var(--border);">
@@ -2160,6 +2165,7 @@ async function openProjectEditModal() {
     await loadActiveWorkTypes();
 
     document.getElementById('peName').value = CURRENT_PROJECT.name || '';
+    document.getElementById('peAssigneeWrap').innerHTML = assigneeSelectHtml('peAssignee', {{ $project->assigned_user_id ? (int) $project->assigned_user_id : 'null' }}, '', 'width:100%; padding:9px 12px; background:var(--surface2); border:1px solid var(--border); border-radius:8px; color:var(--text); font-size:14px; outline:none; box-sizing:border-box;', true);
     document.getElementById('peScale').value = CURRENT_PROJECT.client_scale || '';
     updatePeWorkType();
     document.getElementById('projectEditModalOverlay').style.display = 'flex';
@@ -2182,6 +2188,7 @@ async function saveProjectEdit() {
         project_type: document.getElementById('peProjectType').value,
         client_scale: document.getElementById('peScale').value || null,
         work_type: document.getElementById('peWorkType').value || null,
+        assigned_user_id: assigneeValue('peAssignee'),
     };
     const csrf = document.querySelector('meta[name="csrf-token"]').content;
     const res = await fetch(`/api/projects/{{ $project->id }}`, {

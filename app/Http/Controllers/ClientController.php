@@ -308,6 +308,7 @@ class ClientController extends Controller
             'extra_addresses.*.address_detail' => 'nullable|string|max:200',
             'extra_addresses.*.label' => 'nullable|string|max:30', // 주소 용도 (이사 전/후, 자택/스튜디오 등)
             'grade' => 'required|in:normal,vip,rental',
+            'assigned_user_id' => 'sometimes|nullable|integer|exists:users,id', // 담당자 — 등록 시 비우면 작성자
             'platforms' => 'nullable|array',
             'platform_etc' => 'nullable|string|max:100',
             'station_addresses' => 'nullable|array', // 플랫폼별 방송국 주소 (키=플랫폼명)
@@ -342,7 +343,7 @@ class ClientController extends Controller
             ]);
         }
 
-        $validated['assigned_user_id'] = Auth::id();
+        $validated['assigned_user_id'] = $validated['assigned_user_id'] ?? Auth::id(); // 담당자를 고르지 않으면 작성자가 담당
         $validated['status'] = 'active';
 
         $client = Client::create($validated);
@@ -405,6 +406,7 @@ class ClientController extends Controller
             'extra_addresses.*.address_detail' => 'nullable|string|max:200',
             'extra_addresses.*.label' => 'nullable|string|max:30', // 주소 용도 (이사 전/후, 자택/스튜디오 등)
             'grade' => 'required|in:normal,vip,rental',
+            'assigned_user_id' => 'sometimes|nullable|integer|exists:users,id', // 담당자 — 등록 시 비우면 작성자
             'platforms' => 'nullable|array',
             'platform_etc' => 'nullable|string|max:100',
             'station_addresses' => 'nullable|array', // 플랫폼별 방송국 주소 (키=플랫폼명)
@@ -568,6 +570,7 @@ class ClientController extends Controller
             'budget_style' => $client->budget_style,
             'status' => $client->status,
             'assigned_user' => $client->assignedUser?->display_name,
+            'assigned_user_id' => $client->assigned_user_id,
             'created_at' => $client->created_at->format('Y.m.d'),
             'projects' => $client->projects->map(fn ($p) => [
                 'id' => $p->id,
@@ -692,6 +695,7 @@ class ClientController extends Controller
             'extra_addresses.*.address_detail' => 'nullable|string|max:200',
             'extra_addresses.*.label' => 'nullable|string|max:30', // 주소 용도 (이사 전/후, 자택/스튜디오 등)
             'grade' => 'required|in:normal,vip,rental',
+            'assigned_user_id' => 'sometimes|nullable|integer|exists:users,id', // 담당자 — 등록 시 비우면 작성자
             'platforms' => 'nullable|array',
             'platform_etc' => 'nullable|string|max:100',
             'station_addresses' => 'nullable|array', // 플랫폼별 방송국 주소 (키=플랫폼명)
@@ -741,6 +745,7 @@ class ClientController extends Controller
             'nickname' => 'required|string|max:100',
             'phone' => 'nullable|string|max:30',
             'grade' => 'required|in:normal,vip,rental',
+            'assigned_user_id' => 'sometimes|nullable|integer|exists:users,id', // 담당자 — 등록 시 비우면 작성자
             'inflow_source' => 'nullable|string|in:search,referral,sns,ad,community,other',
             'client_type' => 'nullable|string|in:personal,enterprise,studio',
             'platforms' => 'nullable|array',
@@ -790,7 +795,7 @@ class ClientController extends Controller
                 ->slice(0, 3)->values()->all() ?: null;
         }
 
-        $validated['assigned_user_id'] = Auth::id();
+        $validated['assigned_user_id'] = $validated['assigned_user_id'] ?? Auth::id(); // 담당자를 고르지 않으면 작성자가 담당
         $validated['status'] = 'active';
 
         $client = Client::create($validated);
