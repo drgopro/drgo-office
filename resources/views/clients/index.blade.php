@@ -242,6 +242,26 @@
     body.client-new-write .new-client-overlay.open { display:block; }
     body.client-new-write .new-client-modal.ncm { width:auto; max-width:1180px; margin:0 auto; max-height:none; overflow:visible; border:0; border-radius:0; box-shadow:none; background:transparent; }
     body.client-new-write .ncm-btn.icon { display:none; }
+    /* 모바일 공통 규칙(모달 95vw·패딩 16px !important)을 작성 모드 등록 화면에서는 풀어 창 폭에 맞춘다 */
+    body.client-new-write .new-client-modal.ncm { width:auto !important; max-width:1180px !important; padding:0 !important; box-sizing:border-box; }
+    body.client-new-write .ncm-pill select { min-height:0 !important; height:auto; padding-top:0; padding-bottom:0; }
+    body.client-new-write .ncm-head { margin:22px 28px 0; border:1px solid var(--border); border-radius:14px; top:62px; box-shadow:0 8px 18px -16px rgba(23,26,32,.35); }
+    body.client-new-write .ncm-body { padding-top:16px; }
+    body.client-new-write .ncm-side { top:236px; } /* 따라오는 상단 카드 아래에 붙도록 — 가려지지 않게 */
+    body.client-new-write .ncm-btn { white-space:nowrap; }
+    @media (max-width: 900px) {
+        body.client-new-write .ncm-head { margin:12px 14px 0; position:static; padding:14px 16px; }
+        body.client-new-write .ncm-body { padding:12px 14px 24px; gap:12px; }
+        /* 상단: 메타 한 줄 → 버튼 한 줄(같은 폭) → 닉네임 → 등급·유형 */
+        body.client-new-write .ncm-head-top { flex-wrap:wrap; gap:10px; }
+        body.client-new-write .ncm-meta { width:100%; font-size:12px; white-space:nowrap; }
+        body.client-new-write .ncm-actions { width:100%; display:grid; grid-template-columns:1.4fr 1fr 1fr; gap:6px; }
+        body.client-new-write .ncm-actions .ncm-btn { height:38px; padding:0 8px; font-size:13px; }
+        body.client-new-write .ncm-hero { font-size:20px; margin-top:12px; }
+        body.client-new-write .ncm-pills { gap:6px; }
+        body.client-new-write .ncm-pill { font-size:12px; padding:4px 8px 4px 10px; }
+        body.client-new-write .ncm-card { padding:16px; border-radius:12px; }
+    }
     [data-theme="light"] .new-client-modal { background:#fff; border-color:#c8ccd4; }
     [data-theme="light"] .filter-chip.active { color:#fff; }
     [data-theme="light"] .toast { color:#fff; }
