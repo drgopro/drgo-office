@@ -5,15 +5,12 @@
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <meta name="robots" content="noindex">
 <title>의뢰자 조회 — 개편 샘플</title>
-<link rel="preconnect" href="https://fonts.googleapis.com">
-<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Hahmlet:wght@400;500;600;700&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/variable/pretendardvariable-dynamic-subset.min.css">
 <style>
 :root{
   --desk:#e9ebee; --desk-2:#dfe2e6; --paper:#fdfdfc; --ink:#171a20; --ink-2:#3b404a; --sub:#6a707c; --rule:#d3d7dd;
   --star:#d6283f; --star-soft:#fbe6e9; --memo:#fff7c9; --memo-edge:#efe2a0;
-  --serif:"Hahmlet","Noto Serif KR",serif;
+  --display:"Pretendard Variable",Pretendard,sans-serif;
 }
 *{box-sizing:border-box}
 html,body{margin:0}
@@ -26,7 +23,7 @@ button,input,textarea{font:inherit;color:inherit;letter-spacing:inherit}
 
 /* rail */
 .rail{background:var(--ink);display:flex;flex-direction:column;align-items:center;padding:18px 0;gap:6px}
-.logo{color:#fff;font-family:var(--serif);font-weight:700;font-size:20px;margin-bottom:18px;position:relative}
+.logo{color:#fff;font-family:var(--display);font-weight:800;font-size:20px;margin-bottom:18px;position:relative}
 .logo::after{content:"★";position:absolute;top:-6px;right:-10px;font-size:10px;color:var(--star)}
 .rail a{width:56px;padding:9px 0 7px;border-radius:12px;color:#9aa1ae;text-decoration:none;font-size:11px;display:flex;flex-direction:column;align-items:center;gap:4px}
 .rail a svg{width:20px;height:20px}
@@ -44,14 +41,14 @@ button,input,textarea{font:inherit;color:inherit;letter-spacing:inherit}
 .people button:hover .pn{text-decoration:underline;text-underline-offset:3px}
 .people .pn{font-weight:600;font-size:15px}
 .people .ps{font-size:13px;color:var(--sub);margin-left:auto;white-space:nowrap}
-.people button[aria-current] .pn{font-family:var(--serif);font-size:17px}
+.people button[aria-current] .pn{font-weight:800;font-size:16px}
 .people button[aria-current] .ps{color:var(--star);font-weight:600}
 
 /* main */
 .main{padding:34px 44px 70px;min-width:0}
 .top{display:flex;align-items:flex-start;gap:20px;flex-wrap:wrap}
 .name{flex:1;min-width:260px}
-.name h1{font-family:var(--serif);font-weight:700;font-size:52px;line-height:1.05;margin:0;letter-spacing:-.04em}
+.name h1{font-family:var(--display);font-weight:800;font-size:54px;line-height:1.05;margin:0;letter-spacing:-.055em}
 .facts{display:flex;flex-wrap:wrap;gap:4px 22px;margin-top:12px;color:var(--ink-2);font-size:15px}
 .facts .vip{color:var(--star);font-weight:700}
 .btns{display:flex;gap:8px;padding-top:8px}
@@ -83,7 +80,7 @@ button,input,textarea{font:inherit;color:inherit;letter-spacing:inherit}
 /* desk of objects */
 .desk{position:relative;padding-left:96px}
 .when{position:absolute;left:-96px;top:0;width:80px;font-size:13px;color:var(--sub);line-height:1.35;padding-top:6px}
-.when b{display:block;font-family:var(--serif);font-size:17px;color:var(--ink);font-weight:600}
+.when b{display:block;font-family:var(--display);font-size:17px;color:var(--ink);font-weight:700;letter-spacing:-.03em}
 .obj{position:relative;margin-bottom:26px}
 
 .memo{background:var(--memo);padding:18px 22px 16px;border-radius:2px 2px 14px 2px;box-shadow:0 1px 0 var(--memo-edge),0 10px 22px -16px rgba(80,60,0,.45);max-width:560px}
@@ -94,13 +91,13 @@ button,input,textarea{font:inherit;color:inherit;letter-spacing:inherit}
   -webkit-mask:linear-gradient(#000 0 0) top/100% calc(100% - 8px) no-repeat, radial-gradient(circle 5px at 50% 100%,transparent 98%,#000) bottom/12px 9px repeat-x;
           mask:linear-gradient(#000 0 0) top/100% calc(100% - 8px) no-repeat, radial-gradient(circle 5px at 50% 100%,transparent 98%,#000) bottom/12px 9px repeat-x}
 .receipt .t{font-size:13px;color:var(--sub);display:flex;justify-content:space-between}
-.receipt .amt{font-family:var(--serif);font-size:28px;font-weight:700;letter-spacing:-.03em;margin:4px 0 2px}
+.receipt .amt{font-family:var(--display);font-size:30px;font-weight:800;letter-spacing:-.04em;margin:4px 0 2px}
 .receipt .d{font-size:13px;color:var(--ink-2);border-top:1px dashed var(--rule);padding-top:8px;margin-top:8px}
 
 .doc{background:var(--paper);max-width:420px;padding:18px 22px 16px;box-shadow:0 10px 24px -18px rgba(23,26,32,.55);
   clip-path:polygon(0 0,calc(100% - 26px) 0,100% 26px,100% 100%,0 100%)}
 .doc::after{content:"";position:absolute;top:0;right:0;width:26px;height:26px;background:linear-gradient(225deg,var(--desk) 50%,#e3e5e8 50%)}
-.doc h4{margin:0;font-family:var(--serif);font-size:18px;font-weight:600}
+.doc h4{margin:0;font-family:var(--display);font-size:18px;font-weight:700;letter-spacing:-.03em}
 .doc h4 a{color:inherit;text-decoration:none}
 .doc h4 a:hover{text-decoration:underline;text-underline-offset:3px}
 .doc ul{list-style:none;margin:10px 0 8px;padding:0;font-size:14px;color:var(--ink-2)}
@@ -111,10 +108,10 @@ button,input,textarea{font:inherit;color:inherit;letter-spacing:inherit}
 
 .ticket{display:flex;max-width:440px;background:var(--paper);border-radius:12px;box-shadow:0 10px 24px -18px rgba(23,26,32,.55);overflow:hidden}
 .ticket .main-t{padding:16px 20px;flex:1}
-.ticket .stub{width:96px;border-left:2px dashed var(--desk-2);display:flex;flex-direction:column;align-items:center;justify-content:center;font-family:var(--serif);position:relative}
+.ticket .stub{width:96px;border-left:2px dashed var(--desk-2);display:flex;flex-direction:column;align-items:center;justify-content:center;font-family:var(--display);position:relative}
 .ticket .stub::before,.ticket .stub::after{content:"";position:absolute;left:-9px;width:16px;height:16px;border-radius:50%;background:var(--desk)}
 .ticket .stub::before{top:-8px}.ticket .stub::after{bottom:-8px}
-.ticket .stub b{font-size:30px;line-height:1;font-weight:700}
+.ticket .stub b{font-size:34px;line-height:1;font-weight:800;letter-spacing:-.04em}
 .ticket .stub span{font-size:12px;color:var(--sub);font-family:inherit;margin-top:4px}
 .ticket .k{font-size:13px;color:var(--sub)}
 .ticket .h{font-weight:700;font-size:16px;margin:2px 0}
@@ -125,7 +122,7 @@ button,input,textarea{font:inherit;color:inherit;letter-spacing:inherit}
 /* side — no boxes */
 .side{position:sticky;top:24px}
 .side h3{font-size:13px;color:var(--sub);font-weight:600;margin:0 0 6px}
-.next-date{font-family:var(--serif);font-size:34px;line-height:1.15;font-weight:700;letter-spacing:-.03em}
+.next-date{font-family:var(--display);font-size:36px;line-height:1.15;font-weight:800;letter-spacing:-.045em}
 .next-date small{display:block;font-size:18px;font-weight:500;color:var(--ink-2);letter-spacing:-.02em;margin-top:2px}
 .next-p{margin:10px 0 14px;color:var(--ink-2);font-size:14px}
 .side .row{display:flex;gap:6px;flex-wrap:wrap}
