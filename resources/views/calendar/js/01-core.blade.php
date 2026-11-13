@@ -464,6 +464,8 @@ const CS_COLLAPSE_KEY='calSideFilterCollapsed';
 function csToggleSide(){
     const side=document.getElementById('calSide');
     if(!side) return;
+    // 1024px 이하에서는 패널이 떠 있는 서랍 — « 는 접기가 아니라 서랍 닫기 (접기 클래스는 서랍에서 효과가 없어 '안 눌리는' 것처럼 보였음)
+    if(window.innerWidth<=1024 || side.classList.contains('mobile-open')){ csToggleMobile(false); return; }
     const collapsed=side.classList.toggle('collapsed');
     try{ localStorage.setItem(CS_COLLAPSE_KEY, collapsed?'1':''); }catch(e){}
     renderCalSide();

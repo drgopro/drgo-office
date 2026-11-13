@@ -207,7 +207,7 @@
         <span class="cs-mini-nav">
             <button type="button" onclick="csMiniMove(-1)" title="이전 달">‹</button>
             <button type="button" onclick="csMiniMove(1)" title="다음 달">›</button>
-            <button type="button" id="csCollapseBtn" onclick="csToggleSide()" title="필터 접기">«</button>
+            <button type="button" id="csCollapseBtn" onclick="csToggleSide()" title="필터 접기 (작은 화면에서는 닫기)">«</button>
         </span>
     </div>
     <div class="cs-mini-grid cs-mini-dow"><span style="color:#b83a3a;">일</span><span>월</span><span>화</span><span>수</span><span>목</span><span>금</span><span style="color:#2e5fb8;">토</span></div>

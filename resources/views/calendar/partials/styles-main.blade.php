@@ -425,6 +425,9 @@
     #calSide.collapsed #calSideBody { display:none; }
     #csRail { display:none; }
     #calSide.collapsed #csRail { display:flex; flex-direction:column; align-items:center; gap:9px; }
+    /* 서랍으로 열렸을 때는 예전에 접어 둔 상태여도 내용 전체를 보여준다 */
+    #calSide.mobile-open.collapsed #calSideBody { display:block; }
+    #calSide.mobile-open.collapsed #csRail { display:none; }
     #csRail .cs-dot { width:10px; height:10px; cursor:pointer; }
     #csRail .cs-dot.off { opacity:0.25; }
     #csRail .cs-dot:hover { transform:scale(1.25); }
