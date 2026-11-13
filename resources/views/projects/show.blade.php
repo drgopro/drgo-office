@@ -1470,6 +1470,7 @@
 
     {{-- 새 화면 디자인(UX v2) 요약 줄 채우기 — 꺼져 있으면 아무것도 하지 않는다 --}}
     <script>
+    window.WM_CLIENT_ID = {{ $project->client_id ? (int) $project->client_id : 'null' }}; // 작성 모드 창 '의뢰자' 탭 → 이 프로젝트의 의뢰자
     document.addEventListener('DOMContentLoaded', function () {
         const slot = document.getElementById('uxSwitchSlot');
         if (slot && window.drgoUx) { slot.outerHTML = drgoUx.toggleHtml('btn-ghost'); }

@@ -340,11 +340,10 @@ document.addEventListener('click', function(e){
             html[data-theme] .header .logo { color:#fff; border-right:none; display:flex; align-items:center; }
             html[data-theme] .header .logo .logo-text { display:none; }
             html[data-theme] .header .logo .logo-img { display:block; height:26px; width:auto; }
-            /* 접힌 사이드바 — 가로로 긴 로고가 좁은 폭에 잘려 보이지 않게 정사각 표시(닥★)로 바꾼다 */
+            /* 접힌 사이드바 — 가로로 긴 로고가 좁은 폭에 잘려 보이지 않게 'DRGO' 글자로 바꾼다 */
             html[data-theme] body.side-collapsed .header .logo { justify-content:center; padding:0 0 12px; margin:0 0 8px; }
             html[data-theme] body.side-collapsed .header .logo .logo-img { display:none; }
-            html[data-theme] body.side-collapsed .header .logo::before { content:"닥"; font-size:21px; font-weight:800; color:#fff; letter-spacing:-.02em; line-height:1; }
-            html[data-theme] body.side-collapsed .header .logo::after { content:"★"; font-size:10px; color:#e5484d; align-self:flex-start; margin-left:1px; }
+            html[data-theme] body.side-collapsed .header .logo::before { content:"DRGO"; font-size:13px; font-weight:800; color:#fff; letter-spacing:.06em; line-height:1; white-space:nowrap; }
             html[data-theme] .side-toggle { color:#8fa0bd; background:transparent; border-color:#334565; }
             html[data-theme] .side-search { background:rgba(255,255,255,0.06); border-color:#334565; color:#9aa9c4; }
             html[data-theme] .side-search:hover { border-color:#5c7aa6; color:#dbe3f0; }

@@ -44,9 +44,9 @@
 <nav class="wmnav" aria-label="작성 모드 이동">
     <span class="wmnav-title"><svg viewBox="0 0 24 24"><path d="M12 20h9"/><path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4z"/></svg><span>작성 모드</span></span>
     <div class="wmtabs" role="tablist">
-        <div class="wmtab" data-kind="clients"><button type="button" class="wmtab-go" role="tab" onclick="wmGo('clients')"><b>의뢰자</b><span></span></button><button type="button" class="wmtab-find" onclick="wmNavPop(event,'clients')" title="다른 의뢰자 찾기 · 새 등록" aria-label="의뢰자 찾기"><svg viewBox="0 0 24 24"><circle cx="11" cy="11" r="6.5"/><path d="m20 20-4.2-4.2"/></svg></button><div class="wm-pop" id="wmPopClients"></div></div>
-        <div class="wmtab" data-kind="projects"><button type="button" class="wmtab-go" role="tab" onclick="wmGo('projects')"><b>프로젝트</b><span></span></button><button type="button" class="wmtab-find" onclick="wmNavPop(event,'projects')" title="다른 프로젝트 찾기" aria-label="프로젝트 찾기"><svg viewBox="0 0 24 24"><circle cx="11" cy="11" r="6.5"/><path d="m20 20-4.2-4.2"/></svg></button><div class="wm-pop" id="wmPopProjects"></div></div>
-        <div class="wmtab cal" data-kind="calendar"><button type="button" class="wmtab-go" role="tab" onclick="wmGo('calendar')"><b>캘린더</b></button></div>
+        <div class="wmtab" data-kind="clients"><button type="button" class="wmtab-go" role="tab" onclick="wmGo(event,'clients')"><b>의뢰자</b><span></span></button><button type="button" class="wmtab-find" onclick="wmNavPop(event,'clients')" title="다른 의뢰자 찾기 · 새 등록" aria-label="의뢰자 찾기"><svg viewBox="0 0 24 24"><circle cx="11" cy="11" r="6.5"/><path d="m20 20-4.2-4.2"/></svg></button><div class="wm-pop" id="wmPopClients"></div></div>
+        <div class="wmtab" data-kind="projects"><button type="button" class="wmtab-go" role="tab" onclick="wmGo(event,'projects')"><b>프로젝트</b><span></span></button><button type="button" class="wmtab-find" onclick="wmNavPop(event,'projects')" title="다른 프로젝트 찾기" aria-label="프로젝트 찾기"><svg viewBox="0 0 24 24"><circle cx="11" cy="11" r="6.5"/><path d="m20 20-4.2-4.2"/></svg></button><div class="wm-pop" id="wmPopProjects"></div></div>
+        <div class="wmtab cal" data-kind="calendar"><button type="button" class="wmtab-go" role="tab" onclick="wmGo(event,'calendar')"><b>캘린더</b></button></div>
     </div>
 </nav>
 @include('layouts.tab-content')
@@ -98,6 +98,12 @@ try { window.name = 'drgo-write'; } catch (e) {}
         pop.innerHTML = (kind === 'clients' ? '<button type="button" class="wm-pop-new" onclick="location.href=\'/clients/create/write\'">+ 새 의뢰자 등록</button>' : '') + '<div class="wm-pop-s"></div>';
         pop.onclick = ev => ev.stopPropagation();
         drgoWriteMode.mountSearch(pop.querySelector('.wm-pop-s'), [kind]);
+        const rel = kind === 'projects' ? relatedProjects() : [];
+        if (rel.length) {
+            const esc = v => String(v ?? '').replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
+            const res = pop.querySelector('.wm-s-res');
+            res.innerHTML = '<div class="wm-s-empty" style="padding:4px 6px 6px;font-weight:700;color:#1f2430;">이 의뢰자의 프로젝트</div>' + rel.map(p => `<div class="wm-s-row"><span class="k">${p.stage === 'done' ? '완료' : p.stage === 'cancelled' ? '취소' : '진행'}</span><span class="t"><b>${esc(p.name)}</b><span>${esc(p.created_at || '')}</span></span><button type="button" onclick="location.href='/projects/${p.id}/write'">열기</button></div>`).join('');
+        }
         pop.classList.add('open');
     };
     document.addEventListener('click', () => document.querySelectorAll('.wm-pop').forEach(p => p.classList.remove('open')));
@@ -126,12 +132,28 @@ try { window.name = 'drgo-write'; } catch (e) {}
         render();
         if (label) { document.title = label + ' — 작성 모드'; }
     }
-    window.wmGo = function (kind) {
-        if (kind === cur && kind !== 'calendar') { document.querySelector(`.wmtab[data-kind="${kind}"] .wmtab-find`)?.click(); return; }
+    // 지금 화면과 이어진 건 — 프로젝트 화면이면 그 의뢰자, 의뢰자 화면이면 그 의뢰자의 프로젝트들
+    function relatedClientId() { return window.WM_CLIENT_ID || null; }
+    function relatedProjects() {
+        try {
+            if (typeof CLIENT_FOCUS_ID === 'undefined' || !CLIENT_FOCUS_ID || typeof openClientTabs === 'undefined') { return []; }
+            const t = openClientTabs.find(x => x.id === CLIENT_FOCUS_ID);
+            return [...((t && t.data && t.data.projects) || [])].sort((a, b) => String(b.created_at || '').localeCompare(String(a.created_at || '')));
+        } catch (e) { return []; }
+    }
+    function openFind(kind) {
+        const btn = document.querySelector(`.wmtab[data-kind="${kind}"] .wmtab-find`);
+        if (btn) { wmNavPop({ stopPropagation() {}, currentTarget: btn }, kind); }
+    }
+    window.wmGo = function (e, kind) {
+        e.stopPropagation(); // 이 클릭이 문서까지 올라가 방금 연 찾기 창을 닫지 않게
+        if (kind === cur && kind !== 'calendar') { openFind(kind); return; }
         const last = load();
         if (kind === 'calendar') { location.href = (last.calendar && last.calendar.u) || '/calendar/write'; return; }
+        if (kind === 'clients' && cur === 'projects' && relatedClientId()) { location.href = `/clients/${relatedClientId()}/write`; return; }
+        if (kind === 'projects' && cur === 'clients' && relatedProjects().length) { openFind('projects'); return; }
         if (last[kind] && last[kind].u) { location.href = last[kind].u; return; }
-        document.querySelector(`.wmtab[data-kind="${kind}"] .wmtab-find`)?.click(); // 아직 연 적 없으면 찾기부터
+        openFind(kind); // 아직 연 적 없으면 찾기부터
     };
     remember(location.pathname === '/clients/create/write' ? '신규 등록' : (cur === 'calendar' ? '' : ''));
     // 화면이 그려진 뒤 이름을 읽어 탭 이름을 채운다
