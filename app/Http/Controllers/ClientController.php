@@ -42,6 +42,17 @@ class ClientController extends Controller
         return view('clients.index', compact('clients'));
     }
 
+    /**
+     * 작성 모드 — 의뢰자 한 명만 띄우는 독립 창(사이드바·앱 탭 없음).
+     * 상담 중 의뢰자별로 브라우저 새 창/새 탭을 띄워 작성할 수 있게 기존 상세 화면을 그대로 재사용한다.
+     */
+    public function writeMode(Client $client)
+    {
+        config(['view.tab_mode' => true, 'view.standalone' => true]); // 앱 헤더·탭바 없는 단독 문서
+
+        return view('clients.index', ['clients' => null, 'focusClient' => $client]);
+    }
+
     // 상세
     public function show(Client $client)
     {

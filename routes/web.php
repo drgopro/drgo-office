@@ -292,6 +292,7 @@ Route::middleware('auth')->group(function () {
         Route::get('/api/clients/search', [ClientController::class, 'search']);
         Route::get('/clients', [ClientController::class, 'index'])->name('clients.index');
         Route::get('/clients/{client}', [ClientController::class, 'show'])->name('clients.show');
+        Route::get('/clients/{client}/write', [ClientController::class, 'writeMode'])->name('clients.write'); // 작성 모드 — 의뢰자 1명 전용 새 창/새 탭
     });
 
     // 프로젝트
