@@ -4,6 +4,8 @@
 .wm-split { display:inline-flex; position:relative; vertical-align:middle; }
 .wm-split > button:first-child { border-top-right-radius:0 !important; border-bottom-right-radius:0 !important; }
 .wm-split > button + button { border-top-left-radius:0 !important; border-bottom-left-radius:0 !important; border-left:none !important; padding-left:7px !important; padding-right:7px !important; }
+.wm-accent { color:var(--accent, #3b5ea0) !important; border:1px solid var(--accent, #3b5ea0) !important; background:color-mix(in srgb, var(--accent, #3b5ea0) 8%, transparent) !important; font-weight:700 !important; }
+.wm-accent:hover { background:var(--accent, #3b5ea0) !important; color:#fff !important; }
 .wm-menu { position:absolute; right:0; top:calc(100% + 4px); background:var(--surface, #fff); border:1px solid var(--border, #d0d5dd); border-radius:8px; box-shadow:0 6px 20px rgba(0,0,0,.15); padding:4px; z-index:9500; min-width:150px; }
 .wm-menu button { display:block; width:100%; text-align:left; background:none; border:none; padding:8px 10px; font-size:12.5px; border-radius:6px; cursor:pointer; color:var(--text, #1a1e28); white-space:nowrap; }
 .wm-menu button:hover { background:var(--surface2, #eceef2); }
@@ -51,7 +53,8 @@
         /** '↗ 작성 모드 ▾' 버튼 묶음 HTML — cls는 각 화면의 기존 버튼 클래스 */
         buttonHtml(url, key, cls, label) {
             const u = String(url).replace(/'/g, "\\'"), k = String(key).replace(/'/g, "\\'");
-            return `<span class="wm-split"><button type="button" class="${cls || ''}" onclick="event.stopPropagation(); drgoWriteMode.open('${u}','${k}')" title="이 화면만 독립된 창으로 띄워 작성합니다 — 여러 건을 각각의 창으로 동시에 작업할 수 있습니다">↗ ${label || '작성 모드'}</button><button type="button" class="${cls || ''}" onclick="drgoWriteMode.menu(event,'${u}','${k}')" title="새 창 / 새 탭 선택">▾</button></span>`;
+            cls = (cls || '') + ' wm-accent';
+            return `<span class="wm-split"><button type="button" class="${cls}" onclick="event.stopPropagation(); drgoWriteMode.open('${u}','${k}')" title="이 화면만 독립된 창으로 띄워 작성합니다 — 여러 건을 각각의 창으로 동시에 작업할 수 있습니다">↗ ${label || '작성 모드'}</button><button type="button" class="${cls}" onclick="drgoWriteMode.menu(event,'${u}','${k}')" title="새 창 / 새 탭 선택">▾</button></span>`;
         },
         /** 다른 창의 변경 알림 구독 — fn({path, method}) */
         onMutation(fn) { handlers.push(fn); },

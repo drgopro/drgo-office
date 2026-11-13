@@ -198,6 +198,26 @@ document.addEventListener('click', function(e){
         .tab-bar-wrap { background:var(--surface2); border-bottom:1px solid var(--border); display:flex; align-items:flex-end; height:var(--tab-h); padding:0 16px; position:sticky; top:calc(var(--header-h) + env(safe-area-inset-top, 0px) + var(--gnb-h, 0px)); z-index:190; }
         .tab-strip { display:flex; align-items:flex-end; flex:1; height:100%; overflow-x:auto; gap:2px; scrollbar-width:none; }
 
+        /* ── 상단 '✍ 작성 모드' — 지금 보는 화면/새 작성을 독립 창으로 ── */
+        .wm-top { position:relative; }
+        .wm-top-btn { display:flex; align-items:center; gap:6px; height:28px; padding:0 12px; border-radius:8px; border:none; background:var(--accent); color:var(--accent-text, #fff); font-size:12px; font-weight:800; cursor:pointer; white-space:nowrap; box-shadow:0 1px 3px rgba(0,0,0,.12); }
+        .wm-top-btn:hover { filter:brightness(1.08); }
+        .wm-top-btn svg { width:14px; height:14px; fill:none; stroke:currentColor; stroke-width:2.2; stroke-linecap:round; stroke-linejoin:round; }
+        .wm-top-panel { display:none; position:absolute; right:0; top:calc(100% + 6px); width:300px; background:var(--surface); border:1px solid var(--border); border-radius:12px; box-shadow:0 10px 30px rgba(0,0,0,.18); padding:8px; z-index:400; }
+        .wm-top-panel.open { display:block; }
+        .wm-top-sec { font-size:10.5px; font-weight:800; letter-spacing:.06em; color:var(--text-muted); padding:8px 10px 4px; }
+        .wm-top-item { display:flex; align-items:center; gap:10px; width:100%; text-align:left; background:none; border:none; border-radius:8px; padding:9px 10px; cursor:pointer; color:var(--text); font-size:13px; }
+        .wm-top-item:hover { background:var(--surface2); }
+        .wm-top-item .k { flex-shrink:0; font-size:10.5px; font-weight:800; color:var(--accent); border:1px solid var(--accent); border-radius:6px; padding:1px 6px; }
+        .wm-top-item .t { flex:1; min-width:0; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; font-weight:600; }
+        .wm-top-item .a { color:var(--text-muted); font-size:12px; }
+        .wm-top-empty { font-size:12px; color:var(--text-muted); padding:6px 10px 10px; line-height:1.5; }
+        .wm-top-foot { display:flex; align-items:center; justify-content:space-between; gap:8px; border-top:1px solid var(--border); margin-top:6px; padding:8px 10px 2px; font-size:11.5px; color:var(--text-muted); }
+        .wm-top-seg { display:inline-flex; border:1px solid var(--border); border-radius:7px; overflow:hidden; }
+        .wm-top-seg button { background:none; border:none; padding:4px 10px; font-size:11.5px; cursor:pointer; color:var(--text-muted); }
+        .wm-top-seg button.on { background:var(--accent); color:var(--accent-text, #fff); font-weight:700; }
+        @media (max-width:768px) { .wm-top-btn .lbl { display:none; } .wm-top-btn { padding:0 9px; } .wm-top-panel { position:fixed; left:12px; right:12px; width:auto; top:calc(var(--header-h) + var(--tab-h) + 8px); } }
+
         /* ── 상단 우측 알림 + 가이드 ── */
         .notif-wrap { position:relative; flex-shrink:0; margin-left:8px; display:flex; align-items:center; gap:3px; }
         .guide-link { display:flex; align-items:center; gap:5px; height:26px; padding:0 9px; border-radius:8px; color:var(--text-muted); font-size:11.5px; font-weight:600; text-decoration:none; white-space:nowrap; }
@@ -729,6 +749,12 @@ window.DRGO_APP_VERSION = @json(app(\App\Services\AppVersion::class)->current())
     </button>
     {{-- 상단 우측 알림 --}}
     <div class="notif-wrap">
+        <div class="wm-top" id="wmTop">
+            <button type="button" class="wm-top-btn" onclick="wmTopToggle(event)" title="작성 모드 — 의뢰자·프로젝트·일정·견적서를 독립된 창으로 띄워 작성합니다">
+                <svg viewBox="0 0 24 24"><path d="M12 20h9"/><path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4z"/></svg><span class="lbl">작성 모드</span>
+            </button>
+            <div class="wm-top-panel" id="wmTopPanel" onclick="event.stopPropagation()"></div>
+        </div>
         <a href="/guide" class="guide-link" title="사용 가이드" onclick="event.preventDefault(); drgoTabs.openNav('guide','/guide');">
             <svg viewBox="0 0 24 24"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"></path><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"></path></svg>
             가이드
@@ -1566,5 +1592,47 @@ if(window === window.top){
 }
 </script>
 @stack('scripts')
+<script>
+// ── 상단 '✍ 작성 모드' 메뉴 ──
+const WM_CAN_NEW_CLIENT = @json(Auth::check() && Auth::user()->hasPermission('clients.edit'));
+const WM_CAN_NEW_EVENT = @json(Auth::check() && Auth::user()->hasPermission('calendar.edit'));
+function wmTopContext() {
+    // 활성 탭(iframe) 페이지가 알려주는 '지금 보는 건' — 의뢰자/프로젝트/일정/견적서
+    try {
+        const iframe = document.querySelector('#pane-' + drgoTabs.activeId + ' iframe');
+        const w = iframe && iframe.contentWindow;
+        return (w && typeof w.drgoWriteContext === 'function') ? w.drgoWriteContext() : null;
+    } catch (e) { return null; }
+}
+function wmTopRender() {
+    const panel = document.getElementById('wmTopPanel');
+    const ctx = wmTopContext();
+    const esc = s => String(s ?? '').replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
+    const pref = drgoWriteMode.pref();
+    let h = '<div class="wm-top-sec">지금 보는 화면</div>';
+    h += ctx
+        ? `<button class="wm-top-item" data-url="${esc(ctx.url)}" data-key="${esc(ctx.key)}"><span class="k">${esc(ctx.kind)}</span><span class="t">${esc(ctx.label)}</span><span class="a">↗</span></button>`
+        : '<div class="wm-top-empty">의뢰자·프로젝트·일정·견적서를 열어 두면 여기서 바로 작성 모드로 띄울 수 있어요.</div>';
+    if (WM_CAN_NEW_CLIENT || WM_CAN_NEW_EVENT) {
+        h += '<div class="wm-top-sec">새로 작성</div>';
+        if (WM_CAN_NEW_CLIENT) h += '<button class="wm-top-item" data-url="/clients/create/write" data-key="client-new"><span class="k">의뢰자</span><span class="t">새 의뢰자 등록</span><span class="a">↗</span></button>';
+        if (WM_CAN_NEW_EVENT) h += `<button class="wm-top-item" data-url="/calendar/write?new=1&date=${(d => d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0'))(new Date())}" data-key="schedule-new-${Date.now()}"><span class="k">일정</span><span class="t">새 일정 작성</span><span class="a">↗</span></button>`;
+    }
+    h += `<div class="wm-top-foot"><span>열기 방식</span><span class="wm-top-seg"><button data-t="window" class="${pref === 'window' ? 'on' : ''}">새 창</button><button data-t="tab" class="${pref === 'tab' ? 'on' : ''}">새 탭</button></span></div>`;
+    panel.innerHTML = h;
+    panel.querySelectorAll('.wm-top-item').forEach(b => b.onclick = () => { panel.classList.remove('open'); drgoWriteMode.open(b.dataset.url, b.dataset.key); });
+    panel.querySelectorAll('.wm-top-seg button').forEach(b => b.onclick = () => { drgoWriteMode.setPref(b.dataset.t); wmTopRender(); });
+}
+function wmTopToggle(e) {
+    e.stopPropagation();
+    const panel = document.getElementById('wmTopPanel');
+    if (panel.classList.contains('open')) { panel.classList.remove('open'); return; }
+    wmTopRender();
+    panel.classList.add('open');
+}
+document.addEventListener('click', () => document.getElementById('wmTopPanel')?.classList.remove('open'));
+// 탭 페이지(iframe) 안을 클릭하면 상위 창 click이 오지 않음 — 포커스가 iframe으로 넘어갈 때 닫기
+window.addEventListener('blur', () => setTimeout(() => { if (document.activeElement && document.activeElement.tagName === 'IFRAME') document.getElementById('wmTopPanel')?.classList.remove('open'); }, 0));
+</script>
 </body>
 </html>

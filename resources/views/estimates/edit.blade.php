@@ -429,8 +429,11 @@
     <div class="panel-right-header">
         <h2 id="estTitleNo" onclick="editEstTitle()" style="cursor:text; border-radius:6px; padding:2px 6px; margin-left:-6px;" title="클릭해서 견적서 제목 수정 (출력물 상단에 표시)">{{ $estimate->title ?: ($estimate->status === "temp" && ! $estimate->estimate_no ? "새 견적서" : "견적서 #".$estimate->display_no) }}</h2>
         {{-- 앱 탭(iframe) 안에서 열렸을 때만 — 독립 창(작성 모드)으로 꺼내기 --}}
-        <button type="button" id="estPopout" onclick="drgoWriteMode.open(location.pathname, 'est_{{ $estimate->id }}')" title="이 견적서를 독립된 창으로 띄웁니다" style="display:none; font-size:11.5px; font-weight:700; background:none; border:1px solid var(--border); color:var(--text-muted); border-radius:7px; padding:3px 9px; cursor:pointer; white-space:nowrap;">↗ 작성 모드</button>
-        <script>if (window !== window.top) document.getElementById('estPopout').style.display = '';</script>
+        <button type="button" id="estPopout" class="wm-accent" onclick="drgoWriteMode.open(location.pathname, 'est_{{ $estimate->id }}')" title="이 견적서를 독립된 창으로 띄웁니다" style="display:none; font-size:11.5px; font-weight:700; background:none; border:1px solid var(--border); color:var(--text-muted); border-radius:7px; padding:3px 9px; cursor:pointer; white-space:nowrap;">↗ 작성 모드</button>
+        <script>
+            if (window !== window.top) document.getElementById('estPopout').style.display = '';
+            window.drgoWriteContext = () => ({ kind: '견적서', label: @json('#'.$estimate->display_no.($estimate->client_nickname ? ' '.$estimate->client_nickname : '')), url: location.pathname, key: 'est_{{ $estimate->id }}' });
+        </script>
         <span id="testBadge" style="{{ $estimate->is_test ? '' : 'display:none;' }} font-size:11px; font-weight:800; color:#b45309; background:#fef3e2; border:1px solid #f3d9a9; padding:3px 10px; border-radius:999px; white-space:nowrap;" title="테스트 견적 — 검토 게이트를 건너뜁니다. 출력물에도 테스트 표시가 붙습니다.">테스트</span>
         <span class="order-mode-label" id="orderModeLabel" style="display:none;">주문/배송 페이지</span>
         <span style="display:flex; gap:6px; align-items:center; margin-left:auto; margin-right:8px;">

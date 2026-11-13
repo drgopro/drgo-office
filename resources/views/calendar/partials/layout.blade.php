@@ -58,7 +58,7 @@
         </div>
         @if(Auth::user()->hasPermission('calendar.edit'))
             <button class="add-btn" onclick="openNewModal(viewedDateStr())">+ 일정 추가</button>
-            <button class="nav-btn cal-wm-new" onclick="drgoWriteMode.open('/calendar/write?new=1&date=' + viewedDateStr(), 'schedule-new-' + Date.now())" title="새 일정을 작성 모드(독립 창)로 작성합니다 — 상담하면서 다른 화면과 오가며 쓰기 편합니다">↗ 작성 모드</button>
+            <button class="nav-btn cal-wm-new wm-accent" onclick="drgoWriteMode.open('/calendar/write?new=1&date=' + viewedDateStr(), 'schedule-new-' + Date.now())" title="새 일정을 작성 모드(독립 창)로 작성합니다 — 상담하면서 다른 화면과 오가며 쓰기 편합니다">↗ 작성 모드</button>
         @endif
         @if(Auth::user()->hasPermission('calendar.edit'))
             {{-- 휴지통 — 더보기 메뉴에서 꺼내 ⋯ 버튼 바로 왼쪽에 (데스크탑 우측 정렬은 아래 미디어쿼리에서) --}}

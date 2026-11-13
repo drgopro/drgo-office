@@ -103,4 +103,18 @@ class ClientWriteModeTest extends TestCase
         $this->actingAs($user)->get('/calendar/write?new=1&date=bad')->assertOk()
             ->assertSee('const CAL_WRITE_NEW_DATE = "'.now()->toDateString().'";', false);
     }
+
+    public function test_top_bar_write_mode_button_and_permission_gated_items(): void
+    {
+        $editor = $this->userWith(['clients.view', 'clients.edit', 'calendar.edit']);
+        $this->actingAs($editor)->get('/')->assertOk()
+            ->assertSee('id="wmTop"', false)
+            ->assertSee('const WM_CAN_NEW_CLIENT = true;', false)
+            ->assertSee('const WM_CAN_NEW_EVENT = true;', false);
+
+        $viewer = $this->userWith(['clients.view']);
+        $this->actingAs($viewer)->get('/')->assertOk()
+            ->assertSee('const WM_CAN_NEW_CLIENT = false;', false)
+            ->assertSee('const WM_CAN_NEW_EVENT = false;', false);
+    }
 }

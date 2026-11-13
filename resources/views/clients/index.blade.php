@@ -398,7 +398,7 @@
                 <div class="ncm-meta"><b>신규 의뢰자</b><span>·</span><span id="ncmToday"></span></div>
                 <div class="ncm-actions">
                     @if(empty($newClientWrite))
-                    <button type="button" class="ncm-btn" onclick="openNewClientWriteMode()" title="이 등록 화면을 독립된 창으로 띄웁니다 — 상담하면서 다른 화면과 오가며 작성하기 편합니다. 등록하면 그 창이 그대로 의뢰자 작성 모드가 됩니다">↗ 작성 모드로 열기</button>
+                    <button type="button" class="ncm-btn wm-accent" onclick="openNewClientWriteMode()" title="이 등록 화면을 독립된 창으로 띄웁니다 — 상담하면서 다른 화면과 오가며 작성하기 편합니다. 등록하면 그 창이 그대로 의뢰자 작성 모드가 됩니다">↗ 작성 모드로 열기</button>
                     @endif
                     <button type="button" class="ncm-btn" id="ncCtBtn" onclick="toggleCtPanel()" title="채널톡 상담 고객을 검색해 이름/연락처를 불러옵니다">채널톡 연동</button>
                     <button type="button" class="ncm-btn" onclick="closeNewClientModal()">취소</button>
@@ -866,6 +866,12 @@ if (__savedClientState.platform) {
 const CLIENT_FOCUS_ID = @json(isset($focusClient) ? $focusClient->id : null);
 const CLIENT_NEW_WRITE = @json(! empty($newClientWrite)); // 작성 모드로 신규 등록
 function openWriteMode(id) { drgoWriteMode.open(`/clients/${id}/write`, `client-${id}`); }
+// 상단 '✍ 작성 모드' 메뉴가 지금 보는 의뢰자를 알 수 있게
+window.drgoWriteContext = () => {
+    if (CLIENT_FOCUS_ID || CLIENT_NEW_WRITE || !activeClientId) return null;
+    const t = openClientTabs.find(x => x.id === activeClientId);
+    return { kind: '의뢰자', label: (t && (t.nickname || t.name)) || `#${activeClientId}`, url: `/clients/${activeClientId}/write`, key: `client-${activeClientId}` };
+};
 // 다른 창(작성 모드 ↔ 메인 목록)에서 이 의뢰자를 저장하면 같은 의뢰자를 띄워 둔 창이 자동 갱신
 const __syncTimers = {};
 drgoWriteMode.onMutation(({ path }) => {

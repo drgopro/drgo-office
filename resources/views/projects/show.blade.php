@@ -463,7 +463,7 @@
                 @endif
             @endunless
             @unless(config('view.standalone'))
-            <span class="wm-split"><button type="button" class="btn-edit" style="background:none;border:1px solid var(--border);color:var(--text-muted);padding:8px 12px;border-radius:8px;font-size:12px;cursor:pointer;" onclick="drgoWriteMode.open('/projects/{{ $project->id }}/write','project-{{ $project->id }}')" title="이 프로젝트만 독립된 창으로 띄워 작성합니다">↗ 작성 모드</button><button type="button" class="btn-edit" style="background:none;border:1px solid var(--border);color:var(--text-muted);padding:8px 7px;border-radius:8px;font-size:12px;cursor:pointer;" onclick="drgoWriteMode.menu(event,'/projects/{{ $project->id }}/write','project-{{ $project->id }}')" title="새 창 / 새 탭 선택">▾</button></span>
+            <span class="wm-split"><button type="button" class="btn-edit wm-accent" style="padding:8px 12px;border-radius:8px;font-size:12px;cursor:pointer;" onclick="drgoWriteMode.open('/projects/{{ $project->id }}/write','project-{{ $project->id }}')" title="이 프로젝트만 독립된 창으로 띄워 작성합니다">↗ 작성 모드</button><button type="button" class="btn-edit wm-accent" style="padding:8px 7px;border-radius:8px;font-size:12px;cursor:pointer;" onclick="drgoWriteMode.menu(event,'/projects/{{ $project->id }}/write','project-{{ $project->id }}')" title="새 창 / 새 탭 선택">▾</button></span>
             @endunless
             <button class="btn-edit" style="background:none;border:1px solid var(--border);color:var(--text-muted);padding:8px 14px;border-radius:8px;font-size:12px;cursor:pointer;" onclick="openActivityLog('Project',{{ $project->id }},'프로젝트 {{ $project->name }} 수정 로그')">📋 로그</button>
             <button class="btn-edit" style="background:none;border:1px solid var(--accent);color:var(--accent);padding:8px 14px;border-radius:8px;font-size:12px;cursor:pointer;font-weight:600;" onclick="openProjectEditModal()">✏️ 프로젝트 수정</button>
@@ -5209,6 +5209,7 @@ if (editorEl) {
 // 다른 창(작성 모드 ↔ 메인)에서 이 프로젝트가 저장되면 새로고침 안내 — 입력 중일 수 있어 자동 새로고침 대신 배너
 (function () {
     const PID = {{ $project->id }};
+    if (!window.DRGO_STANDALONE) window.drgoWriteContext = () => ({ kind: '프로젝트', label: @json($project->name), url: '/projects/' + PID + '/write', key: 'project-' + PID });
     if (!window.drgoWriteMode) return;
     drgoWriteMode.onMutation(({ path }) => {
         if (!new RegExp('^/api/projects/' + PID + '(/|$)').test(path || '')) return;

@@ -80,3 +80,10 @@ if (CAL_WRITE) {
         t = setTimeout(() => loadEvents(), 400);
     });
 })();
+
+// 상단 '✍ 작성 모드' 메뉴 — 지금 열어 둔 일정
+if (!CAL_WRITE) window.drgoWriteContext = () => {
+    if (!document.getElementById('modalOverlay')?.classList.contains('open') || !editingId) return null;
+    const ev = events.find(e => e.id === editingId) || detailEvent;
+    return { kind: '일정', label: (ev && ev.title) || `#${editingId}`, url: `/calendar/write?focus=${editingId}`, key: `schedule-${editingId}` };
+};
