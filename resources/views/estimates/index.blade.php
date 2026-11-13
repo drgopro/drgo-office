@@ -72,7 +72,6 @@
     }
     [data-theme="light"] .btn-primary { color:#fff; }
     /* 헤더 버튼 — 생성/검토 규칙 동일한 컴팩트 사이즈 */
-    .page-header .btn-primary, .btn-review-rules { padding:6px 13px; font-size:13px; border-radius:8px; font-weight:700; cursor:pointer; white-space:nowrap; border:1px solid transparent; }
     .btn-review-rules { background:rgba(212,160,23,0.14); color:#8a5200; border:1px solid rgba(212,160,23,0.5); }
     .btn-review-rules:hover { background:rgba(212,160,23,0.24); }
     [data-theme="dark"] .btn-review-rules { color:#e8c268; border-color:rgba(232,194,104,0.45); background:rgba(232,194,104,0.12); }

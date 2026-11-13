@@ -51,10 +51,10 @@
         /* 패널 폭 조절 리사이저 — 드래그로 제품 리스트/프리셋 폭 변경 (localStorage에 기억) */
         .panel-resizer { width:6px; margin:0 -3px; cursor:col-resize; flex-shrink:0; z-index:20; background:transparent; transition:background 0.12s; }
         .panel-resizer:hover, .panel-resizer.active { background:var(--accent); opacity:0.45; }
-        .panel-presets-header { padding:14px 14px 10px; border-bottom:1px solid var(--border); }
+        .panel-presets-header { padding:14px 10px 10px; border-bottom:1px solid var(--border); }
         .panel-presets-header h3 { font-size:15px; font-weight:700; }
         /* 프리셋 패널 접기/펼치기 (데스크탑) — 접으면 세로 스트립만 남는다 */
-        #presetsToggle { margin-left:auto; background:none; border:1px solid var(--border); border-radius:6px; width:24px; height:24px; display:inline-flex; align-items:center; justify-content:center; color:var(--text-muted); cursor:pointer; }
+        #presetsToggle { flex-shrink:0; margin-left:auto; background:none; border:1px solid var(--border); border-radius:6px; width:24px; height:24px; display:inline-flex; align-items:center; justify-content:center; color:var(--text-muted); cursor:pointer; }
         #presetsToggle:hover { border-color:var(--accent); color:var(--accent); }
         #presetsCollapsedBar { display:none; }
         @media (min-width:769px) {
@@ -367,7 +367,7 @@
         <h3 style="display:flex; align-items:center; gap:4px;">
             <button type="button" class="rvside-tab active" id="rvTabPreset" onclick="rvSideTab('preset')">프리셋</button>
             <button type="button" class="rvside-tab" id="rvTabReview" onclick="rvSideTab('review')">검토</button>
-            <button class="btn-add-svc" id="btnPresetSort" style="width:auto; padding:4px 8px; margin-left:auto; margin-right:6px; font-size:13px; white-space:nowrap;" onclick="togglePresetSortMode()" title="켜면 ⠿ 핸들 드래그로 프리셋 순서를 바꿀 수 있습니다 (끄면 잠금)">순서 변경</button>
+            <button class="btn-add-svc" id="btnPresetSort" style="width:auto; padding:5px 8px; margin-left:auto; margin-right:2px; font-size:12px; white-space:nowrap;" onclick="togglePresetSortMode()" title="켜면 ⠿ 핸들 드래그로 프리셋 순서를 바꿀 수 있습니다 (끄면 잠금)">⠿ 순서</button>
             <button id="presetsToggle" onclick="togglePresetsPanel()" title="패널 접기">
                 <svg width="14" height="14" viewBox="0 0 14 14" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M5 3l4 4-4 4"></path></svg>
             </button>
@@ -559,7 +559,7 @@
                     <option value="product">장비</option>
                     <option value="service">서비스</option>
                 </select>
-                <button class="btn-add-svc" style="width:auto; padding:6px 14px;" onclick="addManualItem()">+ 추가</button>
+                <button class="btn-add-svc" style="width:auto;" onclick="addManualItem()">+ 추가</button>
             </div>
         </div>
 
@@ -2614,5 +2614,6 @@ document.addEventListener('DOMContentLoaded', rvButton);
 
 {{-- 수정 로그 모달 — 하단 '로그' 버튼(openActivityLog)이 사용. 빌더는 독립 레이아웃이라 직접 포함 --}}
 @include('partials.activity-log-modal')
+@include('partials.button-system')
 </body>
 </html>

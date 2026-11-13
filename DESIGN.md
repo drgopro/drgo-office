@@ -246,10 +246,12 @@ components:
 
 ### Buttons
 차분하고 확실하게. 누를 것이 무엇인지 한눈에 보이되 소리치지 않는다.
-- **Shape:** 살짝 둥근 모서리(sm 6px)
-- **Primary:** Ledger Blue 바탕 + 흰 글자, body-sm 굵게, 7px 16px. 영역당 하나.
-- **Ghost:** 흰 바탕 + Ink Muted 글자 + hairline 테두리. 취소·로그·보조 동작.
-- **Danger:** 흰 바탕 + Signal Red 글자·테두리. 삭제. hover 시 빨간 바탕 + 흰 글자.
+- **단일 출처:** `resources/views/partials/button-system.blade.php` (레이아웃 본문 뒤에서 include). 새 버튼은 인라인 스타일 대신 아래 클래스를 쓴다.
+- **Size:** 기본 34px(`.btn` `.btn-primary` 등, 8px 14px · 13px) / 작게 28px(`.btn-sm`, 표·카드 안) / 모바일(≤768px) 40px·32px. 모서리 8px(작게 6px).
+- **Primary:** Ledger Blue 바탕 + 흰 글자 (`.btn-primary` `.btn-save` `.btn-new`). 영역당 하나.
+- **Secondary:** 흰 바탕 + 선 + Ink 글자 (`.btn` `.btn-outline` `.btn-cancel`).
+- **Ghost:** 흰 바탕 + Ink Muted 글자 + hairline 테두리 (`.btn-ghost`). 취소·로그·보조 동작.
+- **Danger:** 흰 바탕 + Signal Red 글자·테두리 (`.btn-danger` `.btn-delete`). 삭제. hover 시 빨간 바탕 + 흰 글자.
 - **Write Mode (signature):** Ledger Blue 글자·테두리 + 옅은 파란 바탕의 '↗ 작성 모드' 버튼과 ▾ 분할 버튼. hover 시 채워짐.
 - **Focus:** 키보드 포커스 링은 모든 버튼에 보여야 한다(현재 미흡 — harden 단계에서 공통 `:focus-visible` 링으로 통일).
 

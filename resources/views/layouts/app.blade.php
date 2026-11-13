@@ -786,6 +786,7 @@ window.DRGO_APP_VERSION = @json(app(\App\Services\AppVersion::class)->current())
 <div class="main" id="tabContent">
     <div class="tab-pane active" id="pane-initial">
         @yield('content')
+        @include('partials.button-system')
     </div>
 </div>
 

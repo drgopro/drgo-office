@@ -457,20 +457,20 @@
             @unless($project->client_id)
                 @if($project->stage === 'done')
                     <span style="font-size:13px;padding:7px 12px;border-radius:8px;background:rgba(45,138,62,0.12);color:#1d7330;font-weight:700;">완료됨{{ $project->completed_at ? ' · '.$project->completed_at->format('Y.m.d') : '' }}</span>
-                    <button class="btn-edit" style="background:none;border:1px solid var(--border);color:var(--text-muted);padding:8px 14px;border-radius:8px;font-size:13px;cursor:pointer;" onclick="anonReopenProject()" title="완료를 취소하고 진행 중으로 되돌립니다">완료 취소</button>
+                    <button class="btn-ghost" onclick="anonReopenProject()" title="완료를 취소하고 진행 중으로 되돌립니다">완료 취소</button>
                 @elseif($project->stage !== 'cancelled')
-                    <button class="btn-edit" style="background:var(--accent);border:1px solid var(--accent);color:var(--accent-text,#fff);padding:8px 14px;border-radius:8px;font-size:13px;cursor:pointer;font-weight:700;" onclick="anonCompleteProject()" title="이 프로젝트를 완료 상태로 처리합니다">완료 처리</button>
+                    <button class="btn-primary" onclick="anonCompleteProject()" title="이 프로젝트를 완료 상태로 처리합니다">완료 처리</button>
                 @endif
             @endunless
             @unless(config('view.standalone'))
             <span class="wm-split"><button type="button" class="btn-edit wm-accent" style="padding:8px 12px;border-radius:8px;font-size:13px;cursor:pointer;" onclick="drgoWriteMode.open('/projects/{{ $project->id }}/write','project-{{ $project->id }}')" title="이 프로젝트만 독립된 창으로 띄워 작성합니다">↗ 작성 모드</button><button type="button" class="btn-edit wm-accent" style="padding:8px 7px;border-radius:8px;font-size:13px;cursor:pointer;" onclick="drgoWriteMode.menu(event,'/projects/{{ $project->id }}/write','project-{{ $project->id }}')" title="새 창 / 새 탭 선택">▾</button></span>
             @endunless
-            <button class="btn-edit" style="background:none;border:1px solid var(--border);color:var(--text-muted);padding:8px 14px;border-radius:8px;font-size:13px;cursor:pointer;" onclick="openActivityLog('Project',{{ $project->id }},'프로젝트 {{ $project->name }} 수정 로그')">📋 로그</button>
-            <button class="btn-edit" style="background:none;border:1px solid var(--accent);color:var(--accent);padding:8px 14px;border-radius:8px;font-size:13px;cursor:pointer;font-weight:600;" onclick="openProjectEditModal()">✏️ 프로젝트 수정</button>
+            <button class="btn-ghost" onclick="openActivityLog('Project',{{ $project->id }},'프로젝트 {{ $project->name }} 수정 로그')">로그</button>
+            <button class="btn-primary" onclick="openProjectEditModal()">프로젝트 수정</button>
             @if($project->stage !== 'cancelled')
-                <button class="btn-edit" style="background:none;border:1px solid var(--border);color:var(--text-muted);padding:8px 14px;border-radius:8px;font-size:13px;cursor:pointer;" onclick="openCancelModal()" title="프로젝트 취소 (데이터 보존)">취소</button>
+                <button class="btn-ghost" onclick="openCancelModal()" title="프로젝트 취소 (데이터 보존)">취소</button>
             @endif
-            <button class="btn-edit" style="background:none;border:1px solid var(--red);color:var(--red);padding:8px 14px;border-radius:8px;font-size:13px;cursor:pointer;" onclick="deleteProject()" title="완전 삭제">삭제</button>
+            <button class="btn-danger" onclick="deleteProject()" title="완전 삭제">삭제</button>
         </div>
     </div>
 
@@ -1248,7 +1248,7 @@
                         <option value="desc">최근 순</option>
                         <option value="asc">오래된 순</option>
                     </select>
-                    <button class="btn-primary" onclick="openConsultModal()" style="padding:6px 14px; font-size:13px;">+ 상담 등록</button>
+                    <button class="btn-primary" onclick="openConsultModal()">+ 상담 등록</button>
                 </div>
             </div>
             @if($consultations->count() > 0)
@@ -1348,7 +1348,7 @@
                 <span>첨부 문서 ({{ $project->documents->count() }}건)
                     <span style="font-size:12px; font-weight:400; color:var(--text-muted); margin-left:6px;">· 파일당 최대 {{ $effectiveMaxMb }}MB</span>
                 </span>
-                <button type="button" class="btn-primary" onclick="toggleDocUpload()" id="btnToggleDocUpload" style="padding:6px 14px; font-size:13px;">+ 문서 추가</button>
+                <button type="button" class="btn-primary btn-sm" onclick="toggleDocUpload()" id="btnToggleDocUpload">+ 문서 추가</button>
             </div>
             <form method="POST" action="{{ route('project-documents.store', $project) }}" enctype="multipart/form-data" id="docUploadForm" style="display:{{ $project->documents->count() > 0 ? 'none' : 'block' }};">
                 @csrf

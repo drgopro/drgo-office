@@ -149,5 +149,6 @@ async function removeShipment(id) {
     addRow();
 })();
 </script>
+@include('partials.button-system')
 </body>
 </html>

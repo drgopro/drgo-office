@@ -115,5 +115,6 @@ async function saveOrder(btn) {
     window.close();
 }
 </script>
+@include('partials.button-system')
 </body>
 </html>

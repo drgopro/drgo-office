@@ -622,5 +622,6 @@ async function savePreset() {
 
 loadInitial();
 </script>
+@include('partials.button-system')
 </body>
 </html>

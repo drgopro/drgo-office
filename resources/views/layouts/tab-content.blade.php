@@ -237,6 +237,7 @@ window.openTopTab = function(type, url, title) {
 @include('partials.image-viewer')
 
 @yield('content')
+@include('partials.button-system')
 
 @include('partials.activity-log-modal')
 
