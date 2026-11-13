@@ -3,6 +3,7 @@
 @section('title', '의뢰자 - 닥터고블린 오피스')
 
 @push('styles')
+@include('partials.ux-v2-styles')
 <style>
     .crm-wrap { display:flex; height:calc(var(--full-h, 100vh) - var(--chrome-h, 86px)); overflow:hidden; }
     body.in-iframe .crm-wrap { height:var(--full-h, 100vh); }
@@ -1158,6 +1159,7 @@ function renderClientContent(id) {
                 </div>
             </div>
             <div class="detail-actions">
+                ${window.drgoUx ? drgoUx.toggleHtml('btn-log') : ''}
                 ${CLIENT_FOCUS_ID ? '' : drgoWriteMode.buttonHtml(`/clients/${id}/write`, `client-${id}`, 'btn-log')}
                 <button class="btn-log" onclick="openActivityLog('Client',${id},'${_esc((d.name||'').replace(/'/g,"\\'"))} 수정 로그')"><svg viewBox=\"0 0 24 24\" width=\"13\" height=\"13\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2.1\" stroke-linecap=\"round\" stroke-linejoin=\"round\" style=\"vertical-align:-0.15em\"><path d=\"M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z\"/><path d=\"M14 2v6h6M9 13h6M9 17h4\"/></svg> 로그</button>
                 ${CAN_CLIENT_EDIT ? `
@@ -1167,6 +1169,8 @@ function renderClientContent(id) {
                 <button class="btn-delete" onclick="deleteClient(${id})">삭제</button>` : ''}
             </div>
         </div>
+
+        ${renderClientGlance(d)}
 
         <div class="sub-tabs" id="subtabs-${id}">
             <button class="sub-tab active" onclick="switchSubTab(${id},'info',this)">기본 정보</button>
@@ -1178,7 +1182,7 @@ function renderClientContent(id) {
         </div>
 
         <!-- 기본 정보 -->
-        <div class="sub-panel active" id="sub-info-${id}">
+        <div class="sub-panel active ux2-info" id="sub-info-${id}">
             {{-- 조회 뷰 (기본) — 디자인 3a: 좌측 섹션 타이틀 레일 + 우측 값 그리드 --}}
             <div id="view-info-${id}">${renderClientView(d)}</div>
             {{-- 수정 폼 (수정 버튼으로 전환) — 등록 모달과 동일한 번호 카드 + 작성 현황 사이드바 --}}
@@ -1303,7 +1307,7 @@ function renderClientContent(id) {
             </div>{{-- /edit-info --}}
 
             <!-- 관계자 · 매니저 (의뢰자당 최대 10명, 검색에 함께 매칭) -->
-            <div class="info-narrow" style="margin-top:20px; border-top:1px solid var(--border); padding-top:16px;">
+            <div class="info-narrow ux2-contacts" style="margin-top:20px; border-top:1px solid var(--border); padding-top:16px;">
                 <div class="field-label" style="margin:0 0 10px; font-size:13px; font-weight:600;">관계자 · 매니저
                     <span style="font-weight:400; color:var(--text-muted);">최대 10명 · 이름/연락처가 의뢰자 검색에 함께 매칭됩니다</span>
                 </div>
@@ -1321,7 +1325,7 @@ function renderClientContent(id) {
             </div>
 
             <!-- 메모 (인라인 스레드) -->
-            <div class="info-narrow" style="margin-top:20px; border-top:1px solid var(--border); padding-top:16px;">
+            <div class="info-narrow ux2-memos" style="margin-top:20px; border-top:1px solid var(--border); padding-top:16px;">
                 <div class="field-label" style="margin:0 0 10px; font-size:13px; font-weight:600;">메모</div>
                 ${CAN_CLIENT_EDIT ? `
                 <div style="display:flex; gap:8px; margin-bottom:12px;">
@@ -1443,8 +1447,89 @@ function renderClientContent(id) {
             <div id="memo-thread-${id}">${renderMemoThread(d.memos, id)}</div>
         </div>
         `;
+        uxClientAfterRender(id, d);
     }
     pane.classList.add('active');
+}
+
+// ── 새 화면 디자인(UX v2) — 요약 줄. 스타일은 partials/ux-v2-styles (html.ux-v2 일 때만 보임) ──
+function uxActiveProject(projects) {
+    const list = [...(projects || [])].sort((a, b) => String(b.created_at || '').localeCompare(String(a.created_at || '')));
+    return list.find(p => !['done', 'cancelled'].includes(p.stage)) || list[0] || null;
+}
+function uxFlowCard(p) {
+    if (!p) { return `<div class="ux2-g flow"><h3>진행 중인 프로젝트</h3><div class="ux2-empty">아직 프로젝트가 없어요</div></div>`; }
+    const stages = p.stages || [];
+    const cancelled = p.stage === 'cancelled';
+    const curCode = cancelled ? (p.cancelled_from_stage || '') : p.stage;
+    const curIdx = stages.findIndex(s => s.code === curCode);
+    const dates = p.stage_dates || {};
+    const cls = i => (cancelled ? '' : (i < curIdx ? 'd' : (i === curIdx ? 'n' : '')));
+    const cur = stages[curIdx];
+    const state = cancelled ? '취소됨' : (p.stage === 'done' ? '완료' : '진행');
+    return `<div class="ux2-g flow click" onclick="openTopTab('projects','/projects/${p.id}')" title="프로젝트 열기">
+        <h3><b>${_esc(p.name)}</b><span>${state}</span><span class="more">프로젝트 열기</span></h3>
+        ${stages.length ? `<div class="ux2-bars ${cancelled ? 'cancel' : ''}">${stages.map((s, i) => `<span class="${cls(i)}"></span>`).join('')}</div>
+        <div class="ux2-steps">${stages.map((s, i) => `<span class="${cls(i)}" title="${_esc(s.label)}">${i === curIdx && !cancelled ? '★ ' : ''}${_esc(s.label)}${dates[s.code] ? `<small>${String(dates[s.code]).replace('-', '.')}</small>` : ''}</span>`).join('')}</div>
+        <div class="ux2-now"><b>${cur ? `<i>★</i>${_esc(cur.label)}` : _esc(state)}</b><span>${cur && dates[cur.code] ? String(dates[cur.code]).replace('-', '.') : ''}</span><em>${curIdx + 1}/${stages.length}</em></div>` : '<div class="ux2-empty">진행 단계가 없는 유형이에요</div>'}
+    </div>`;
+}
+function uxOpenSub(clientId, key) {
+    const btn = [...document.querySelectorAll(`#subtabs-${clientId} .sub-tab`)].find(b => (b.getAttribute('onclick') || '').includes(`'${key}'`));
+    if (btn) { btn.click(); }
+}
+function renderClientGlance(d) {
+    const est = (d.estimates || [])[0];
+    const estCard = est
+        ? `<div class="ux2-g click" onclick="uxOpenSub(${d.id},'estimates')" title="견적서 탭 열기">
+            <h3>최근 견적 #${_esc(est.no ?? est.id)}<span class="${est.status === 'paid' ? 'ok' : ''}">${_esc(EST_STATUS[est.status] || est.status)}</span></h3>
+            <div class="ux2-big">${est.total_amount ? Number(est.total_amount).toLocaleString() + '원' : '금액 없음'}</div>
+            <div class="ux2-mini">${_esc(est.created_at || '')}${(d.estimates || []).length > 1 ? `, 견적서 ${(d.estimates || []).length}개` : ''}</div></div>`
+        : `<div class="ux2-g"><h3>최근 견적</h3><div class="ux2-empty">아직 견적서가 없어요</div></div>`;
+    return `<div class="ux2-glance" id="ux2-glance-${d.id}">
+        ${uxFlowCard(uxActiveProject(d.projects))}
+        <div class="ux2-g" id="ux2-next-${d.id}"><h3>다음 일정</h3><div class="ux2-empty">불러오는 중…</div></div>
+        ${estCard}
+    </div>`;
+}
+async function uxLoadNextSchedule(clientId) {
+    const box = document.getElementById(`ux2-next-${clientId}`);
+    if (!box) { return; }
+    let rows = [];
+    try {
+        const res = await fetch(`/api/clients/${clientId}/schedules`, { headers: { 'Accept': 'application/json' } });
+        if (res.ok) { rows = await res.json(); }
+    } catch (e) {}
+    const now = new Date();
+    const today = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
+    const next = rows.filter(r => (r.end_date || r.start_date) >= today).sort((a, b) => (a.start_date + (a.start_time || '')).localeCompare(b.start_date + (b.start_time || '')))[0];
+    if (!next) { box.innerHTML = `<h3>다음 일정</h3><div class="ux2-empty">잡힌 일정이 없어요</div>`; return; }
+    const dt = new Date(next.start_date + 'T00:00:00');
+    const dd = Math.round((dt - new Date(today + 'T00:00:00')) / 86400000);
+    const wk = '일월화수목금토'[dt.getDay()];
+    const time = next.is_all_day ? '종일' : (next.start_time ? next.start_time.slice(0, 5) : '');
+    box.classList.add('click');
+    box.title = '캘린더에서 열기';
+    box.onclick = () => openTopTab('calendar', `/calendar?date=${next.start_date}&focus=${next.id}&_=${Date.now()}`);
+    box.innerHTML = `<h3>다음 일정</h3>
+        <div class="ux2-big">${dt.getMonth() + 1}월 ${dt.getDate()}일<small>${wk}${time ? ' ' + time : ''}</small></div>
+        <div class="ux2-mini">${_esc(next.title || '(제목 없음)')}, <b>${dd === 0 ? '오늘' : dd + '일 남음'}</b></div>`;
+}
+function uxClientAfterRender(id, d) {
+    if (!window.drgoUx || !drgoUx.on) { return; }
+    uxLoadNextSchedule(id);
+    const view = document.getElementById('view-info-' + id);
+    if (view) {
+        const blanks = view.querySelectorAll('.cv-grid > div > .cv-v.dim').length;
+        // 칸이 전부 비어 있는 섹션은 제목까지 숨김
+        view.querySelectorAll('.cv-sec').forEach(sec => {
+            const cells = [...sec.querySelectorAll('.cv-grid > div')];
+            if (cells.length && cells.every(c => c.querySelector(':scope > .cv-v.dim'))) { sec.classList.add('ux2-hide'); }
+        });
+        if (blanks) {
+            view.insertAdjacentHTML('beforeend', `<p class="ux2-blank"><span>비어 있는 항목 ${blanks}개</span>${CAN_CLIENT_EDIT ? `<button type="button" onclick="clientEditMode(${id},true)">채우기</button>` : ''}</p>`);
+        }
+    }
 }
 
 function renderProjectList(projects, clientId, order) {
@@ -2414,7 +2499,7 @@ async function createClient(forceDuplicate = false) {
 // ── 토스트 ──
 // ── 메모 스레드 ──
 function renderMemoItem(m, clientId) {
-    return `<div style="display:flex; gap:10px; padding:10px 0; border-bottom:1px solid var(--border);" id="memo-item-${m.id}">
+    return `<div class="memo-item" style="display:flex; gap:10px; padding:10px 0; border-bottom:1px solid var(--border);" id="memo-item-${m.id}">
         <div style="width:30px; height:30px; border-radius:50%; background:var(--surface2); display:flex; align-items:center; justify-content:center; font-size:12px; font-weight:700; color:var(--accent); flex-shrink:0;">${(m.user_name||'?').substring(0,1)}</div>
         <div style="flex:1; min-width:0;">
             <div style="display:flex; justify-content:space-between; align-items:center;">
@@ -2741,6 +2826,7 @@ function clientEditMode(id, on) {
     if (!v || !e) return;
     v.style.display = on ? 'none' : '';
     e.style.display = on ? '' : 'none';
+    document.getElementById('sub-info-' + id)?.classList.toggle('editing', !!on);
     document.getElementById('ce-edit-' + id).style.display = on ? 'none' : '';
     document.getElementById('ce-save-' + id).style.display = on ? '' : 'none';
     document.getElementById('ce-cancel-' + id).style.display = on ? '' : 'none';

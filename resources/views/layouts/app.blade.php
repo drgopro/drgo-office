@@ -5,6 +5,7 @@
 @include('partials.write-mode')
 @include('partials.loading-indicator')
 @include('partials.phone-format')
+@include('partials.ux-flag')
 <script>
 /* 라이트 모드 고정 (다크모드 제거) */
 (function(){try{localStorage.removeItem('drgo_theme');}catch(e){}document.documentElement.setAttribute('data-theme','light');})();

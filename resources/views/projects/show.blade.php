@@ -3,6 +3,7 @@
 @section('title', $project->name . ' - 닥터고블린 오피스')
 
 @push('styles')
+@include('partials.ux-v2-styles')
 <style>
     .page-wrap { padding:24px 32px; max-width:1400px; margin:0 auto; }
     .page-header { display:flex; justify-content:space-between; align-items:center; margin-bottom:24px; }
@@ -452,7 +453,7 @@
                 </div>
             </div>
         </div>
-        <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;">
+        <div class="proj-actions" style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;">
             {{-- 익명(의뢰자 미연동) 프로젝트 — 진행 단계 바가 없으므로 헤더에서 완료 처리/되돌리기 --}}
             @unless($project->client_id)
                 @if($project->stage === 'done')
@@ -465,6 +466,7 @@
             @unless(config('view.standalone'))
             <span class="wm-split"><button type="button" class="btn-edit wm-accent" style="padding:8px 12px;border-radius:8px;font-size:13px;cursor:pointer;" onclick="drgoWriteMode.open('/projects/{{ $project->id }}/write','project-{{ $project->id }}')" title="이 프로젝트만 독립된 창으로 띄워 작성합니다">↗ 작성 모드</button><button type="button" class="btn-edit wm-accent" style="padding:8px 7px;border-radius:8px;font-size:13px;cursor:pointer;" onclick="drgoWriteMode.menu(event,'/projects/{{ $project->id }}/write','project-{{ $project->id }}')" title="새 창 / 새 탭 선택">▾</button></span>
             @endunless
+            <span id="uxSwitchSlot"></span>
             <button class="btn-ghost" onclick="openActivityLog('Project',{{ $project->id }},'프로젝트 {{ $project->name }} 수정 로그')">로그</button>
             <button class="btn-primary" onclick="openProjectEditModal()">프로젝트 수정</button>
             @if($project->stage !== 'cancelled')
@@ -560,6 +562,21 @@
         @endif
     </div>
     @endif
+
+    {{-- 새 화면 디자인(UX v2) 요약 줄 — html.ux-v2 일 때만 보임 (partials/ux-v2-styles) --}}
+    <div class="ux2-glance three" id="ux2Glance">
+        <div class="ux2-g" id="ux2Next"><h3>다음 일정</h3><div class="ux2-empty">불러오는 중…</div></div>
+        <div class="ux2-g" id="ux2Pay"><h3>결제</h3><div class="ux2-empty">불러오는 중…</div></div>
+        @if($project->client)
+            <div class="ux2-g click" title="의뢰자 열기" onclick="if(window.DRGO_STANDALONE) drgoWriteMode.open('/clients/{{ $project->client->id }}/write','client-{{ $project->client->id }}'); else openTopTab('clients','{{ route('clients.index', ['open' => $project->client->id]) }}')">
+                <h3>의뢰자<span class="more">열기</span></h3>
+                <div class="ux2-big">{{ $project->client->nickname ?: $project->client->name }}</div>
+                <div class="ux2-mini">{{ collect([$project->client->name, $project->client->phone])->filter()->implode(', ') ?: '연락처 없음' }}</div>
+            </div>
+        @else
+            <div class="ux2-g"><h3>의뢰자</h3><div class="ux2-big">{{ $project->manual_client_name ?: '의뢰자 미상' }}</div><div class="ux2-mini">의뢰자와 연결되지 않은 프로젝트</div></div>
+        @endif
+    </div>
 
     <div class="info-grid">
         <div class="info-card anon-keep">
@@ -1450,6 +1467,51 @@
             @endif
         </div>
     </div>
+
+    {{-- 새 화면 디자인(UX v2) 요약 줄 채우기 — 꺼져 있으면 아무것도 하지 않는다 --}}
+    <script>
+    document.addEventListener('DOMContentLoaded', function () {
+        const slot = document.getElementById('uxSwitchSlot');
+        if (slot && window.drgoUx) { slot.outerHTML = drgoUx.toggleHtml('btn-ghost'); }
+        if (!window.drgoUx || !drgoUx.on) { return; }
+        const esc = s => String(s ?? '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+        (async function () {
+            const box = document.getElementById('ux2Next');
+            if (!box) { return; }
+            let rows = [];
+            try {
+                const res = await fetch(`/api/projects/{{ $project->id }}/schedules?linked=1`, { headers: { 'Accept': 'application/json' } });
+                if (res.ok) { rows = await res.json(); }
+            } catch (e) {}
+            const now = new Date();
+            const today = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
+            const next = rows.filter(r => (r.end_date || r.start_date) >= today).sort((a, b) => (a.start_date + (a.start_time || '')).localeCompare(b.start_date + (b.start_time || '')))[0];
+            if (!next) { box.innerHTML = '<h3>다음 일정</h3><div class="ux2-empty">잡힌 일정이 없어요</div>'; return; }
+            const dt = new Date(next.start_date + 'T00:00:00');
+            const dd = Math.round((dt - new Date(today + 'T00:00:00')) / 86400000);
+            const time = next.is_all_day ? '종일' : (next.start_time ? next.start_time.slice(0, 5) : '');
+            box.classList.add('click');
+            box.title = '캘린더에서 열기';
+            box.onclick = () => (typeof openLinkedSchedule === 'function' ? openLinkedSchedule(`/calendar?date=${next.start_date}&focus=${next.id}`) : null);
+            box.innerHTML = `<h3>다음 일정</h3><div class="ux2-big">${dt.getMonth() + 1}월 ${dt.getDate()}일<small>${'일월화수목금토'[dt.getDay()]}${time ? ' ' + time : ''}</small></div>
+                <div class="ux2-mini">${esc(next.title || '(제목 없음)')}, <b>${dd === 0 ? '오늘' : dd + '일 남음'}</b></div>`;
+        })();
+        function payCard() {
+            const box = document.getElementById('ux2Pay');
+            if (!box || typeof __payments === 'undefined') { return; }
+            if (!__payments.length) { box.innerHTML = '<h3>결제</h3><div class="ux2-empty">결제 기록이 없어요</div>'; return; }
+            const net = __payments.reduce((t, p) => t + (p.amount || 0), 0);
+            const refunds = __payments.filter(p => (p.amount || 0) < 0).length;
+            box.innerHTML = `<h3>결제<span class="ok">순 결제액</span></h3><div class="ux2-big">${net.toLocaleString()}원</div>
+                <div class="ux2-mini">결제 ${__payments.length}건${refunds ? `, 환불·취소 ${refunds}건 포함` : ''}</div>`;
+        }
+        if (typeof renderPaymentHistory === 'function') {
+            const original = renderPaymentHistory;
+            window.renderPaymentHistory = renderPaymentHistory = function () { const r = original.apply(this, arguments); payCard(); return r; };
+        }
+        payCard();
+    });
+    </script>
 
     {{-- ── 2열 재배치 — 좌: 의뢰자 정보·세팅 장소·장비(추가 정보)·개요·태그·일정 제안·견적/결제
          우: 의뢰 내용·방문 보고서·상담 이력. 나머지(피드백·첨부 문서)는 전체 폭으로 하단 유지 ── --}}
