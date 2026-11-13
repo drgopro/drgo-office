@@ -1891,9 +1891,10 @@ async function refreshClientData(clientId) {
     if (pane) pane.remove();
     renderClientContent(clientId);
     if (activeSub !== 'info') {
-        const idx = { info:0, projects:1, docs:2, estimates:3, memo:4 }[activeSub] ?? 0;
-        const btns = document.querySelectorAll(`#subtabs-${clientId} .sub-tab`);
-        if (btns[idx]) btns[idx].click();
+        // 순서 번호가 아니라 탭 키로 찾는다 — 탭이 추가/재배치돼도 원래 보던 탭으로 복원
+        const btn = [...document.querySelectorAll(`#subtabs-${clientId} .sub-tab`)]
+            .find(b => (b.getAttribute('onclick') || '').includes(`'${activeSub}'`));
+        if (btn) btn.click();
     }
     renderClientTabs();
 }
