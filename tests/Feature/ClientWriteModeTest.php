@@ -127,5 +127,13 @@ class ClientWriteModeTest extends TestCase
             ->assertSee('id="wmTrail"', false)
             ->assertSee("window.name = 'drgo-write'", false)
             ->assertSee('function toWriteUrl(type, url)', false);
+
+        // 이동 바: 의뢰자·프로젝트를 찾아 열기/수정 (기존 의뢰자 수정은 ?edit=1)
+        $this->actingAs($this->userWith(['clients.view']))
+            ->get("/clients/{$this->client->id}/write?edit=1")
+            ->assertOk()
+            ->assertSee("wmNavPop(event,'clients')", false)
+            ->assertSee("wmNavPop(event,'projects')", false)
+            ->assertSee("get('edit') === '1'", false);
     }
 }

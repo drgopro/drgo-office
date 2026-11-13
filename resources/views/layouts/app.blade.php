@@ -1627,6 +1627,7 @@ function wmTopRender() {
     h += ctx
         ? `<button class="wm-top-item" data-url="${esc(ctx.url)}" data-key="${esc(ctx.key)}"><span class="k">${esc(ctx.kind)}</span><span class="t">${esc(ctx.label)}</span><span class="a">↗</span></button>`
         : '<div class="wm-top-empty">의뢰자·프로젝트·일정·견적서를 열어 두면 여기서 바로 작성 모드로 띄울 수 있어요.</div>';
+    h += '<div class="wm-top-sec">찾아서 열기 · 수정</div><div id="wmTopSearch"></div>';
     if (WM_CAN_NEW_CLIENT || WM_CAN_NEW_EVENT) {
         h += '<div class="wm-top-sec">새로 작성</div>';
         if (WM_CAN_NEW_CLIENT) h += '<button class="wm-top-item" data-url="/clients/create/write" data-key="client-new"><span class="k">의뢰자</span><span class="t">새 의뢰자 등록</span><span class="a">↗</span></button>';
@@ -1634,6 +1635,8 @@ function wmTopRender() {
     }
     h += `<div class="wm-top-foot"><span>열기 방식</span><span class="wm-top-seg"><button data-t="window" class="${pref === 'window' ? 'on' : ''}">새 창</button><button data-t="tab" class="${pref === 'tab' ? 'on' : ''}">새 탭</button></span></div>`;
     panel.innerHTML = h;
+    panel.onclick = e => e.stopPropagation();
+    drgoWriteMode.mountSearch(document.getElementById('wmTopSearch'), ['clients', 'projects']);
     panel.querySelectorAll('.wm-top-item').forEach(b => b.onclick = () => { panel.classList.remove('open'); drgoWriteMode.open(b.dataset.url, b.dataset.key); });
     panel.querySelectorAll('.wm-top-seg button').forEach(b => b.onclick = () => { drgoWriteMode.setPref(b.dataset.t); wmTopRender(); });
 }

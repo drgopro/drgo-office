@@ -10,6 +10,20 @@
 .wm-menu button { display:block; width:100%; text-align:left; background:none; border:none; padding:8px 10px; font-size:14px; border-radius:6px; cursor:pointer; color:var(--text, #1a1e28); white-space:nowrap; }
 .wm-menu button:hover { background:var(--surface2, #eceef2); }
 .wm-menu button.on::after { content:' ✓'; color:var(--accent, #3b5ea0); font-weight:700; }
+/* 작성 모드 검색 — 기존 의뢰자·프로젝트를 찾아 열기/수정 */
+.wm-s { padding:4px 2px; }
+.wm-s-in { width:100%; box-sizing:border-box; height:36px; border:1px solid var(--border, #d0d5dd); border-radius:8px; padding:0 10px; font-size:14px; background:var(--surface, #fff); color:var(--text, #1a1e28); outline:none; }
+.wm-s-in:focus { border-color:#1f2b40; }
+.wm-s-res { max-height:320px; overflow-y:auto; margin-top:6px; }
+.wm-s-row { display:flex; align-items:center; gap:8px; padding:7px 6px; border-radius:8px; }
+.wm-s-row:hover { background:var(--surface2, #eceef2); }
+.wm-s-row .k { flex-shrink:0; font-size:11px; font-weight:700; color:#5f6b85; width:42px; }
+.wm-s-row .t { flex:1; min-width:0; }
+.wm-s-row .t b { display:block; font-size:14px; color:var(--text, #1a1e28); overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+.wm-s-row .t span { display:block; font-size:12px; color:var(--text-muted, #5a6070); overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+.wm-s-row button { flex-shrink:0; height:28px; padding:0 10px; border-radius:7px; border:1px solid var(--border, #d0d5dd); background:var(--surface, #fff); color:var(--text, #1a1e28); font-size:12px; font-weight:600; cursor:pointer; white-space:nowrap; }
+.wm-s-row button.edit { background:#1f2b40; border-color:#1f2b40; color:#fff; }
+.wm-s-empty { padding:10px 6px; font-size:13px; color:var(--text-muted, #5a6070); }
 </style>
 <script>
 (function () {
@@ -61,6 +75,40 @@
             const u = String(url).replace(/'/g, "\\'"), k = String(key).replace(/'/g, "\\'");
             cls = (cls || '') + ' wm-accent';
             return `<span class="wm-split"><button type="button" class="${cls}" onclick="event.stopPropagation(); drgoWriteMode.open('${u}','${k}')" title="이 화면만 독립된 창으로 띄워 작성합니다 — 여러 건을 각각의 창으로 동시에 작업할 수 있습니다">↗ ${label || '작성 모드'}</button><button type="button" class="${cls}" onclick="drgoWriteMode.menu(event,'${u}','${k}')" title="새 창 / 새 탭 선택">▾</button></span>`;
+        },
+        /**
+         * 기존 의뢰자·프로젝트 검색 위젯 — 결과마다 [열기] / 의뢰자는 [수정](바로 수정 화면).
+         * @param {HTMLElement} el  위젯을 그릴 자리
+         * @param {string[]} kinds  'clients' | 'projects'
+         */
+        mountSearch(el, kinds) {
+            const esc = s => String(s ?? '').replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
+            const ph = kinds.length > 1 ? '의뢰자·프로젝트 이름, 연락처' : (kinds[0] === 'clients' ? '의뢰자 닉네임, 이름, 연락처' : '프로젝트 이름, 의뢰자');
+            el.innerHTML = `<div class="wm-s"><input class="wm-s-in" placeholder="${ph}" aria-label="${ph} 검색"><div class="wm-s-res"><div class="wm-s-empty">찾을 이름을 입력하세요</div></div></div>`;
+            const input = el.querySelector('.wm-s-in'), res = el.querySelector('.wm-s-res');
+            input.addEventListener('click', e => e.stopPropagation());
+            let timer = null, seq = 0;
+            input.addEventListener('input', () => {
+                clearTimeout(timer);
+                timer = setTimeout(async () => {
+                    const q = input.value.trim(), my = ++seq;
+                    if (!q) { res.innerHTML = '<div class="wm-s-empty">찾을 이름을 입력하세요</div>'; return; }
+                    let sections = [];
+                    try { const r = await fetch('/api/global-search?q=' + encodeURIComponent(q), { headers: { 'Accept': 'application/json' } }); if (r.ok) { sections = (await r.json()).sections || []; } } catch (e) {}
+                    if (my !== seq) { return; }
+                    const rows = [];
+                    sections.filter(sec => kinds.includes(sec.key)).forEach(sec => (sec.items || []).forEach(it => {
+                        const id = sec.key === 'clients' ? (it.client_id || (String(it.url).match(/open=(\d+)/) || [])[1]) : (String(it.url).match(/\/projects\/(\d+)/) || [])[1];
+                        if (!id) { return; }
+                        const url = sec.key === 'clients' ? `/clients/${id}/write` : `/projects/${id}/write`;
+                        const key = (sec.key === 'clients' ? 'client-' : 'project-') + id;
+                        rows.push(`<div class="wm-s-row"><span class="k">${sec.key === 'clients' ? '의뢰자' : '프로젝트'}</span><span class="t"><b>${esc(it.label)}</b>${it.sub ? `<span>${esc(it.sub)}</span>` : ''}</span><button type="button" data-u="${url}" data-k="${key}">열기</button>${sec.key === 'clients' ? `<button type="button" class="edit" data-u="${url}?edit=1" data-k="${key}">수정</button>` : ''}</div>`);
+                    }));
+                    res.innerHTML = rows.length ? rows.join('') : '<div class="wm-s-empty">찾는 결과가 없어요</div>';
+                    res.querySelectorAll('button[data-u]').forEach(b => b.onclick = ev => { ev.stopPropagation(); document.querySelectorAll('.wm-pop, #wmTopPanel').forEach(x => x.classList.remove('open')); WM.open(b.dataset.u, b.dataset.k); });
+                }, 220);
+            });
+            setTimeout(() => input.focus(), 0);
         },
         /** 다른 창의 변경 알림 구독 — fn({path, method}) */
         onMutation(fn) { handlers.push(fn); },

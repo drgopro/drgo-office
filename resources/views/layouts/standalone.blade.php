@@ -21,7 +21,11 @@
         .wmnav-trail a small { font-size:11px; font-weight:600; color:#93a3c2; }
         .wmnav-trail a.on { background:#fff; color:#1f2b40; border-color:#fff; }
         .wmnav-trail a.on small { color:#5f6b85; }
-        @media (max-width: 640px) { .wmnav-title { display:none; } }
+        .wm-popwrap { position:relative; flex-shrink:0; }
+        .wm-pop { display:none; position:absolute; left:0; top:calc(100% + 8px); width:380px; max-width:calc(100vw - 24px); background:#fff; color:#1a1e28; border:1px solid #d0d5dd; border-radius:12px; box-shadow:0 10px 30px rgba(0,0,0,.18); padding:10px; z-index:9600; }
+        .wm-pop.open { display:block; }
+        .wm-pop .wm-pop-new { width:100%; height:34px; margin-bottom:8px; border-radius:8px; border:1px dashed #9aa3b2; background:#f6f7f9; color:#1f2b40; font-size:13px; font-weight:700; cursor:pointer; }
+                @media (max-width: 640px) { .wmnav-title { display:none; } }
     </style>
 </head>
 <body style="margin:0; background:var(--bg, #f4f5f7);">
@@ -29,6 +33,8 @@
     <span class="wmnav-title">작성 모드</span>
     <button type="button" class="arrow" onclick="history.back()" title="뒤로" aria-label="뒤로">‹</button>
     <button type="button" class="arrow" onclick="history.forward()" title="앞으로" aria-label="앞으로">›</button>
+    <span class="wm-popwrap"><button type="button" onclick="wmNavPop(event,'clients')">의뢰자 ▾</button><div class="wm-pop" id="wmPopClients"></div></span>
+    <span class="wm-popwrap"><button type="button" onclick="wmNavPop(event,'projects')">프로젝트 ▾</button><div class="wm-pop" id="wmPopProjects"></div></span>
     <a href="/calendar/write" title="캘린더 열기">캘린더</a>
     <span class="sep"></span>
     <div class="wmnav-trail" id="wmTrail"></div>
@@ -71,7 +77,21 @@ try { window.name = 'drgo-write'; } catch (e) {}
         window.open(url, '_blank');
     };
 
-    // 최근 연 화면 — 이 창에서 연 의뢰자·프로젝트·캘린더 (최근 8개, 창을 닫으면 초기화)
+    // 의뢰자 ▾ / 프로젝트 ▾ — 기존 건을 찾아 열기·수정 (의뢰자는 새 등록도)
+    window.wmNavPop = function (e, kind) {
+        e.stopPropagation();
+        const pop = document.getElementById(kind === 'clients' ? 'wmPopClients' : 'wmPopProjects');
+        const wasOpen = pop.classList.contains('open');
+        document.querySelectorAll('.wm-pop').forEach(p => p.classList.remove('open'));
+        if (wasOpen) { return; }
+        pop.innerHTML = (kind === 'clients' ? '<button type="button" class="wm-pop-new" onclick="location.href=\'/clients/create/write\'">+ 새 의뢰자 등록</button>' : '') + '<div class="wm-pop-s"></div>';
+        pop.onclick = ev => ev.stopPropagation();
+        drgoWriteMode.mountSearch(pop.querySelector('.wm-pop-s'), [kind]);
+        pop.classList.add('open');
+    };
+    document.addEventListener('click', () => document.querySelectorAll('.wm-pop').forEach(p => p.classList.remove('open')));
+
+        // 최근 연 화면 — 이 창에서 연 의뢰자·프로젝트·캘린더 (최근 8개, 창을 닫으면 초기화)
     const KEY = 'drgo_wm_trail';
     const here = location.pathname + location.search;
     const kindOf = p => p.startsWith('/clients') ? '의뢰자' : p.startsWith('/projects') ? '프로젝트' : p.startsWith('/calendar') ? '캘린더' : '';
@@ -93,9 +113,9 @@ try { window.name = 'drgo-write'; } catch (e) {}
         render();
         if (label) { document.title = label + ' — 작성 모드'; }
     }
-    remember('');
+    remember(location.pathname === '/clients/create/write' ? '신규 등록' : '');
     // 화면이 그려진 뒤 이름을 읽어 목록 이름을 채운다
-    let tries = 0;
+    let tries = location.pathname === '/clients/create/write' ? 99 : 0;
     const timer = setInterval(() => {
         const name = (document.querySelector('.client-pane.active .detail-name')?.firstChild?.textContent
             || document.getElementById('projectNameDisplay')?.textContent

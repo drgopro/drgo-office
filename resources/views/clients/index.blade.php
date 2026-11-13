@@ -236,6 +236,12 @@
     [data-theme="light"] .field-select { background:#fff; }
     [data-theme="light"] .grade-chip.active { background:var(--accent); color:#fff; }
     [data-theme="light"] .new-client-overlay { background:rgba(0,0,0,0.4); }
+    /* 작성 모드 신규 등록 — 창 안에 상자가 한 겹 더 뜨지 않게 등록 화면이 창 전체를 쓴다 */
+    body.client-new-write .crm-wrap { display:none !important; }
+    body.client-new-write .new-client-overlay, [data-theme="light"] body.client-new-write .new-client-overlay { position:static; background:none; padding:0; z-index:auto; }
+    body.client-new-write .new-client-overlay.open { display:block; }
+    body.client-new-write .new-client-modal.ncm { width:auto; max-width:1180px; margin:0 auto; max-height:none; overflow:visible; border:0; border-radius:0; box-shadow:none; background:transparent; }
+    body.client-new-write .ncm-btn.icon { display:none; }
     [data-theme="light"] .new-client-modal { background:#fff; border-color:#c8ccd4; }
     [data-theme="light"] .filter-chip.active { color:#fff; }
     [data-theme="light"] .toast { color:#fff; }
@@ -890,6 +896,7 @@ drgoWriteMode.onMutation(({ path }) => {
 });
 function notifyClientUpdated(id) { drgoWriteMode.notify(`/api/clients/${id}`, 'SYNC'); }
 if (CLIENT_FOCUS_ID || CLIENT_NEW_WRITE) document.body.classList.add('client-focus');
+if (CLIENT_NEW_WRITE) document.body.classList.add('client-new-write'); // 등록 화면을 창 전체로 (팝업 상자 없이)
 
 // ── 초기화 ──
 loadCustomFieldDefs();
@@ -901,6 +908,8 @@ if (CLIENT_NEW_WRITE) {
     openClient(CLIENT_FOCUS_ID).then(() => {
         const t = openClientTabs.find(x => x.id === CLIENT_FOCUS_ID);
         document.title = `${(t && (t.nickname || t.name)) || '의뢰자'} · 작성 모드 - 닥터고블린 오피스`;
+        // ?edit=1 — 작성 모드에서 '수정'으로 열면 바로 수정 화면
+        if (CAN_CLIENT_EDIT && new URLSearchParams(location.search).get('edit') === '1') { setTimeout(() => clientEditMode(CLIENT_FOCUS_ID, true), 0); }
     });
 } else loadClientList(__savedClientState.page || 1).then(async () => {
     const urlParams = new URLSearchParams(window.location.search);
