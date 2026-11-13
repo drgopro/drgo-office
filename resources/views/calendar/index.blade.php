@@ -18,6 +18,10 @@
 @endpush
 
 @push('styles')
+@include('partials.ux-v2-styles')
+@endpush
+
+@push('styles')
 <style>
 /* 작성 모드 — 일정 창만 전체 화면(그리드는 가림), 메인 캘린더의 진입 버튼 */
 body.cal-write #modalOverlay { background:var(--bg); backdrop-filter:none; }

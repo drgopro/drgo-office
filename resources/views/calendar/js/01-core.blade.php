@@ -42,7 +42,9 @@ let currentYear, currentMonth, currentWeekStart, currentDay;
 // ── 월간 뷰 표시 주 수 (다중 주 모드) — 6=월 전체(기본), 2~5=현재 주부터 N주 ──
 let monthWeeks=(v=>[2,3,4,5,6].includes(v)?v:6)(parseInt(localStorage.getItem('cal_month_weeks'),10));
 let multiWeekStart=null; // 다중 주 모드의 첫 주 시작일(일요일)
-function monthGridWeeks(){ return monthWeeks>=6?6:monthWeeks; }
+// 그 달이 걸친 주 수(4~6) — 월 전체 보기는 그 달의 마지막 주까지만 그린다 (다음 달 주는 빼기)
+function monthSpanWeeks(){ const first=new Date(currentYear,currentMonth,1); const days=new Date(currentYear,currentMonth+1,0).getDate(); return Math.ceil((first.getDay()+days)/7); }
+function monthGridWeeks(){ return monthWeeks>=6?monthSpanWeeks():monthWeeks; }
 function ensureMultiWeekStart(){
     if(multiWeekStart) return;
     const now=new Date();

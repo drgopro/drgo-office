@@ -77,6 +77,8 @@
                 {{-- 이전 디자인(기본) ↔ 새 디자인 v2 전환 (개인 설정, 새로고침) — 라벨은 JS에서 현재 상태로 갱신 --}}
                 <div style="height:1px;background:var(--border);margin:4px 0;"></div>
                 <button id="calDesignToggle" onclick="toggleCalDesign()" style="display:block;width:100%;text-align:left;background:none;border:none;color:var(--text);padding:10px 14px;font-size:13px;cursor:pointer;border-radius:6px;white-space:nowrap;"><x-icon name="calendar" :size="13"/> <span id="calDesignToggleLabel">새 디자인으로 보기</span></button>
+                {{-- 오피스 새 화면 디자인(UX v2) 스위치 — 의뢰자·프로젝트·견적서와 같은 설정 (나만 적용) --}}
+                <button id="uxDesignToggle" onclick="drgoUx.set(drgoUx.on ? 'v1' : 'v2')" style="display:{{ config('ux.v2') ? 'block' : 'none' }};width:100%;text-align:left;background:none;border:none;color:var(--text);padding:10px 14px;font-size:13px;cursor:pointer;"><script>document.write(window.drgoUx && drgoUx.on ? '오피스 이전 디자인으로 보기' : '오피스 새 디자인으로 보기')</script></button>
                 @if(Auth::user()->isAdmin())
                 <div style="height:1px;background:var(--border);margin:4px 0;"></div>
                 <button onclick="location.href='/api/events/export/json'" style="display:block;width:100%;text-align:left;background:none;border:none;color:var(--text);padding:10px 14px;font-size:13px;cursor:pointer;border-radius:6px;white-space:nowrap;"><x-icon name="box" :size="13"/> JSON 백업</button>

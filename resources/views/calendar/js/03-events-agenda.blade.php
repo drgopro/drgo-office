@@ -28,10 +28,10 @@ async function loadEvents() {
         const ge=new Date(gs); ge.setDate(ge.getDate()+monthGridWeeks()*7-1);
         start=fmt(gs); end=fmt(ge);
     } else if (currentView==='monthc') {
-        // 컴팩트 월간: 항상 6주 고정 그리드
+        // 컴팩트 월간: 그 달이 걸친 주까지만
         const first=new Date(currentYear,currentMonth,1);
         const gs=new Date(first); gs.setDate(1-first.getDay());
-        const ge=new Date(gs); ge.setDate(gs.getDate()+41);
+        const ge=new Date(gs); ge.setDate(gs.getDate()+monthSpanWeeks()*7-1);
         start=fmt(gs); end=fmt(ge);
     } else if (currentView==='week') {
         start=fmt(currentWeekStart);

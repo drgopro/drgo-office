@@ -126,6 +126,36 @@ html.ux-v2 .page-wrap .page-header-left { min-width:0; }
     html.ux-v2 .page-wrap .page-header { flex-wrap:wrap; row-gap:12px; }
     html.ux-v2 .page-wrap .proj-actions { width:100%; justify-content:flex-end; }
 }
+/* ── 캘린더 ── */
+@media (min-width: 769px) {
+    /* 상단 한 줄: 왼쪽 [오늘] ‹ 연·월 › · 새로고침 · 검색 / 오른쪽 범례 · 보기 · 주 수 · 작성 모드 · 휴지통 · 더보기 */
+    html.ux-v2 .cal-header { flex-wrap:nowrap; padding:14px 24px; gap:8px; }
+    html.ux-v2 .cal-header::before { display:none; }
+    html.ux-v2 .cal-header-left { flex-wrap:nowrap; gap:6px; margin-right:auto; min-width:0; }
+    html.ux-v2 .cal-header .cal-center-nav { position:static; transform:none; order:-1; gap:2px; margin-right:8px; }
+    html.ux-v2 .cal-header .cal-center-nav .cal-today-btn { position:static; transform:none; margin:0 6px 0 0; height:32px; border-radius:8px; }
+    html.ux-v2 .cal-header .cal-center-nav .month-label { font-size:22px; font-weight:800; letter-spacing:-.04em; margin:0 2px; }
+    html.ux-v2 .cal-header .cal-legend { position:static; order:9; height:auto; margin:0 8px 0 0; }
+    html.ux-v2 .cal-header .view-toggle-group { order:10; margin-left:0; background:#e9ebef; border-radius:10px; padding:3px; }
+    html.ux-v2 .cal-header .view-toggle-btn { padding:5px 13px; border-radius:7px; font-size:13px; }
+    html.ux-v2 .cal-header .view-toggle-btn.active { background:#fff; color:var(--ux-ink); font-weight:700; box-shadow:0 1px 2px rgba(23,26,32,.12); }
+    html.ux-v2 .cal-header #monthWeeksCtl { order:11; margin:0; }
+    html.ux-v2 .cal-header .cal-wm-new { order:12; height:32px; font-size:13px !important; border-radius:8px; }
+    html.ux-v2 .cal-header #calTrashBtn { order:13; margin-left:0; }
+    html.ux-v2 .cal-header #calMoreWrap { order:14; margin-left:0; }
+    html.ux-v2 .cal-header .nav-btn { border-radius:8px; }
+}
+@media (max-width: 1180px) and (min-width: 769px) {
+    html.ux-v2 .cal-header { flex-wrap:wrap; row-gap:10px; }
+    html.ux-v2 .cal-header .cal-legend { display:none !important; }
+}
+/* 달력 격자·사이드 */
+html.ux-v2 .days-grid, html.ux-v2 #monthCompactView, html.ux-v2 #mcDeskList { border-color:var(--ux-line); border-radius:14px; box-shadow:none; }
+html.ux-v2 .weekday { color:var(--ux-sub); font-weight:700; }
+html.ux-v2 #addFabBtn, html.ux-v2 #calAddFab { background:var(--ux-ink); color:#fff; box-shadow:0 10px 24px -10px rgba(23,26,32,.55); }
+/* 일정 상세 창 */
+html.ux-v2 #modalOverlay .modal { border-radius:16px; }
+
 /* ── 견적서 목록 ── */
 html.ux-v2 .page-wrap .page-title { font-size:26px; font-weight:800; letter-spacing:-.05em; }
 html.ux-v2 .page-wrap .data-card { border-color:var(--ux-line); border-radius:14px; overflow:hidden; }

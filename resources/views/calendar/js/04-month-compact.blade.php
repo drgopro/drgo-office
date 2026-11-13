@@ -29,7 +29,7 @@ function renderMonthCompact(){
     const vTop=view.getBoundingClientRect().top;
     if(window.innerHeight-vTop>360){
         const reserve=mcMobile?26+54:26+14+mcListH+12; // 요일 헤더 + (모바일: 시트 바 / 데스크탑: 핸들+리스트 영역)
-        rowH=Math.max(mcMobile?58:72, Math.floor((window.innerHeight-vTop-reserve)/6));
+        rowH=Math.max(mcMobile?58:72, Math.floor((window.innerHeight-vTop-reserve)/monthSpanWeeks()));
     }
     const mv2=CAL_V2&&mcMobile; // v2 모바일: 20px 진한 칩, 하루 최대 2행 + 별도 +N 행
     const CHIP=mv2?22:mcMobile?19:17, BAR=mv2?22:17, HEAD=mv2?30:20, LANE_CAP=mv2?2:3;
@@ -37,7 +37,7 @@ function renderMonthCompact(){
     else if(mcMobile) rowH=Math.max(rowH, HEAD+CHIP*6+4); // 모바일: 셀당 칩 6개 수준 확보 (네이버식 밀도)
 
     let html=`<div class="mc-weekdays">${['일','월','화','수','목','금','토'].map(d=>`<span>${d}</span>`).join('')}</div>`;
-    for(let w=0;w<6;w++){
+    for(let w=0;w<monthSpanWeeks();w++){
         const days=[...Array(7)].map((_,i)=>{const dt=new Date(gridStart);dt.setDate(gridStart.getDate()+w*7+i);return dt;});
         const weekStart=fmt(days[0]), weekEnd=fmt(days[6]);
 
