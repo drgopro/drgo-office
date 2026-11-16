@@ -3,6 +3,7 @@
 use App\Http\Controllers\ActivityLogController;
 use App\Http\Controllers\AdminController;
 use App\Http\Controllers\AgentEventController;
+use App\Http\Controllers\AgentFeedbackController;
 use App\Http\Controllers\AppVersionController;
 use App\Http\Controllers\AsRequestController;
 use App\Http\Controllers\AssigneeController;
@@ -71,6 +72,13 @@ use Illuminate\Support\Facades\Route;
 Route::match(['get', 'post'], '/api/bank-deposits/ingest', [BankDepositController::class, 'ingest']);
 // AI 에이전트 이벤트 수신 — 개발자 맥북 Claude Code 훅이 토큰(X-Agent-Token)으로 전송 (세션 밖, CSRF 제외)
 Route::match(['get', 'post'], '/api/agent-events/ingest', [AgentEventController::class, 'ingest'])->middleware('throttle:120,1');
+// 피드백 AI 검수 — 같은 토큰(X-Agent-Token)으로 검수 대상 조회·검수 등록·반영 결과 기록 (세션 밖, CSRF 제외)
+Route::middleware('throttle:120,1')->prefix('api/agent')->group(function () {
+    Route::get('/feedback', [AgentFeedbackController::class, 'index']);
+    Route::get('/feedback-attachments/{attachment}', [AgentFeedbackController::class, 'attachment']);
+    Route::post('/feedback/{post}/review', [AgentFeedbackController::class, 'storeReview']);
+    Route::post('/feedback/{post}/result', [AgentFeedbackController::class, 'storeResult']);
+});
 
 // 의뢰자용 공개 견적서 — 난수 토큰으로만 접근 (로그인 불필요)
 // POST도 허용: 페이앱이 결제 후 returnurl로 POST 리다이렉트함 (405 방지)
@@ -154,6 +162,7 @@ Route::middleware('auth')->group(function () {
         Route::delete('/api/feedback/{post}', [FeedbackController::class, 'destroy']);
         Route::post('/api/feedback/{post}/status', [FeedbackController::class, 'updateStatus']);
         Route::post('/api/feedback/{post}/priority', [FeedbackController::class, 'updatePriority']); // 관리자 우선순위 지정
+        Route::post('/api/feedback/{post}/review-decision', [FeedbackController::class, 'decideReview']); // AI 검수 승인·보류·반려·재검토 (관리자)
         Route::post('/api/feedback/{post}/comments', [FeedbackController::class, 'storeComment']);
         Route::delete('/api/feedback-comments/{comment}', [FeedbackController::class, 'destroyComment']);
         Route::post('/api/feedback/{post}/attachments', [FeedbackController::class, 'storeAttachments']);

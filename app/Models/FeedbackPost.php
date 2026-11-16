@@ -5,6 +5,7 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Database\Eloquent\Relations\HasOne;
 use Illuminate\Database\Eloquent\SoftDeletes;
 
 class FeedbackPost extends Model
@@ -59,6 +60,16 @@ class FeedbackPost extends Model
     public function attachments(): HasMany
     {
         return $this->hasMany(FeedbackAttachment::class);
+    }
+
+    /**
+     * AI 검수 (관리자 전용 노출)
+     *
+     * @return HasOne<FeedbackReview, $this>
+     */
+    public function review(): HasOne
+    {
+        return $this->hasOne(FeedbackReview::class);
     }
 
     /** 완료·반려된 글은 작성자 수정 잠금 */

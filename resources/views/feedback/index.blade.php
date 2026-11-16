@@ -95,6 +95,28 @@
     .fb-reject-input-wrap.show { display:flex; }
     .fb-reject-input-wrap input { flex:1; background:var(--surface); border:1px solid var(--border); border-radius:8px; padding:6px 10px; color:var(--text); font-size:13px; outline:none; }
 
+    /* AI 검수 — 관리자(master/admin) 전용 펼침 영역 */
+    .fb-review { margin-top:14px; border:1px solid var(--border); border-left:3px solid var(--accent); border-radius:10px; background:var(--surface2); }
+    .fb-review > summary { display:flex; align-items:center; gap:8px; flex-wrap:wrap; padding:10px 12px; font-size:13px; font-weight:700; color:var(--text); cursor:pointer; list-style:none; }
+    .fb-review > summary::-webkit-details-marker { display:none; }
+    .fb-review > summary::after { content:'▼'; margin-left:auto; font-size:10px; color:var(--text-muted); transition:transform .15s; }
+    .fb-review[open] > summary::after { transform:rotate(180deg); }
+    .fb-review-admin { font-size:11px; font-weight:600; color:var(--text-muted); }
+    .fb-review-chip { font-size:12px; font-weight:700; border:1px solid var(--border); border-radius:999px; padding:2px 9px; background:var(--surface); color:var(--text-muted); }
+    .fb-review-chip.pending { color:#c9a227; border-color:#c9a22766; }
+    .fb-review-chip.approved { color:#3fa66b; border-color:#3fa66b66; }
+    .fb-review-chip.applied { color:#5b8def; border-color:#5b8def66; }
+    .fb-review-chip.rejected { color:#e06c6c; border-color:#e06c6c66; }
+    .fb-review-chip.hold, .fb-review-chip.revise { color:#a78bfa; border-color:#a78bfa66; }
+    .fb-review-body { padding:2px 12px 12px; display:flex; flex-direction:column; gap:10px; }
+    .fb-review-label { font-size:12px; font-weight:700; color:var(--text-muted); margin-bottom:3px; }
+    .fb-review-text { font-size:13px; color:var(--text); line-height:1.65; white-space:pre-wrap; word-break:break-word; }
+    .fb-review-actions { display:flex; align-items:center; gap:7px; flex-wrap:wrap; }
+    .fb-review-actions input { flex:1; min-width:200px; background:var(--surface); border:1px solid var(--border); border-radius:8px; padding:6px 10px; color:var(--text); font-size:13px; outline:none; }
+    .fb-review-meta { font-size:12px; color:var(--text-muted); }
+    .fb-review-toggle { background:var(--surface2); border:1px solid var(--border); border-radius:10px; padding:8px 13px; font-size:13px; font-weight:600; color:var(--text); cursor:pointer; font-family:inherit; }
+    .fb-review-toggle.on { border-color:var(--accent); color:var(--accent); }
+
     /* 의견 */
     .fb-comments { margin-top:14px; border-top:1px solid var(--border); padding-top:12px; display:flex; flex-direction:column; gap:11px; }
     .fb-comment { display:flex; gap:9px; }
@@ -211,6 +233,10 @@
                 <option value="priority">우선순위순</option>
             </select>
             <input type="search" id="fbSearch" placeholder="제목, 내용, 작성자 검색" onkeydown="if(event.key==='Enter')fbLoad()">
+            @if($isAdmin)
+                {{-- AI 검수 승인 대기 글만 보기 — 관리자 전용 --}}
+                <button type="button" class="fb-review-toggle" id="fbReviewPendingBtn" onclick="fbToggleReviewPending()" style="display:none;">AI 검수 승인 대기 <b id="fbReviewPendingCnt"></b></button>
+            @endif
         </div>
 
         <div id="fbFeed"><div class="fb-empty">불러오는 중...</div></div>
@@ -246,6 +272,8 @@ let fbPosts = [];
 let fbFiles = []; // 첨부 대기 파일 (File 객체)
 let fbOpenId = null;
 let fbEditingId = null; // 인라인 수정 중인 글 id
+let fbReviewPendingOnly = false; // 관리자: AI 검수 승인 대기 글만 보기
+const fbReviewOpen = {};         // 글별 AI 검수 영역 펼침 상태 (재렌더 시 유지)
 
 function _e(s){ return String(s??'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
 
@@ -272,6 +300,7 @@ async function fbLoad(){
     const pg = document.getElementById('fbFilterPage').value; if(pg) params.set('page', pg);
     params.set('sort', document.getElementById('fbSort').value);
     const q = document.getElementById('fbSearch').value.trim(); if(q) params.set('q', q);
+    if(fbReviewPendingOnly) params.set('review_pending', '1');
     try{
         const res = await fetch('/api/feedback?'+params.toString(), {headers:{'Accept':'application/json'}});
         if(!res.ok) throw new Error();
@@ -280,6 +309,7 @@ async function fbLoad(){
         document.getElementById('fbCntBug').textContent = data.tab_totals.bug || '';
         document.getElementById('fbCntFeature').textContent = data.tab_totals.feature || '';
         fbRenderCounts(data.counts);
+        fbRenderReviewPending(data.review_pending_count);
         fbRenderFeed();
     }catch(e){
         document.getElementById('fbFeed').innerHTML = '<div class="fb-empty">목록을 불러오지 못했습니다.</div>';
@@ -290,6 +320,60 @@ function fbRenderCounts(counts){
     document.getElementById('fbCounts').innerHTML = Object.keys(FB_STATUS).map(s =>
         `<div class="fb-count-row"><span><span class="dot" style="background:${FB_STATUS_DOT[s]}"></span>${FB_STATUS[s]}</span><b>${counts[s]||0}</b></div>`
     ).join('');
+}
+
+// ── AI 검수 (관리자 전용) ──
+function fbRenderReviewPending(count){
+    const btn = document.getElementById('fbReviewPendingBtn');
+    if(!btn) return;
+    // 승인 대기가 없으면 버튼을 숨기되, 필터가 켜져 있으면 끌 수 있게 남겨둔다
+    btn.style.display = (count > 0 || fbReviewPendingOnly) ? '' : 'none';
+    btn.classList.toggle('on', fbReviewPendingOnly);
+    document.getElementById('fbReviewPendingCnt').textContent = count || 0;
+}
+function fbToggleReviewPending(){
+    fbReviewPendingOnly = !fbReviewPendingOnly;
+    fbLoad();
+}
+function fbReviewState(r){ return r.applied_at ? 'applied' : r.decision; }
+function fbReviewHtml(p){
+    const r = p.review;
+    const state = fbReviewState(r);
+    const stateLabel = r.applied_at ? '반영 완료' : r.decision_label;
+    // 승인 대기는 기본 펼침, 그 외는 접힘 — 사용자가 여닫은 상태를 우선
+    const open = (p.id in fbReviewOpen) ? fbReviewOpen[p.id] : r.decision === 'pending';
+    const block = (label, text) => text ? `<div><div class="fb-review-label">${label}</div><div class="fb-review-text">${_e(text)}</div></div>` : '';
+    let html = `<details class="fb-review" ${open?'open':''} ontoggle="fbReviewOpen[${p.id}]=this.open">
+        <summary>AI 검수 <span class="fb-review-admin">관리자 전용</span>
+            <span class="fb-review-chip">${_e(r.category_label)}</span>
+            ${r.effort_label?`<span class="fb-review-chip">작업량 ${_e(r.effort_label)}</span>`:''}
+            <span class="fb-review-chip ${state}">${_e(stateLabel)}</span>
+        </summary>
+        <div class="fb-review-body">
+            ${block('검수 내용', r.summary)}
+            ${block('수정 방향 제안', r.proposal)}
+            ${block('관리자 메모', r.decision_note)}
+            ${block('반영 결과', r.result_note)}
+            <div class="fb-review-meta">검수 ${_e(r.reviewed_at||'')}${r.decided_at?` · ${_e(r.decision_label)} ${_e(r.decided_by||'')} ${_e(r.decided_at)}`:''}${r.applied_at?` · 반영 ${_e(r.applied_at)}`:''}</div>`;
+    if(!r.applied_at){
+        html += `<div class="fb-review-actions">
+                <input type="text" id="fbReviewNote${p.id}" maxlength="1000" placeholder="메모 (선택) — 승인 시 지시사항, 재검토 요청 시 필수" value="${_e(r.decision_note||'')}">
+                <button class="fb-dev-btn ${r.decision==='approved'?'on':''}" onclick="fbDecideReview(${p.id},'approved')">승인</button>
+                <button class="fb-dev-btn ${r.decision==='hold'?'on':''}" onclick="fbDecideReview(${p.id},'hold')">보류</button>
+                <button class="fb-dev-btn ${r.decision==='rejected'?'on':''}" onclick="fbDecideReview(${p.id},'rejected')">반려</button>
+                <button class="fb-dev-btn ${r.decision==='revise'?'on':''}" onclick="fbDecideReview(${p.id},'revise')">재검토 요청</button>
+            </div>`;
+    }
+    return html + '</div></details>';
+}
+async function fbDecideReview(id, decision){
+    const note = (document.getElementById('fbReviewNote'+id)?.value || '').trim();
+    if(decision === 'revise' && !note){ alert('재검토 요청에는 메모를 입력해주세요.'); return; }
+    const res = await fetch(`/api/feedback/${id}/review-decision`, {method:'POST', headers:{'X-CSRF-TOKEN':FB_CSRF,'Content-Type':'application/json','Accept':'application/json'}, body:JSON.stringify({decision, note: note || null})});
+    const data = await res.json().catch(()=>({}));
+    if(!res.ok){ alert(data.message || '처리 실패'); return; }
+    fbReviewOpen[id] = true; // 결정 직후에는 결과를 볼 수 있게 펼친 채로
+    fbLoad();
 }
 
 // ── 피드 렌더 ──
@@ -309,6 +393,7 @@ function fbRenderFeed(){
                 </div>
                 <span class="fb-badge ${p.status}">${_e(p.status_label)}</span>
                 ${p.priority ? `<span class="fb-prio ${p.priority}" title="우선순위">${_e(p.priority_label)}</span>` : ''}
+                ${(FB_IS_ADMIN && p.review && p.review.decision==='pending') ? '<span class="fb-review-chip pending" title="AI 검수 승인 대기 (관리자 전용)">검수 승인 대기</span>' : ''}
                 <span class="fb-chevron">▼</span>
             </div>
             <div class="fb-card-body">${open ? fbBodyHtml(p) : ''}</div>
@@ -377,6 +462,8 @@ function fbBodyHtml(p){
             </span>
         </div>`;
     }
+    // AI 검수 — 관리자 전용 펼침 영역 (서버도 관리자에게만 review를 내려준다)
+    if(FB_IS_ADMIN && p.review) html += fbReviewHtml(p);
     // 최상위 의견 + 대댓글 (1뎁스) 그룹 렌더
     const roots = p.comments.filter(c => !c.parent_id);
     const replies = {};
