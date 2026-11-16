@@ -249,10 +249,15 @@ class ProjectController extends Controller
         $extraAssigneeIds = $validated['extra_assignee_ids'] ?? [];
         unset($validated['extra_assignee_ids']);
 
-        $project = Project::create($validated);
-        if (! empty($extraAssigneeIds)) {
-            $project->syncExtraAssignees($extraAssigneeIds);
-        }
+        // 프로젝트와 추가 담당자를 함께 저장 — 한쪽만 남는 일이 없게
+        $project = DB::transaction(function () use ($validated, $extraAssigneeIds) {
+            $project = Project::create($validated);
+            if (! empty($extraAssigneeIds)) {
+                $project->syncExtraAssignees($extraAssigneeIds);
+            }
+
+            return $project;
+        });
 
         if ($request->wantsJson() || $request->expectsJson()) {
             return response()->json([
@@ -354,8 +359,11 @@ class ProjectController extends Controller
         $data = ['stage' => $request->stage];
 
         if ($request->stage === 'done') {
-            $data['completed_at'] = now();
-            $data['completed_by'] = Auth::id(); // 완료 처리한 사람 기록
+            // 완료로 "바뀌는" 순간에만 기록 — 이미 완료된 프로젝트에 완료를 다시 보내도 완료 시각·완료자를 덮어쓰지 않는다
+            if ($project->stage !== 'done') {
+                $data['completed_at'] = now();
+                $data['completed_by'] = Auth::id();
+            }
         } elseif ($project->stage === 'done') {
             $data['completed_at'] = null; // 완료 취소(되돌리기) — 재완료 시 새 시각 기록
             $data['completed_by'] = null;
@@ -512,13 +520,18 @@ class ProjectController extends Controller
         $extraAssigneeIds = $validated['extra_assignee_ids'] ?? null;
         unset($validated['extra_assignee_ids']);
 
-        $project->update($validated);
-        if ($extraAssigneeIds !== null) {
-            $project->syncExtraAssignees($extraAssigneeIds);
-        } elseif (array_key_exists('assigned_user_id', $validated)) {
-            // 대표 담당자만 바꾼 경우 — 새 대표가 추가 담당자에도 들어 있으면 중복 제거
-            $project->syncExtraAssignees($project->extraAssignees()->pluck('users.id')->all());
-        }
+        DB::transaction(function () use ($project, $validated, $extraAssigneeIds) {
+            $project->update($validated);
+            if ($extraAssigneeIds !== null) {
+                // 화면의 선택 목록에는 활성 사용자만 나오므로, 이미 지정돼 있던 비활성(퇴사 등) 담당자는
+                // 목록에 없다는 이유로 조용히 빠지지 않게 그대로 유지한다
+                $inactiveKept = $project->extraAssignees()->where('users.is_active', false)->pluck('users.id')->all();
+                $project->syncExtraAssignees(array_merge($extraAssigneeIds, $inactiveKept));
+            } elseif (array_key_exists('assigned_user_id', $validated)) {
+                // 대표 담당자만 바꾼 경우 — 새 대표가 추가 담당자에도 들어 있으면 중복 제거
+                $project->syncExtraAssignees($project->extraAssignees()->pluck('users.id')->all());
+            }
+        });
 
         return response()->json(['success' => true, 'project' => $project]);
     }

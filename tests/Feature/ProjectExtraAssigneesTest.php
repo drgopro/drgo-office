@@ -70,6 +70,12 @@ class ProjectExtraAssigneesTest extends TestCase
         $this->assertSame([], $project->fresh()->extraAssignees->pluck('id')->all());
 
         $this->actingAs($this->admin)->patchJson("/api/projects/{$project->id}", ['extra_assignee_ids' => [999999]])->assertUnprocessable();
+
+        // 비활성(퇴사 등) 담당자는 선택 목록에 없어서 요청에 빠져도 유지된다
+        $project->fresh()->syncExtraAssignees([$this->kim->id]); // 이 시점의 대표는 이수호
+        $this->kim->update(['is_active' => false]);
+        $this->actingAs($this->admin)->patchJson("/api/projects/{$project->id}", ['extra_assignee_ids' => [$this->admin->id]])->assertOk();
+        $this->assertEqualsCanonicalizing([$this->kim->id, $this->admin->id], $project->fresh()->extraAssignees->pluck('id')->all());
     }
 
     public function test_list_shows_all_assignees_and_filter_matches_extra_assignees(): void
@@ -99,6 +105,14 @@ class ProjectExtraAssigneesTest extends TestCase
         $this->assertSame($this->lee->id, $project->completed_by);
         $this->assertNotNull($project->completed_at);
         $this->actingAs($this->admin)->get("/projects/{$project->id}")->assertOk()->assertSee('완료 처리: 이수호');
+
+        // 이미 완료된 프로젝트에 완료를 다시 보내도 완료자·완료 시각은 그대로
+        $completedAt = $project->completed_at;
+        $this->travel(5)->minutes();
+        $this->actingAs($this->admin)->patchJson("/projects/{$project->id}/stage", ['stage' => 'done'])->assertSuccessful();
+        $project->refresh();
+        $this->assertSame($this->lee->id, $project->completed_by);
+        $this->assertTrue($completedAt->equalTo($project->completed_at));
 
         // 완료 취소 — 완료자 기록도 지운다
         $this->actingAs($this->admin)->patchJson("/projects/{$project->id}/stage", ['stage' => 'consulting'])->assertSuccessful();
