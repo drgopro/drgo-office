@@ -323,7 +323,7 @@ function initAllRadioGroups(){
     ['g_career_group','g_source_group','g_budget_group','g_paid_group','g_order_group','g_balance_group'].forEach(id=>initRadioGroup(id));
     initRadioGroup('g_req_topic_group',{multi:true});
     // teal 모드 전환
-    initRadioGroup('teal_mode_group',{onChange:v=>{document.getElementById('teal_remote_fields').style.display=v==='remote'?'':'none';document.getElementById('teal_studio_fields').style.display=v==='studio'?'':'none';}});
+    initRadioGroup('teal_mode_group',{onChange:v=>{document.getElementById('teal_remote_fields').style.display=v==='remote'?'':'none';document.getElementById('teal_studio_fields').style.display=v==='studio'?'':'none';if(typeof updateBrRentalUI==='function') updateBrRentalUI();}});
     // 색상 dot 클릭
     document.querySelectorAll('.color-dot').forEach(dot=>{dot.addEventListener('click',()=>{if(!isLocked) setColor(dot.dataset.color);});});
     // schedEventOpts (멀티 토글)

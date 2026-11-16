@@ -483,6 +483,8 @@ async function syncProjectPaymentFields(){
 // 대여 이력 등록 토글 (신규 등록 시에만 사용) — teal: 방송룸 시간/월, 렌탈 카테고리: 렌탈 월계약
 function brRentalKind(){
     const label=(window.CALENDAR_CATEGORIES?.[currentColor]?.label)||'';
+    // 원격/방송룸(teal)에서 유형이 '원격'이면 방송룸 대여와 무관 → 대여 이력 등록 미노출
+    if(currentColor==='teal'&&(getRadio('teal_mode_group')||'remote')!=='studio') return null;
     if(currentColor==='teal'||label.includes('방송룸')) return 'broadcast';
     if(label==='렌탈') return 'rental';
     return null;
@@ -492,6 +494,8 @@ function updateBrRentalUI(){
     if(!g) return;
     const kind=brRentalKind();
     g.style.display=(!editingId&&kind)?'':'none';
+    // 숨겨질 때는 체크도 해제 — 원격으로 바꿨다가 되돌렸을 때 이전 체크가 몰래 살아나 함께 저장되는 것 방지
+    if(!kind){ const chk=document.getElementById('brRentalChk'); if(chk&&chk.checked){ chk.checked=false; onBrRentalToggle(); } }
     const sel=document.getElementById('brRentalMode');
     const kl=document.getElementById('brRentalKindLabel');
     if(kind==='rental'){

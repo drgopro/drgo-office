@@ -51,4 +51,15 @@ class CalendarRemoteNoLocationTest extends TestCase
             ->assertOk()
             ->assertSee("if(currentColor!=='teal'&&d.address&&", false);
     }
+
+    public function test_rental_history_toggle_is_hidden_for_remote_mode(): void
+    {
+        // 대여 이력 등록은 '방송룸 이용' 유형에서만 — 원격 유형에서는 숨기고, 유형 전환 시 표시 갱신
+        $user = User::factory()->create(['role' => 'admin']);
+
+        $this->actingAs($user)->get('/calendar')
+            ->assertOk()
+            ->assertSee("if(currentColor==='teal'&&(getRadio('teal_mode_group')||'remote')!=='studio') return null;", false)
+            ->assertSee("style.display=v==='studio'?'':'none';if(typeof updateBrRentalUI==='function') updateBrRentalUI();}", false);
+    }
 }
