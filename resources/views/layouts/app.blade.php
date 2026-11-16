@@ -999,6 +999,15 @@ window.drgoTabs = {
         }
     },
 
+    /** 호출한 iframe(sourceWin)이 속한 탭을 닫는다 — 못 찾으면 아무것도 닫지 않음 */
+    closeByWindow(sourceWin) {
+        const iframe = [...document.querySelectorAll('.tab-pane iframe')].find(f => {
+            try { return f.contentWindow === sourceWin; } catch (e) { return false; }
+        });
+        const paneId = iframe?.closest('.tab-pane')?.id?.replace('pane-', '');
+        if (paneId && this.tabs.some(t => t.id === paneId)) this.close(paneId);
+    },
+
     openClientDetail(clientId) {
         const baseUrl = '/clients';
         const existing = this.tabs.find(t => t.url === baseUrl);

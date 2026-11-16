@@ -1512,7 +1512,7 @@ function uxFlowCard(clientId, projects) {
     const switcher = list.length > 1
         ? `<div class="ux2-pswitch" onclick="event.stopPropagation()"><span>진행 중 ${activeCount}건</span>${list.map(x => `<button type="button" class="${x.id === p.id ? 'on' : ''}" onclick="uxFlowSelect(${clientId}, ${x.id})">${_esc(x.name)}</button>`).join('')}</div>`
         : '';
-    return `<div class="ux2-g flow click" id="ux2-flow-${clientId}" onclick="openTopTab('projects','/projects/${p.id}')" title="프로젝트 열기">
+    return `<div class="ux2-g flow click" id="ux2-flow-${clientId}" onclick="openTopTab('projects','/projects/${p.id}?from=client')" title="프로젝트 열기">
         ${switcher}
         <h3><b>${_esc(p.name)}</b><span>${state}</span><span class="more">프로젝트 열기</span></h3>
         ${stages.length ? `<div class="ux2-bars ${cancelled ? 'cancel' : ''}">${stages.map((s, i) => `<span class="${cls(i)}"></span>`).join('')}</div>
@@ -1592,7 +1592,7 @@ function renderProjectList(projects, clientId, order) {
         return sortOrder === 'desc' ? db.localeCompare(da) : da.localeCompare(db);
     });
     return sorted.map(p => `
-        <div style="padding:10px 12px 12px; border:1px solid var(--border); border-radius:8px; margin-bottom:8px; cursor:pointer;" onclick="openTopTab('projects','/projects/${p.id}')">
+        <div style="padding:10px 12px 12px; border:1px solid var(--border); border-radius:8px; margin-bottom:8px; cursor:pointer;" onclick="openTopTab('projects','/projects/${p.id}?from=client')">
             <div style="display:flex; justify-content:space-between; align-items:center;">
                 <div>
                     <div style="font-size:15px; font-weight:600;">${_esc(p.name)}</div>
