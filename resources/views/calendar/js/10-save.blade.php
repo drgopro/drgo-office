@@ -110,6 +110,7 @@ async function doSaveEvent(){
     // 미팅/내방 옵션·사내업무 장소(체크박스)도 special_opts에 함께 저장
     if(currentColor==='purple'||currentColor==='blue'){ specialOpts=specialOpts.concat([...document.querySelectorAll('#visitOptsList input:checked')].map(i=>i.value)); }
 
+    const dropLoc=dropsLocationOnSave();
     const data={
         title:document.getElementById('modalTitle').value.trim()||'(제목 없음)',
         start_date:sd, end_date:ed||sd, start_time:isAllDay?null:st, end_time:isAllDay?null:et,
@@ -117,10 +118,10 @@ async function doSaveEvent(){
         // 공통 유형은 별도 이름 필드 없음 — 연결된 의뢰자명(있으면)만 보조 저장
         client_name:isGold?document.getElementById('g_nickname').value.trim():((linkedClientId&&colorSupportsClientLink(currentColor))?(document.getElementById('linkedClientName')?.textContent.trim()||''):''),
         // address=도로명(검색), location=도로명+상세주소(표시용)
-        address:document.getElementById('modalAddress').value.trim()||document.getElementById('modalLocation').value.trim(),
-        location:[document.getElementById('modalLocation').value.trim(), document.getElementById('modalLocationDetail').value.trim()].filter(Boolean).join(' '),
-        entrance_info:document.getElementById('modalEntranceInfo')?.value.trim()||null,
-        pet_info:document.getElementById('modalPetInfo')?.value.trim()||null,
+        address:dropLoc?'':(document.getElementById('modalAddress').value.trim()||document.getElementById('modalLocation').value.trim()),
+        location:dropLoc?'':[document.getElementById('modalLocation').value.trim(), document.getElementById('modalLocationDetail').value.trim()].filter(Boolean).join(' '),
+        entrance_info:dropLoc?null:(document.getElementById('modalEntranceInfo')?.value.trim()||null),
+        pet_info:dropLoc?null:(document.getElementById('modalPetInfo')?.value.trim()||null),
         description:isGold?'':document.getElementById('commonDesc').value.trim(),
         // 전달사항 — 메모 없는 공통 유형에서만 입력(gold/teal은 자체 필드 사용)
         handover_note:(isGold||currentColor==='teal')?null:(document.getElementById('commonHandoverNote')?.value.trim()||null),

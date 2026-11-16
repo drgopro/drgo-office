@@ -105,7 +105,7 @@ class CalendarEntrancePetInfoTest extends TestCase
             ->assertSee('공동현관 정보 (출입 방법·비밀번호 등)', false)
             ->assertSee('반려동물 여부', false)
             // 저장 payload·요약 뷰 표시
-            ->assertSee('entrance_info:document.getElementById', false)
-            ->assertSee("entranceTxt=_val('modalEntranceInfo')", false);
+            ->assertSee("entrance_info:dropLoc?null:(document.getElementById('modalEntranceInfo')", false)
+            ->assertSee("entranceTxt=dropLoc?'':_val('modalEntranceInfo')", false);
     }
 }

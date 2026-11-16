@@ -110,7 +110,7 @@ function applyClientDetail(d){
     if(gPhone&&!gPhone.value.trim()&&d.phone) gPhone.value=d.phone;
     // 주소는 자동으로 채우지 않는다 — 의뢰자 정보의 구주소가 몰래 들어가는 것 방지.
     // 필요 시 '👤 의뢰자 주소'/'📁 프로젝트 주소' 버튼이나 주소 검색(수기)으로 명시적으로 채운다.
-    if(d.address&&!document.getElementById('modalLocation')?.value.trim()&&typeof showCalToast==='function'){
+    if(currentColor!=='teal'&&d.address&&!document.getElementById('modalLocation')?.value.trim()&&typeof showCalToast==='function'){
         showCalToast('의뢰자에 저장된 주소가 있습니다 — 필요하면 장소의 👤 의뢰자 주소 버튼으로 불러오세요');
     }
     // teal(원격/방송룸): 플랫폼 텍스트 필드 채움 (양쪽 모드, 기타 직접입력 포함)

@@ -436,6 +436,7 @@ function openEditModal(ev){
     selectedNotifyAssignees=Array.isArray(ev.notify_assignees)?[...ev.notify_assignees]:[]; updateNotifyBtn();
     // 날짜/시간 원본 스냅샷 — 변경 사유 필수 여부 판정용
     editingOrigDT={
+        color:ev.color,
         sd:(ev.start_date||'').substring(0,10),
         ed:((ev.end_date||ev.start_date)||'').substring(0,10),
         st:(ev.start_time||'').substring(0,5),

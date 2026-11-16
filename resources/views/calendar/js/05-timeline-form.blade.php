@@ -379,12 +379,18 @@ function renderVisitOpts(){
     const label=document.getElementById('visitOptsLabel');
     if(label) label.textContent=isOffice?'장소 선택':'내방 옵션';
 }
+// 원격/방송룸(teal)은 장소 영역이 숨겨지므로, 다른 카테고리에서 teal로 바꿔(또는 새로) 저장하면
+// 숨겨진 장소·출입 정보를 비운다. 처음부터 teal이던 기존 일정의 저장된 장소는 보존
+function dropsLocationOnSave(){
+    return currentColor==='teal' && !(editingId && editingOrigDT && editingOrigDT.color==='teal');
+}
 function applyVisitOptsUI(){
     const sec=document.getElementById('visitOptsSection');
     const addr=document.getElementById('addressBlock');
     if(!sec||!addr) return;
     if(currentColor==='purple'||currentColor==='blue'){ renderVisitOpts(); sec.style.display=''; onVisitOptChange(); }
-    else { sec.style.display='none'; addr.style.display=''; }
+    // 원격/방송룸(teal)은 장소 지정이 필요 없음 → 장소 영역 숨김
+    else { sec.style.display='none'; addr.style.display=currentColor==='teal'?'none':''; }
 }
 function onVisitOptChange(){
     const addr=document.getElementById('addressBlock');

@@ -94,8 +94,9 @@ function renderLockSummary(){
     const container = document.getElementById('lockSummary');
     if (!container) return;
     const color = currentColor || 'gold';
-    const location = [_val('modalLocation'), _val('modalLocationDetail')].filter(Boolean).join(' ');
-    const addr = document.getElementById('modalAddress')?.value || '';
+    const dropLoc = dropsLocationOnSave(); // teal로 전환된 일정 — 저장 시 비워질 장소는 요약에도 미표시
+    const location = dropLoc ? '' : [_val('modalLocation'), _val('modalLocationDetail')].filter(Boolean).join(' ');
+    const addr = dropLoc ? '' : (document.getElementById('modalAddress')?.value || '');
     const isAll = isAllDay;
     const sDate = _val(color==='gold'?'goldStartDate':'startDate');
     const eDate = _val(color==='gold'?'goldEndDate':'endDate');
@@ -216,7 +217,7 @@ function renderLockSummary(){
         </div>` : '';
     const addrActions = addr ? mapIconBtns(addr) : '';
     // 현장 출입 정보 — 공동현관·반려동물 (주소 아래 한 줄씩)
-    const entranceTxt=_val('modalEntranceInfo'), petTxt=_val('modalPetInfo');
+    const entranceTxt=dropLoc?'':_val('modalEntranceInfo'), petTxt=dropLoc?'':_val('modalPetInfo');
     const accessLine=(entranceTxt||petTxt)?`<div class="ls-addr" style="margin-top:4px;">${[
         entranceTxt?`🔑 공동현관 — ${_esc(entranceTxt)}`:'',
         petTxt?`반려동물 — ${_esc(petTxt)}`:'',
@@ -242,9 +243,11 @@ function renderLockSummary(){
         // 미팅/내방·사내업무: 장소를 체크박스 선택지로 지정하면 location이 비므로 옵션 값을 장소로 표시
         const visitOptsSel=(color==='purple'||color==='blue')?[...document.querySelectorAll('#visitOptsList input:checked')].map(i=>i.value):[];
         const locDisplay=_esc(location) || (visitOptsSel.length?`🏢 ${visitOptsSel.map(v=>_esc(v)).join(', ')}`:'');
-        left.push(lsCard('일시 · 장소', `
+        // 원격/방송룸(teal)은 장소 입력란이 없음 — 기존에 저장된 주소가 있을 때만 장소 줄 표시
+        const hideLoc=color==='teal'&&!locDisplay;
+        left.push(lsCard(hideLoc?'일시':'일시 · 장소', `
             <div class="ls-big">${timeBig}${durTxt}</div>
-            <div class="ls-addr">${addrLine((locDisplay || '<span style="color:var(--text-muted);font-weight:400;">— 장소 미입력 —</span>') + addrLabelChip(location || addr), (location || addr) ? (location || addr) : '', '주소')}</div>
+            ${hideLoc?'':`<div class="ls-addr">${addrLine((locDisplay || '<span style="color:var(--text-muted);font-weight:400;">— 장소 미입력 —</span>') + addrLabelChip(location || addr), (location || addr) ? (location || addr) : '', '주소')}</div>`}
             ${accessLine}
             ${specialLine}
             ${addrActions}`, '', 'ls-c-time ls-time-card'));
