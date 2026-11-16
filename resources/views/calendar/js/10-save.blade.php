@@ -45,6 +45,8 @@ function collectGoldFields(){
         estimate_id:linkedEstimateIds[0]??null,
         estimate_ids:linkedEstimateIds.length?[...linkedEstimateIds]:null,
         client_id:linkedClientId,
+        // 프로젝트를 나중에 연결하는 사유 (방문의뢰 새 일정의 프로젝트 필수 규칙 예외)
+        project_defer_reason:(document.getElementById('projectDeferChk')?.checked?document.getElementById('projectDeferReason')?.value.trim():'')||'',
         // 의뢰자 연결 + 프로젝트 선택 UI가 열려 있을 때만 수집 (잔류값 저장 방지)
         project_id:(linkedClientId&&document.getElementById('projectSelectWrap')?.style.display!=='none')?(document.getElementById('projectSelect')?.value||null):null,
         // 출발지 (도착지는 기존 address/location 사용). 토글 꺼짐/'출발지 없음' 체크 시 빈 값
@@ -84,6 +86,17 @@ async function doSaveEvent(){
     const et=isGold?document.getElementById('goldEndTime').value:document.getElementById('endTime').value;
     if(!sd){alert('시작일을 입력하세요.');return;}
     if(ed && ed<sd){alert('종료일이 시작일보다 빠릅니다. 날짜를 확인해주세요.');return;}
+    // 방문의뢰 새 일정 — 프로젝트 연결(또는 '나중에 연결' 사유) 필수
+    {
+        const blockMsg=typeof projectLinkBlockMessage==='function'?projectLinkBlockMessage():null;
+        if(blockMsg){
+            alert(blockMsg);
+            const wrap=document.getElementById('projectDeferWrap');
+            if(wrap){ wrap.scrollIntoView({behavior:'smooth',block:'center'}); }
+            if(document.getElementById('projectDeferChk')?.checked) document.getElementById('projectDeferReason')?.focus();
+            return;
+        }
+    }
     const repeatEnabled=(()=>{
         const row=document.getElementById('repeatGroup')?.querySelector('.notif-row');
         const chk=document.getElementById('repeatChk');

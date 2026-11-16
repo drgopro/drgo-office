@@ -480,6 +480,40 @@ async function syncProjectPaymentFields(){
     }catch(e){}
 }
 
+// ── 방문의뢰 새 일정의 프로젝트 연결 필수 — '나중에 연결' 예외 UI ──
+// 새 방문의뢰 일정에서만 노출. 기존 일정은 저장된 사유가 있을 때만 보여 준다 (수정은 막지 않음)
+function updateProjectDeferUI(){
+    const wrap=document.getElementById('projectDeferWrap');
+    if(!wrap) return;
+    const chk=document.getElementById('projectDeferChk');
+    const show=currentColor==='gold' && (!editingId || (chk&&chk.checked));
+    wrap.style.display=show?'':'none';
+    const hint=document.getElementById('projectDeferHint');
+    if(hint) hint.style.display=editingId?'none':'';
+    // 방문의뢰가 아니면 체크·사유를 비운다 (다른 카테고리로 바꿨다 돌아왔을 때 잔류 방지)
+    if(currentColor!=='gold' && chk && chk.checked){ chk.checked=false; }
+    onProjectDeferToggle();
+}
+function onProjectDeferToggle(){
+    const on=document.getElementById('projectDeferChk')?.checked;
+    const input=document.getElementById('projectDeferReason');
+    if(!input) return;
+    input.style.display=on?'':'none';
+    if(!on) input.value='';
+}
+// 저장 전 확인 — 새 방문의뢰 일정인데 프로젝트도 예외 사유도 없으면 안내 문구 반환 (서버도 같은 규칙으로 검증)
+function projectLinkBlockMessage(){
+    if(currentColor!=='gold' || editingId) return null;
+    const hasProject=!!linkedClientId && document.getElementById('projectSelectWrap')?.style.display!=='none' && !!document.getElementById('projectSelect')?.value;
+    if(hasProject) return null;
+    const chk=document.getElementById('projectDeferChk');
+    if(chk&&chk.checked&&document.getElementById('projectDeferReason')?.value.trim()) return null;
+    if(chk&&chk.checked) return '프로젝트를 나중에 연결하려면 사유를 적어주세요.';
+    return linkedClientId
+        ? '방문의뢰 일정은 프로젝트를 연결해야 저장됩니다. 프로젝트를 선택하거나, 없으면 의뢰자 화면에서 먼저 만들어주세요. 급하면 \'프로젝트는 나중에 연결\'을 체크하고 사유를 적으면 됩니다.'
+        : '방문의뢰 일정은 의뢰자와 프로젝트를 먼저 연결해야 저장됩니다. 급하면 \'프로젝트는 나중에 연결\'을 체크하고 사유를 적으면 됩니다.';
+}
+
 // 대여 이력 등록 토글 (신규 등록 시에만 사용) — teal: 방송룸 시간/월, 렌탈 카테고리: 렌탈 월계약
 function brRentalKind(){
     const label=(window.CALENDAR_CATEGORIES?.[currentColor]?.label)||'';

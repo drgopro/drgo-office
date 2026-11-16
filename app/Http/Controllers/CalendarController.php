@@ -289,6 +289,29 @@ class CalendarController extends Controller
         }));
     }
 
+    /**
+     * 방문의뢰 새 일정은 프로젝트를 먼저 만들어 연결해야 한다 (의뢰자 + 프로젝트 선택 필수).
+     * 급한 일정은 '나중에 연결' 사유(request_data.project_defer_reason)를 적으면 예외로 저장된다.
+     * 새 일정 등록에만 적용 — 기존 일정 수정은 막지 않는다. 문제 없으면 null.
+     *
+     * @param  array<string, mixed>  $validated
+     */
+    private function visitProjectLinkError(array $validated): ?string
+    {
+        if (! in_array($validated['color'] ?? null, CalendarCategory::keysByLabel('방문의뢰', ['gold']), true)) {
+            return null;
+        }
+        $data = is_array($validated['request_data'] ?? null) ? $validated['request_data'] : [];
+        $hasProject = ! empty($data['client_id']) && ! empty($data['project_id']);
+        $deferReason = is_string($data['project_defer_reason'] ?? null) ? trim($data['project_defer_reason']) : '';
+
+        if ($hasProject || $deferReason !== '') {
+            return null;
+        }
+
+        return '방문의뢰 일정은 의뢰자와 프로젝트를 먼저 연결해야 합니다. 프로젝트가 아직 없으면 의뢰자 화면에서 만들거나, \'프로젝트는 나중에 연결\'을 체크하고 사유를 적어주세요.';
+    }
+
     /** 구버전 클라이언트(배포 전에 열린 탭)가 보내는 색상 키 기반 필드명 → 의미 기반 필드명 승계 */
     private function mergeLegacyDataKeys(Request $request): void
     {
@@ -347,6 +370,10 @@ class CalendarController extends Controller
             'repeat_until.required_with' => '반복 종료일을 선택해주세요.',
             'repeat_until.after' => '반복 종료일이 시작일보다 늦어야 합니다.',
         ]);
+
+        if ($msg = $this->visitProjectLinkError($validated)) {
+            return response()->json(['message' => $msg, 'errors' => ['project_id' => [$msg]]], 422);
+        }
 
         $repeat = collect($validated)->only(['repeat_freq', 'repeat_interval', 'repeat_unit', 'repeat_until'])->all();
         $brRental = $validated['broadcast_rental'] ?? null;

@@ -287,6 +287,14 @@
                     <option value="">프로젝트 선택 (선택사항)</option>
                 </select>
             </div>
+            {{-- 방문의뢰 새 일정 — 프로젝트 연결 필수. 급하면 '나중에 연결' + 사유로 예외 (updateProjectDeferUI가 표시 제어) --}}
+            <div id="projectDeferWrap" style="display:none;" class="field-group">
+                <div id="projectDeferHint" style="font-size:12px;color:var(--text-muted);margin-bottom:6px;">방문의뢰 일정은 의뢰자와 프로젝트를 먼저 연결해야 저장됩니다. 프로젝트가 없으면 의뢰자 화면에서 먼저 만들어주세요.</div>
+                <label style="display:flex;align-items:center;gap:6px;font-size:13px;cursor:pointer;">
+                    <input type="checkbox" id="projectDeferChk" onchange="onProjectDeferToggle()" style="width:14px;height:14px;accent-color:var(--accent);cursor:pointer;"> 프로젝트는 나중에 연결
+                </label>
+                <input class="field-input" id="projectDeferReason" maxlength="200" placeholder="사유 (필수) — 예: 급한 일정이라 먼저 잡음, 의뢰자 정보 확인 중" autocomplete="off" style="display:none;margin-top:6px;">
+            </div>
             </div>{{-- /field-section (의뢰자/프로젝트) --}}
 
             {{-- 견적서 연동 — 의뢰자 연결 가능한 비-gold 카테고리(촬영·스튜디오·미팅/내방·원격/방송룸·커스텀). 방문의뢰는 gold 템플릿의 첨부 '견적서' 영역에서. setColor에서 토글 --}}

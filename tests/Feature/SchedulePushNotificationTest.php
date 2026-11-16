@@ -129,6 +129,8 @@ class SchedulePushNotificationTest extends TestCase
             'end_date' => now()->addDay()->format('Y-m-d'),
             'color' => 'gold',
             'assignees' => [$assignee->id],
+            // 방문의뢰 새 일정은 프로젝트 연결 필수 — 알림 검증이 목적이라 '나중에 연결' 사유로 통과
+            'request_data' => ['project_defer_reason' => '테스트'],
         ])->assertCreated();
 
         Notification::assertSentTo($assigneeUser, ScheduleCreated::class);
