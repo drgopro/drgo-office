@@ -238,7 +238,7 @@ class CalendarController extends Controller
                     $c->orWhereRaw("replace(replace(coalesce(phone, ''), '-', ''), ' ', '') like ?", [$phoneLike]);
                 }
             })
-            ->limit(200)->pluck('id');
+            ->orderByDesc('id')->limit(500)->pluck('id'); // 최근 등록 의뢰자 우선 — 상한을 넘는 흔한 검색어에서도 결과가 일정하게
 
         $events = Schedule::query()
             ->when($q !== '', fn ($query) => $query->where(function ($w) use ($like, $phoneLike, $clientIds, $canSearchPhone) {
