@@ -497,6 +497,13 @@ async function copyEstimateLink(id) {
     }
 }
 
+// 임의 이름(프리셋 제목 등)으로 출력 파일명 만들기 — 'yyyy-mm-dd 이름', 파일명 금지 문자 제거
+function estSafeFileName(name) {
+    const t = new Date();
+    const ds = `${t.getFullYear()}-${String(t.getMonth()+1).padStart(2,'0')}-${String(t.getDate()).padStart(2,'0')}`;
+    return `${ds} ${String(name).replace(/[\\/:*?"<>|]/g, '').trim() || '견적서'}`;
+}
+
 // 출력 파일명: 'yyyy-mm-dd 닉네임(이름)' — 캘린더 자동 첨부·인쇄 페이지 PNG 저장과 동일 규칙,
 // 닉네임/이름이 없으면 목록에 표시되는 '견적서#번호' 폴백, 파일명 금지 문자는 제거
 function estExportName(id) {
@@ -550,9 +557,11 @@ function estShowExportOverlay({ dataUrl, blob, filename, mime }) {
     document.getElementById('estExpClose').addEventListener('click', () => ov.remove());
 }
 
-async function exportEstimate(id, type) {
+// opts(선택): { url, name } — 프리셋처럼 견적서가 아닌 출력 화면을 같은 방식으로 저장할 때 출력 주소·파일명 지정
+async function exportEstimate(id, type, opts) {
     document.querySelectorAll('.print-dropdown-menu.show').forEach(m => m.classList.remove('show'));
-    const printUrl = `/estimates/${id}/print`;
+    const printUrl = opts?.url || `/estimates/${id}/print`;
+    const exportName = () => opts?.name ? estSafeFileName(opts.name) : estExportName(id);
     const w = window.open(printUrl, '_blank', 'width=860,height=900,scrollbars=yes');
     w.addEventListener('load', () => {
         setTimeout(async () => {
@@ -576,7 +585,7 @@ async function exportEstimate(id, type) {
                 ctx.drawImage(srcCanvas, pad, pad);
 
                 if (type === 'image') {
-                    const filename = `${estExportName(id)}.png`;
+                    const filename = `${exportName()}.png`;
                     if (estIsMobile()) {
                         // 모바일/PWA — a.download 클릭이 무시되므로 미리보기 오버레이(공유·저장/길게 눌러 저장)로
                         const blob = await new Promise(res => canvas.toBlob(res, 'image/png'));
@@ -595,7 +604,7 @@ async function exportEstimate(id, type) {
                     const pdfH = (pxH * pdfW) / pxW;
                     const pdf = new jsPDF({ unit:'mm', format:[pdfW, pdfH] });
                     pdf.addImage(imgData, 'PNG', 0, 0, pdfW, pdfH);
-                    const filename = `${estExportName(id)}.pdf`;
+                    const filename = `${exportName()}.pdf`;
                     if (estIsMobile()) {
                         estShowExportOverlay({ dataUrl: canvas.toDataURL('image/png'), blob: pdf.output('blob'), filename, mime: 'application/pdf' });
                     } else {
@@ -688,10 +697,11 @@ function renderPresetRows() {
         <td class="text-right" style="font-weight:600;">${fmt(p.total)}원</td>
         <td class="text-muted">${_esc(p.creator || '-')}</td>
         <td class="text-muted">${p.updated_at}</td>
-        <td>${CAN_EST_EDIT ? `<div class="action-cell">
-            <button class="btn-act btn-act-edit" onclick="openPresetModal(${p.id})">수정</button>
-            <button class="btn-act btn-act-delete" onclick="deletePreset(${p.id})">삭제</button>
-        </div>` : ''}</td>
+        <td><div class="action-cell">
+            <button class="btn-act btn-act-link" onclick="exportEstimate(${p.id},'image',{url:'/estimate-presets/${p.id}/print',name:PRESETS.find(x=>x.id===${p.id})?.title})" title="견적서를 만들지 않고 이 프리셋을 견적서 양식 이미지로 저장">이미지 저장</button>
+            ${CAN_EST_EDIT ? `<button class="btn-act btn-act-edit" onclick="openPresetModal(${p.id})">수정</button>
+            <button class="btn-act btn-act-delete" onclick="deletePreset(${p.id})">삭제</button>` : ''}
+        </div></td>
     </tr>`).join('');
 }
 

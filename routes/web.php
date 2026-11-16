@@ -530,6 +530,7 @@ Route::middleware('auth')->group(function () {
         Route::get('/api/estimates/{estimate}/public-url', [EstimateController::class, 'publicLink']); // 목록 링크 복사용
         Route::get('/api/estimates/{estimate}/refund-items', [EstimateController::class, 'refundItems']); // 프로젝트 환불 모달용 항목 목록
         Route::get('/api/estimate-presets', [EstimatePresetController::class, 'index']); // 견적 프리셋 목록 (불러오기)
+        Route::get('/estimate-presets/{preset}/print', [EstimatePresetController::class, 'print'])->name('estimate-presets.print'); // 프리셋을 견적서 양식으로 출력·이미지 저장 (견적서를 만들지 않음)
     });
     // 견적 프리셋 관리 (생성/수정/삭제)
     Route::middleware('permission:estimates.edit')->group(function () {

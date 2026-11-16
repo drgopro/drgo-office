@@ -247,4 +247,47 @@ class EstimatePresetTest extends TestCase
         $this->assertSame(90000, (int) $fresh->total_amount);
         $this->assertSame(0, Product::count()); // 제품 관리에는 추가되지 않음
     }
+
+    public function test_preset_print_renders_estimate_sheet_at_current_prices_without_creating_estimate(): void
+    {
+        $product = Product::create(['name' => '카메라 X100', 'sku' => 'CAM-001', 'sale_price' => 180000, 'purchase_price' => 100000]);
+        $preset = EstimatePreset::create([
+            'title' => '표준 견적서',
+            'created_by' => $this->admin->id,
+            'items' => [
+                // 저장 당시 15만원 → 현재 판매가 18만원으로 출력
+                ['product_id' => $product->id, 'category' => '카메라', 'name' => '카메라 X100', 'sale_price' => 150000, 'qty' => 2],
+                // 수기 품목은 저장된 가격 그대로
+                ['product_id' => null, 'category' => '설치', 'name' => '수기 브라켓', 'sale_price' => 30000, 'qty' => 1, 'manual' => true],
+            ],
+        ]);
+
+        $res = $this->actingAs($this->admin)->get("/estimate-presets/{$preset->id}/print");
+
+        $res->assertOk()
+            ->assertSee('표준 견적서')
+            ->assertSee('카메라 X100')
+            ->assertSee('수기 브라켓')
+            ->assertSee('390,000') // 180,000 × 2 + 30,000
+            ->assertSee('PNG 저장')
+            ->assertSee('견적서로 저장되지 않습니다')
+            ->assertDontSee('/estimates//edit', false);
+        $this->assertSame(390000, $res->viewData('estimate')->total_amount);
+        $this->assertFalse($res->viewData('estimate')->exists);
+        $this->assertDatabaseCount('estimates', 0);
+        // 프리셋 자체의 저장 가격은 바뀌지 않는다
+        $this->assertSame(150000, $preset->fresh()->items[0]['sale_price']);
+    }
+
+    public function test_preset_print_requires_login_and_estimate_list_has_image_button(): void
+    {
+        $preset = EstimatePreset::create(['title' => '표준 견적서', 'created_by' => $this->admin->id, 'items' => $this->sampleItems()]);
+
+        $this->get("/estimate-presets/{$preset->id}/print")->assertRedirect();
+
+        $this->actingAs($this->admin)->get('/estimates')
+            ->assertOk()
+            ->assertSee("{url:'/estimate-presets/\${p.id}/print'", false)
+            ->assertSee('function estSafeFileName', false);
+    }
 }

@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
-    <title>견적서 #{{ $estimate->display_no }}</title>
+    <title>{{ !empty($presetMode) ? '견적서 — '.$estimate->title : '견적서 #'.$estimate->display_no }}</title>
     <link rel="stylesheet" as="style" crossorigin href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/variable/pretendardvariable-dynamic-subset.min.css">
     <style>
         :root {
@@ -315,18 +315,23 @@
 <div class="no-print-bar no-print">
     <button onclick="window.print()">인쇄</button>
     <button onclick="savePNG()" style="background:#2d8a3e;color:#fff;border:none;padding:8px 18px;border-radius:6px;font-size:13px;font-weight:700;cursor:pointer;">PNG 저장</button>
-    @if($estimate->status !== 'paid')
+    @if(!empty($presetMode))
+        {{-- 프리셋 출력 — 저장된 견적서가 아니므로 수정 링크·견적번호 없음 --}}
+    @elseif($estimate->status !== 'paid')
         <a href="{{ route('estimates.edit', $estimate) }}" style="padding:8px 18px;background:#3b5ea0;color:#fff;border:none;border-radius:6px;font-size:13px;font-weight:700;text-decoration:none;cursor:pointer;display:inline-block;">수정</a>
     @else
         <span style="padding:8px 18px;background:#888;color:#fff;border-radius:6px;font-size:13px;font-weight:700;display:inline-block;cursor:not-allowed;">결제완료 (수정불가)</span>
     @endif
-    <span>견적서 #{{ $estimate->display_no }} | {{ $estimate->updated_at->format('Y-m-d H:i') }}</span>
+    <span>{{ !empty($presetMode) ? '프리셋 · '.$estimate->title.' (견적서로 저장되지 않습니다)' : '견적서 #'.$estimate->display_no.' | '.$estimate->updated_at->format('Y-m-d H:i') }}</span>
 </div>
 @php
     // PNG 저장 파일명의 '닉네임(이름)' 부분 — 없으면 '견적서#번호' 폴백, 파일명 금지 문자 제거
     $pngNick = trim($estimate->client_nickname ?? '');
     $pngName = trim($estimate->client_name ?? '');
-    $pngWho = $pngNick !== '' && $pngName !== '' ? "{$pngNick}({$pngName})" : ($pngNick !== '' ? $pngNick : ($pngName !== '' ? $pngName : '견적서#'.$estimate->display_no));
+    $pngWho = $pngNick !== '' && $pngName !== '' ? "{$pngNick}({$pngName})" : ($pngNick !== '' ? $pngNick : ($pngName !== '' ? $pngName : (! empty($presetMode) ? '프리셋 견적서' : '견적서#'.$estimate->display_no)));
+    if (! empty($presetMode)) {
+        $pngWho = trim((string) $estimate->title) !== '' ? $estimate->title : '프리셋 견적서';
+    }
     $pngWho = trim(preg_replace('/[\\\\\/:*?"<>|]/u', '', $pngWho));
 @endphp
 <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
