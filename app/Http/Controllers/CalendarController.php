@@ -189,7 +189,17 @@ class CalendarController extends Controller
         return $value;
     }
 
-    // 일정 검색 (제목/의뢰자/장소/주소, 전체 기간)
+    /** 검색 대상 본문 컬럼 */
+    private const SEARCH_TEXT_COLUMNS = ['description', 'special_note', 'handover_note'];
+
+    /** 검색 대상 JSON 경로 — 방문의뢰 의뢰자 정보·의뢰 내용, 원격/방송룸 대상자·내용 */
+    private const SEARCH_JSON_PATHS = [
+        'request_data->name', 'request_data->nickname',
+        'request_data->req_detail', 'request_data->special', 'request_data->equipment',
+        'remote_data->name', 'remote_data->content', 'remote_data->desc',
+    ];
+
+    // 일정 검색 (제목/의뢰자/장소/주소 + 내용·의뢰자 실명·전화번호·연결 의뢰자, 전체 기간)
     public function search(Request $request)
     {
         // 게스트는 일정 내용 비노출 — 검색 불가
@@ -212,12 +222,48 @@ class CalendarController extends Controller
         $limit = max(1, min((int) $request->query('limit', 30), 100));
 
         $like = '%'.$q.'%';
+        // 전화번호 — 하이픈·공백 유무와 상관없이 숫자만으로 비교 (숫자 4자리 이상일 때만).
+        // 연락처 조회 권한이 없는 팀은 전화번호로 찾을 수 없다 (검색이 마스킹을 우회하는 통로가 되지 않도록)
+        $canSearchPhone = $this->canViewClientPii();
+        $digits = preg_replace('/\D+/', '', $q);
+        $phoneLike = ($canSearchPhone && mb_strlen($digits) >= 4) ? '%'.$digits.'%' : null;
+        // 연결된 의뢰자의 현재 이름·닉네임·전화번호로도 찾기 (일정 작성 후 의뢰자 정보가 바뀐 경우 대비)
+        $clientIds = $q === '' ? collect() : Client::query()
+            ->where(function ($c) use ($like, $phoneLike, $canSearchPhone) {
+                $c->where('name', 'like', $like)->orWhere('nickname', 'like', $like);
+                if ($canSearchPhone) {
+                    $c->orWhere('phone', 'like', $like);
+                }
+                if ($phoneLike) {
+                    $c->orWhereRaw("replace(replace(coalesce(phone, ''), '-', ''), ' ', '') like ?", [$phoneLike]);
+                }
+            })
+            ->limit(200)->pluck('id');
+
         $events = Schedule::query()
-            ->when($q !== '', fn ($query) => $query->where(function ($w) use ($like) {
+            ->when($q !== '', fn ($query) => $query->where(function ($w) use ($like, $phoneLike, $clientIds, $canSearchPhone) {
                 $w->where('title', 'like', $like)
                     ->orWhere('client_name', 'like', $like)
                     ->orWhere('location', 'like', $like)
                     ->orWhere('address', 'like', $like);
+                foreach (self::SEARCH_TEXT_COLUMNS as $column) {
+                    $w->orWhere($column, 'like', $like);
+                }
+                // JSON 안의 값은 경로로 꺼내 비교 — 통째로 LIKE 하면 한글이 \uXXXX 로 저장돼 있어 걸리지 않는다
+                foreach (self::SEARCH_JSON_PATHS as $path) {
+                    $w->orWhere($path, 'like', $like);
+                }
+                if ($canSearchPhone) {
+                    $w->orWhere('request_data->phone', 'like', $like);
+                }
+                if ($phoneLike) {
+                    $phoneColumn = $w->getQuery()->getGrammar()->wrap('request_data->phone');
+                    $w->orWhereRaw("replace(replace(coalesce({$phoneColumn}, ''), '-', ''), ' ', '') like ?", [$phoneLike]);
+                }
+                if ($clientIds->isNotEmpty()) {
+                    // client_id 가 숫자·문자열 어느 쪽으로 저장돼 있어도 걸리도록 두 형태 모두 비교
+                    $w->orWhereIn('request_data->client_id', $clientIds->merge($clientIds->map(fn ($id) => (string) $id))->all());
+                }
             }))
             ->when($colors->isNotEmpty(), fn ($query) => $query->whereIn('color', $colors))
             ->when($assigneeIds->isNotEmpty(), fn ($query) => $query->whereHas('assignees', fn ($a) => $a->whereIn('assignees.id', $assigneeIds)))
