@@ -73,5 +73,7 @@ class ProjectClientDisplayTest extends TestCase
 
         $this->assertStringContainsString("openTopTab('projects','/projects/\${p.id}?from=client')", $html);
         $this->assertStringContainsString('closeByWindow(sourceWin) {', $html);
+        // 딥링크로 열린 의뢰자 탭도 재사용 (돌아가기 시 탭 중복 방지)
+        $this->assertStringContainsString("t.url.startsWith(baseUrl + '?')", $html);
     }
 }

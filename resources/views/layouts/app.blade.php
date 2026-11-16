@@ -1010,7 +1010,8 @@ window.drgoTabs = {
 
     openClientDetail(clientId) {
         const baseUrl = '/clients';
-        const existing = this.tabs.find(t => t.url === baseUrl);
+        // 딥링크(/clients?open=…)로 열린 의뢰자 탭도 같은 탭으로 취급 — 돌아갈 때 탭이 중복 생성되지 않게
+        const existing = this.tabs.find(t => t.url === baseUrl || (typeof t.url === 'string' && t.url.startsWith(baseUrl + '?')));
         if (existing) {
             this.activate(existing.id);
             const pane = document.getElementById('pane-' + existing.id);
