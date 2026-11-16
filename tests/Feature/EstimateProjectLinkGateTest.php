@@ -106,4 +106,33 @@ class EstimateProjectLinkGateTest extends TestCase
         ])->assertOk();
         $this->assertSame('issued', Estimate::find($roundId)->status);
     }
+
+    public function test_direct_payment_request_and_direct_paid_mark_use_the_same_gate(): void
+    {
+        $estimate = $this->makeEstimate(['client_id' => $this->client->id]);
+
+        $this->actingAs($this->admin)->postJson("/api/estimates/{$estimate->id}/payapp-request")->assertStatus(422)
+            ->assertJsonPath('message', fn ($m) => str_contains($m, '프로젝트를 연동해야'));
+        $this->actingAs($this->admin)->patchJson("/api/estimates/{$estimate->id}", ['status' => 'paid'])->assertStatus(422);
+        $this->assertSame('completed', $estimate->fresh()->status);
+    }
+
+    public function test_already_issued_estimate_without_project_can_still_be_marked_paid(): void
+    {
+        // 규칙 도입 전에 발행된 미연동 견적서 — 결제완료 기록은 막지 않는다
+        $estimate = $this->makeEstimate(['client_id' => $this->client->id, 'status' => 'issued', 'issued_at' => now(), 'estimate_no' => 300]);
+
+        $this->actingAs($this->admin)->patchJson("/api/estimates/{$estimate->id}", ['status' => 'paid'])->assertOk();
+        $this->assertSame('paid', $estimate->fresh()->status);
+    }
+
+    public function test_project_of_another_client_does_not_satisfy_the_gate(): void
+    {
+        $other = Client::create(['nickname' => '다른 의뢰자', 'grade' => 'normal']);
+        $otherProject = Project::create(['client_id' => $other->id, 'name' => '남의 프로젝트', 'stage' => 'consulting']);
+        $estimate = $this->makeEstimate(['client_id' => $this->client->id, 'project_id' => $otherProject->id]);
+
+        $this->actingAs($this->admin)->postJson("/api/estimates/{$estimate->id}/issue")->assertStatus(422);
+        $this->assertSame('completed', $estimate->fresh()->status);
+    }
 }
