@@ -84,7 +84,37 @@ class CalendarVisitProjectRequiredTest extends TestCase
             ->assertSee('id="projectDeferChk"', false)
             ->assertSee('id="projectDeferReason"', false)
             ->assertSee('function projectLinkBlockMessage()', false)
-            ->assertSee("if(currentColor!=='gold' || editingId) return null;", false)
-            ->assertSee('project_defer_reason:(document.getElementById', false);
+            ->assertSee('function isNewVisitSchedule()', false)
+            ->assertSee('if(!isNewVisitSchedule()) return null;', false)
+            ->assertSee('project_defer_reason:((document.getElementById', false);
+    }
+
+    public function test_project_must_exist_and_belong_to_the_client(): void
+    {
+        $client = Client::create(['nickname' => '고블린', 'grade' => 'normal']);
+        $other = Client::create(['nickname' => '다른 의뢰자', 'grade' => 'normal']);
+        $otherProject = Project::create(['client_id' => $other->id, 'name' => '남의 프로젝트', 'stage' => 'consulting']);
+
+        $this->actingAs($this->user)->postJson('/api/events', $this->payload('gold', ['client_id' => $client->id, 'project_id' => $otherProject->id]))
+            ->assertStatus(422);
+        $this->actingAs($this->user)->postJson('/api/events', $this->payload('gold', ['client_id' => $client->id, 'project_id' => 999999]))
+            ->assertStatus(422);
+        $this->assertDatabaseCount('schedules', 0);
+    }
+
+    public function test_changing_another_category_to_visit_uses_the_same_rule(): void
+    {
+        $client = Client::create(['nickname' => '고블린', 'grade' => 'normal']);
+        $project = Project::create(['client_id' => $client->id, 'name' => '세팅', 'stage' => 'consulting']);
+        $schedule = Schedule::create(['title' => '사내 일정', 'start_date' => '2026-07-10', 'end_date' => '2026-07-10', 'color' => 'blue', 'is_all_day' => true]);
+        $base = ['title' => '방문으로 변경', 'start_date' => '2026-07-10', 'end_date' => '2026-07-10', 'is_all_day' => true, 'color' => 'gold', 'reason' => '유형 변경'];
+
+        // 유형만 방문의뢰로 바꿔 우회할 수 없다
+        $this->actingAs($this->user)->postJson("/api/events/{$schedule->id}", $base)->assertStatus(422);
+        $this->assertSame('blue', $schedule->fresh()->color);
+
+        // 프로젝트를 연결하거나 사유를 적으면 가능
+        $this->actingAs($this->user)->postJson("/api/events/{$schedule->id}", $base + ['request_data' => ['client_id' => $client->id, 'project_id' => $project->id]])->assertOk();
+        $this->assertSame('gold', $schedule->fresh()->color);
     }
 }

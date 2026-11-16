@@ -8,6 +8,7 @@ use App\Models\BroadcastRoomUsage;
 use App\Models\CalendarCategory;
 use App\Models\Client;
 use App\Models\Estimate;
+use App\Models\Project;
 use App\Models\ProjectBilling;
 use App\Models\RentalContract;
 use App\Models\Schedule;
@@ -292,17 +293,21 @@ class CalendarController extends Controller
     /**
      * 방문의뢰 새 일정은 프로젝트를 먼저 만들어 연결해야 한다 (의뢰자 + 프로젝트 선택 필수).
      * 급한 일정은 '나중에 연결' 사유(request_data.project_defer_reason)를 적으면 예외로 저장된다.
-     * 새 일정 등록에만 적용 — 기존 일정 수정은 막지 않는다. 문제 없으면 null.
+     * 새 일정 등록과, 다른 유형의 일정을 방문의뢰로 바꾸는 수정에 적용 — 원래 방문의뢰이던 일정의 수정은 막지 않는다.
+     * 대상은 방문의뢰 템플릿을 쓰는 gold 키 (화면의 예외 입력 UI 와 같은 기준). 문제 없으면 null.
      *
      * @param  array<string, mixed>  $validated
      */
     private function visitProjectLinkError(array $validated): ?string
     {
-        if (! in_array($validated['color'] ?? null, CalendarCategory::keysByLabel('방문의뢰', ['gold']), true)) {
+        if (($validated['color'] ?? null) !== 'gold') {
             return null;
         }
         $data = is_array($validated['request_data'] ?? null) ? $validated['request_data'] : [];
-        $hasProject = ! empty($data['client_id']) && ! empty($data['project_id']);
+        // 프로젝트가 실제로 있고 그 의뢰자의 것이어야 연결로 인정 (없는 ID·남의 프로젝트 조합 차단)
+        $hasProject = ! empty($data['client_id']) && ! empty($data['project_id'])
+            && is_scalar($data['client_id']) && is_scalar($data['project_id'])
+            && Project::whereKey((int) $data['project_id'])->where('client_id', (int) $data['client_id'])->exists();
         $deferReason = is_string($data['project_defer_reason'] ?? null) ? trim($data['project_defer_reason']) : '';
 
         if ($hasProject || $deferReason !== '') {
@@ -738,6 +743,12 @@ class CalendarController extends Controller
         $repeat = collect($validated)->only(['repeat_freq', 'repeat_interval', 'repeat_unit', 'repeat_until'])->all();
         $validated = collect($validated)->except(['repeat_freq', 'repeat_interval', 'repeat_unit', 'repeat_until'])->all();
         $validated = $this->stripClientLinkForExcludedColors($validated, $validated['color'] ?? $schedule->color);
+
+        // 다른 유형의 일정을 방문의뢰로 바꾸는 수정 — 새 방문의뢰 일정과 같은 프로젝트 연결 규칙 (유형 변경으로 우회 방지)
+        if ($schedule->color !== 'gold' && ($validated['color'] ?? null) === 'gold'
+            && ($msg = $this->visitProjectLinkError(['color' => 'gold', 'request_data' => $validated['request_data'] ?? $schedule->request_data]))) {
+            return response()->json(['message' => $msg, 'errors' => ['project_id' => [$msg]]], 422);
+        }
 
         // 변경 이력 기록 (날짜/시간은 포맷 차이로 인한 오탐 방지를 위해 정규화 후 비교)
         $dtChanged = false;

@@ -46,7 +46,8 @@ function collectGoldFields(){
         estimate_ids:linkedEstimateIds.length?[...linkedEstimateIds]:null,
         client_id:linkedClientId,
         // 프로젝트를 나중에 연결하는 사유 (방문의뢰 새 일정의 프로젝트 필수 규칙 예외)
-        project_defer_reason:(document.getElementById('projectDeferChk')?.checked?document.getElementById('projectDeferReason')?.value.trim():'')||'',
+        // 프로젝트를 실제로 골랐으면 사유는 비운다 (연결과 예외 사유가 함께 남지 않게)
+        project_defer_reason:((document.getElementById('projectDeferChk')?.checked&&!(linkedClientId&&document.getElementById('projectSelectWrap')?.style.display!=='none'&&document.getElementById('projectSelect')?.value))?document.getElementById('projectDeferReason')?.value.trim():'')||'',
         // 의뢰자 연결 + 프로젝트 선택 UI가 열려 있을 때만 수집 (잔류값 저장 방지)
         project_id:(linkedClientId&&document.getElementById('projectSelectWrap')?.style.display!=='none')?(document.getElementById('projectSelect')?.value||null):null,
         // 출발지 (도착지는 기존 address/location 사용). 토글 꺼짐/'출발지 없음' 체크 시 빈 값

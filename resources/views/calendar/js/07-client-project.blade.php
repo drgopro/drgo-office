@@ -481,15 +481,19 @@ async function syncProjectPaymentFields(){
 }
 
 // ── 방문의뢰 새 일정의 프로젝트 연결 필수 — '나중에 연결' 예외 UI ──
-// 새 방문의뢰 일정에서만 노출. 기존 일정은 저장된 사유가 있을 때만 보여 준다 (수정은 막지 않음)
+// 새 방문의뢰 일정(또는 다른 유형에서 방문의뢰로 바꾸는 수정)에서 노출.
+// 원래 방문의뢰이던 기존 일정은 저장된 사유가 있을 때만 보여 준다 (수정은 막지 않음)
+function isNewVisitSchedule(){
+    return currentColor==='gold' && (!editingId || !!(editingOrigDT && editingOrigDT.color && editingOrigDT.color!=='gold'));
+}
 function updateProjectDeferUI(){
     const wrap=document.getElementById('projectDeferWrap');
     if(!wrap) return;
     const chk=document.getElementById('projectDeferChk');
-    const show=currentColor==='gold' && (!editingId || (chk&&chk.checked));
+    const show=currentColor==='gold' && (isNewVisitSchedule() || (chk&&chk.checked));
     wrap.style.display=show?'':'none';
     const hint=document.getElementById('projectDeferHint');
-    if(hint) hint.style.display=editingId?'none':'';
+    if(hint) hint.style.display=isNewVisitSchedule()?'':'none';
     // 방문의뢰가 아니면 체크·사유를 비운다 (다른 카테고리로 바꿨다 돌아왔을 때 잔류 방지)
     if(currentColor!=='gold' && chk && chk.checked){ chk.checked=false; }
     onProjectDeferToggle();
@@ -503,7 +507,7 @@ function onProjectDeferToggle(){
 }
 // 저장 전 확인 — 새 방문의뢰 일정인데 프로젝트도 예외 사유도 없으면 안내 문구 반환 (서버도 같은 규칙으로 검증)
 function projectLinkBlockMessage(){
-    if(currentColor!=='gold' || editingId) return null;
+    if(!isNewVisitSchedule()) return null;
     const hasProject=!!linkedClientId && document.getElementById('projectSelectWrap')?.style.display!=='none' && !!document.getElementById('projectSelect')?.value;
     if(hasProject) return null;
     const chk=document.getElementById('projectDeferChk');
