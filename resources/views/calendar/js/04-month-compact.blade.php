@@ -132,7 +132,8 @@ window.addEventListener('resize', ()=>{ if(currentView==='monthc') renderMonthCo
 // ── 월간·전체 뷰: 마우스 휠로 이전/다음 달 이동 (데스크탑 전용) ──
 // 평소엔 페이지 스크롤 그대로 두고, 스크롤이 끝(맨 위/맨 아래)에 닿은 뒤 "한 번 더" 굴린 새 휠 동작에서만 이동
 // (휠만 굴리면 바로 달이 넘어가던 불편 해소). 휠 이벤트 간격이 WHEEL_GESTURE_GAP 이상이면 새 동작으로 본다.
-const WHEEL_GESTURE_GAP=300, WHEEL_MOVE_COOLDOWN=600;
+// 끝에서 멈추지 않고 계속 굴려도 WHEEL_EDGE_DWELL 동안 이어지면 이동 — 멈췄다 굴려야만 넘어가 기능이 없는 것처럼 보이던 문제.
+const WHEEL_GESTURE_GAP=300, WHEEL_MOVE_COOLDOWN=600, WHEEL_EDGE_DWELL=500;
 function wheelInsideInnerScroller(el, stopAt){
     // 휠 대상이 뷰 안의 자체 스크롤 영역(펼친 일정 목록 등) 안인지 — 그 안에서는 달을 넘기지 않고 목록만 스크롤
     for(let n=el; n&&n!==stopAt&&n!==document.body; n=n.parentElement){
@@ -142,12 +143,12 @@ function wheelInsideInnerScroller(el, stopAt){
     return false;
 }
 function wheelAtEdge(sc,dir){
-    return dir>0 ? sc.scrollTop+sc.clientHeight>=sc.scrollHeight-1 : sc.scrollTop<=0;
+    return dir>0 ? sc.scrollTop+sc.clientHeight>=sc.scrollHeight-2 : sc.scrollTop<=1; // 화면 배율(125% 등)의 소수점 오차 허용
 }
 // 예고(arm)가 유효한 화면 — 버튼으로 달을 바꾸거나 뷰를 오가면 예고는 무효
 function wheelPeriodKey(){ return currentView+'|'+(document.getElementById('periodTitle')?.textContent||''); }
 (function(){
-    let armedDir=0, armedKey='', lastAt=0, movedAt=0;
+    let armedDir=0, armedKey='', armedAt=0, peakAbs=0, lastAt=0, movedAt=0;
     [['monthView','month'],['monthCompactView','monthc']].forEach(([id,view])=>{
         const el=document.getElementById(id);
         if(!el) return;
@@ -160,15 +161,20 @@ function wheelPeriodKey(){ return currentView+'|'+(document.getElementById('peri
             const dir=e.deltaY>0?1:-1, sc=document.scrollingElement||document.documentElement;
             if(!wheelAtEdge(sc,dir)){ armedDir=0; return; }        // 페이지에 아직 스크롤할 여지 → 그냥 스크롤
             e.preventDefault();                                     // 끝점: 바운스 방지
-            if(Math.abs(e.deltaY)<15) return;                       // 트랙패드 미세 스크롤 무시
+            const abs=Math.abs(e.deltaY);
+            if(abs<15) return;                                      // 트랙패드 미세 스크롤 무시
             const key=wheelPeriodKey();
-            if(armedDir===dir&&armedKey===key&&gap>WHEEL_GESTURE_GAP){ // 끝점 도달 후 같은 화면에서 새로 시작한 휠 동작 → 이동
+            const armed=armedDir===dir&&armedKey===key;
+            // 끝점에서 계속 굴리는 중 — 끝점 도달 후 최대 세기의 80% 미만으로 잦아든 트랙패드 관성 꼬리는 제외 (마우스 휠은 칸마다 세기가 유지됨)
+            peakAbs=armed?Math.max(peakAbs,abs):abs;
+            const sustained=armed&&now-armedAt>=WHEEL_EDGE_DWELL&&abs>=peakAbs*0.8;
+            if(armed&&(gap>WHEEL_GESTURE_GAP||sustained)){          // 끝점 도달 후 새로 시작한 휠 동작, 또는 끝점에서 계속 굴림 → 이동
                 armedDir=0; movedAt=now;
                 changePeriod(dir);
                 sc.scrollTop = dir>0 ? 0 : sc.scrollHeight;         // 다음 달은 위부터, 이전 달은 아래부터 이어 보기
                 return;
             }
-            armedDir=dir; armedKey=key;                             // 끝점에 닿은 이 동작은 예고만 — 한 번 더 굴리면 이동
+            if(!armed){ armedDir=dir; armedKey=key; armedAt=now; }  // 끝점에 닿은 이 동작은 예고만 — 한 번 더(또는 계속) 굴리면 이동
         }, {passive:false});
     });
 })();
