@@ -19,6 +19,7 @@ use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Storage;
+use Illuminate\Validation\Rule;
 
 class FeedbackController extends Controller
 {
@@ -296,7 +297,7 @@ class FeedbackController extends Controller
 
         $validated = $request->validate([
             'user_ids' => 'present|array|max:100',
-            'user_ids.*' => 'integer|exists:users,id',
+            'user_ids.*' => ['integer', Rule::exists('users', 'id')->where('is_active', true)], // 비활성 계정은 지정 불가
         ]);
 
         $ids = array_values(array_unique(array_map('intval', $validated['user_ids'])));

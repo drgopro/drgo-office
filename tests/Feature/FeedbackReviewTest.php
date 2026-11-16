@@ -381,6 +381,8 @@ class FeedbackReviewTest extends TestCase
         $this->assertFalse($plainAdmin->fresh()->canSeeFeedbackReviews());
 
         $this->actingAs($this->admin)->postJson('/api/feedback-review-viewers', ['user_ids' => [999999]])->assertUnprocessable();
+        $inactive = User::factory()->create(['role' => 'member', 'is_active' => false]);
+        $this->actingAs($this->admin)->postJson('/api/feedback-review-viewers', ['user_ids' => [$inactive->id]])->assertUnprocessable();
         $this->actingAs($this->admin)->get('/feedback')->assertOk()->assertSee('id="fbViewerList"', false);
     }
 
