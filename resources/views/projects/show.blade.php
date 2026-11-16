@@ -435,7 +435,7 @@
                     $isRemoteProject = $project->project_type === 'remote' || str_contains((string) $projectTypeLabel, '원격');
                     $vrLabel = $isRemoteProject ? '원격 보고서' : '방문 보고서';
                     // 단순문의는 방문·작업이 없어 보고서 대상이 아님 — 완료 시 보고서를 묻지 않고, 보고서 칸도 숨김 (이미 작성된 보고서는 표시)
-                    $skipsReport = $project->project_type === 'inquiry' || str_contains((string) $projectTypeLabel, '문의');
+                    $skipsReport = $project->project_type === 'inquiry' || in_array(trim((string) $projectTypeLabel), ['문의', '단순문의'], true);
                 @endphp
                 <div class="project-meta">
                     <span class="badge badge-{{ $project->project_type }}">
@@ -601,13 +601,13 @@
                 <div class="info-label">이름</div>
                 <div>
                     <a href="{{ route('clients.index', ['open' => $project->client->id]) }}" style="color:var(--accent); text-decoration:none;" onclick="event.preventDefault(); if(window.parent && window.parent.drgoTabs) window.parent.drgoTabs.openClientDetail({{ $project->client->id }}); else window.location.href=this.href;">
-                        {{ $project->client->name ?: '-' }}
+                        {{ $clientRealName !== '' ? $clientRealName : '-' }}
                     </a>
                 </div>
             </div>
             <div class="info-row">
                 <div class="info-label">닉네임</div>
-                <div>{{ $project->client->nickname ?: '-' }}</div>
+                <div>{{ $clientNick !== '' ? $clientNick : '-' }}</div>
             </div>
             <div class="info-row">
                 <div class="info-label">연락처</div>

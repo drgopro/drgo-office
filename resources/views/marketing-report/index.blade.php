@@ -33,6 +33,9 @@
     .mk-chart-wrap canvas { position:absolute; inset:0; width:100% !important; height:100% !important; }
 
     .mk-list { display:flex; flex-direction:column; gap:6px; }
+    .mk-pager { display:flex; align-items:center; justify-content:center; gap:10px; margin-top:8px; font-size:13px; color:var(--text-muted); font-variant-numeric:tabular-nums; }
+    .mk-pager button { width:28px; height:28px; border:1px solid var(--border); border-radius:6px; background:var(--surface); color:var(--text); font-size:15px; line-height:1; cursor:pointer; }
+    .mk-pager button:disabled { opacity:0.35; cursor:default; }
     .mk-list-item { display:flex; justify-content:space-between; align-items:center; padding:8px 12px; background:var(--surface2); border-radius:6px; font-size:14px; }
     .mk-list-item .mk-list-label { color:var(--text); }
     .mk-list-item .mk-list-value { font-weight:700; color:var(--accent); }
@@ -303,16 +306,18 @@
                 ['key' => 'r', 'title' => '거부 의뢰자', 'color' => 'var(--red)', 'items' => $marketingRefusedClients, 'posting' => false,
                     'empty' => '마케팅 활용을 거부한 프로젝트가 없습니다.'],
             ];
+            $mkConsentPerPage = 5; // 목록당 한 쪽에 보이는 의뢰자 수
         @endphp
         <div class="mk-three-col">
             @foreach($mkConsentSections as $sec)
             <div>
                 <div style="font-size:13px; font-weight:600; margin-bottom:10px; color:{{ $sec['color'] }};">{{ $sec['title'] }} <span style="font-weight:400; color:var(--text-muted);">· {{ count($sec['items']) }}</span></div>
                 @if(count($sec['items']))
-                    <div class="mk-list">
+                    {{-- 5명씩 넘겨 보기 — 첫 쪽만 보이게 그려 두고 mcPage()가 쪽을 바꾼다 --}}
+                    <div class="mk-list" id="mcList-{{ $sec['key'] }}">
                         @foreach($sec['items'] as $mc)
                             @php $mcKey = $sec['key'].$loop->index; @endphp
-                            <div>
+                            <div data-mc-item @if($loop->index >= $mkConsentPerPage) style="display:none;" @endif>
                                 <div class="mk-list-item" onclick="mcToggle('{{ $mcKey }}')" style="cursor:pointer;" title="클릭해서 프로젝트 보기">
                                     <span class="mk-list-label">
                                         @if($mc['client_id'])
@@ -355,6 +360,13 @@
                             </div>
                         @endforeach
                     </div>
+                    @if(count($sec['items']) > $mkConsentPerPage)
+                        <div class="mk-pager" id="mcPager-{{ $sec['key'] }}" data-page="1" data-pages="{{ (int) ceil(count($sec['items']) / $mkConsentPerPage) }}">
+                            <button type="button" onclick="mcPage('{{ $sec['key'] }}', -1)" aria-label="이전 쪽" disabled>‹</button>
+                            <span>1 / {{ (int) ceil(count($sec['items']) / $mkConsentPerPage) }}</span>
+                            <button type="button" onclick="mcPage('{{ $sec['key'] }}', 1)" aria-label="다음 쪽">›</button>
+                        </div>
+                    @endif
                 @else
                     <div style="padding:24px; text-align:center; color:var(--text-muted); font-size:13px;">{{ $sec['empty'] }}</div>
                 @endif
@@ -367,6 +379,21 @@
             const open=d.style.display==='none';
             d.style.display=open?'':'none';
             if(c) c.textContent=open?'▾':'▸';
+        }
+        // 의뢰자 목록 쪽 넘김 — 한 쪽에 MC_PER_PAGE명
+        const MC_PER_PAGE = @json($mkConsentPerPage);
+        function mcPage(key, dir){
+            const pager=document.getElementById('mcPager-'+key), list=document.getElementById('mcList-'+key);
+            if(!pager||!list) return;
+            const pages=parseInt(pager.dataset.pages,10)||1;
+            const page=Math.min(pages, Math.max(1, (parseInt(pager.dataset.page,10)||1)+dir));
+            pager.dataset.page=page;
+            list.querySelectorAll(':scope > [data-mc-item]').forEach((el,i)=>{
+                el.style.display=(Math.floor(i/MC_PER_PAGE)+1===page)?'':'none';
+            });
+            pager.querySelector('span').textContent=page+' / '+pages;
+            const btns=pager.querySelectorAll('button');
+            btns[0].disabled=page<=1; btns[1].disabled=page>=pages;
         }
         </script>
     </div>
