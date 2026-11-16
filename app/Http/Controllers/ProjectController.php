@@ -66,9 +66,10 @@ class ProjectController extends Controller
         // 담당자 필터 (단일/콤마/배열, 'none' = 담당자 미지정) — 담당자별로 프로젝트를 모아 본다
         if ($assignee = $request->query('assignee')) {
             $vals = is_array($assignee)
-                ? array_values(array_filter($assignee))
+                ? array_values(array_filter($assignee, 'is_string'))
                 : array_values(array_filter(array_map('trim', explode(',', (string) $assignee))));
-            $ids = array_values(array_filter(array_map('intval', $vals), fn ($id) => $id > 0));
+            // 숫자로만 된 값과 'none' 만 인정 ('1abc' 같은 값이 1번 사용자로 해석되지 않게)
+            $ids = array_map('intval', array_values(array_filter($vals, fn ($v) => ctype_digit($v) && (int) $v > 0)));
             $includeNone = in_array('none', $vals, true);
             if (! empty($ids) || $includeNone) {
                 $query->where(function ($q) use ($ids, $includeNone) {

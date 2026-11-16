@@ -246,7 +246,7 @@
                 <button type="button" class="search-clear" title="검색어 지우기" onclick="const f=this.closest('form'); f.querySelector('.search-input').value=''; f.submit();">✕</button>
             </span>
             <button type="submit" class="btn-search">검색</button>
-            @if(!empty($selectedStages) || !empty($selectedTypes) || !empty($selectedTags) || !empty($selectedMarketing) || request('search') || request()->boolean('has_report'))
+            @if(!empty($selectedStages) || !empty($selectedTypes) || !empty($selectedTags) || !empty($selectedMarketing) || !empty($selectedAssignees) || request('search') || request()->boolean('has_report'))
                 <a href="{{ $statusTab !== 'active' ? route('projects.index', ['status' => $statusTab]) : route('projects.index') }}" class="btn-search-reset">↺ 초기화</a>
             @endif
         </div>

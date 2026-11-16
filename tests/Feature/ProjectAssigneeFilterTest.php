@@ -54,6 +54,12 @@ class ProjectAssigneeFilterTest extends TestCase
         $this->assertSame(['김 완료'], $this->names('status=done&assignee[]='.$this->kim->id));
         // 잘못된 값은 무시 — 전체 표시
         $this->assertCount(4, $this->names('assignee[]=abc'));
+        $this->assertCount(4, $this->names('assignee[]='.$this->kim->id.'abc'));
+        $this->assertCount(4, $this->names('assignee[0][]='.$this->kim->id));
+
+        // 담당자 필터만 걸어도 초기화 버튼이 보인다
+        $this->actingAs($this->admin)->get('/projects?assignee[]='.$this->kim->id)->assertSee('↺ 초기화');
+        $this->actingAs($this->admin)->get('/projects')->assertDontSee('↺ 초기화');
     }
 
     public function test_assignee_chips_show_counts_for_current_tab(): void
