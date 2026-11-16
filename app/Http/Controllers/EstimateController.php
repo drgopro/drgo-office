@@ -565,6 +565,9 @@ class EstimateController extends Controller
                 if ($msg = app(EstimateReviewService::class)->gateErrorFor($estimate, $gateItems)) {
                     return response()->json(['message' => '발행할 수 없습니다 — '.$msg], 422);
                 }
+                if ($msg = $this->projectLinkErrorFor($estimate, $validated)) {
+                    return response()->json(['message' => '발행할 수 없습니다 — '.$msg], 422);
+                }
             }
             $becamePaid = ($validated['status'] ?? null) === 'paid' && $estimate->status !== 'paid';
             $becameCancelled = ($validated['status'] ?? null) === 'cancelled' && $estimate->status === 'paid';
@@ -693,6 +696,9 @@ class EstimateController extends Controller
             && ($msg = app(EstimateReviewService::class)->gateErrorFor($estimate))) {
             return response()->json(['message' => '발행할 수 없습니다 — '.$msg], 422);
         }
+        if ($estimate->status !== 'issued' && ($msg = $this->projectLinkErrorFor($estimate))) {
+            return response()->json(['message' => '발행할 수 없습니다 — '.$msg], 422);
+        }
 
         $estimate->update([
             'status' => 'issued',
@@ -708,6 +714,28 @@ class EstimateController extends Controller
             'payapp_warning' => $warning,
             'public_url' => $estimate->publicUrl(),
         ]);
+    }
+
+    /**
+     * 발행(=결제요청 생성) 전 프로젝트 연동 확인 — 의뢰자가 연결된 견적서는 프로젝트도 연결돼 있어야 발행할 수 있다.
+     * 예외: 의뢰자 없는 익명 견적서(연결할 프로젝트가 없음), 차수(추가 견적 — 본 견적이 이미 발행을 거쳤고,
+     * 결제완료된 본 견적은 수정이 잠겨 뒤늦게 연동할 수 없으므로 막지 않는다).
+     * 이번 저장에서 함께 바뀌는 값($incoming)이 있으면 그 값을 기준으로 본다. 문제 없으면 null.
+     *
+     * @param  array<string, mixed>  $incoming
+     */
+    private function projectLinkErrorFor(Estimate $estimate, array $incoming = []): ?string
+    {
+        if ($estimate->parent_estimate_id) {
+            return null;
+        }
+        $pick = fn (string $key) => array_key_exists($key, $incoming) ? $incoming[$key] : $estimate->{$key};
+
+        if (empty($pick('client_id')) || ! empty($pick('project_id'))) {
+            return null;
+        }
+
+        return '의뢰자의 프로젝트를 연동해야 발행(결제요청)할 수 있습니다. 견적서에서 프로젝트를 선택한 뒤 다시 시도해주세요.';
     }
 
     /**
