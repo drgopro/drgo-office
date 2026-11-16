@@ -464,7 +464,10 @@
                         <button type="button" id="mkPostedBtn" onclick="toggleMarketingPosted()" style="display:none;font-size:12px;padding:2px 8px;border-radius:4px;border:1px solid var(--border);background:var(--surface2);color:var(--text-muted);cursor:pointer;white-space:nowrap;"></button>
                     </span>
                     <span>{{ $project->created_at->format('Y.m.d') }} 시작</span>
-                    <span>담당: {{ $project->assignedUser?->display_name ?? '-' }}</span>
+                    <span>담당: {{ implode(', ', $project->assigneeNames()) ?: '-' }}</span>
+                    @if($project->stage === 'done' && $project->completedBy)
+                        <span title="프로젝트를 완료 처리한 사람">완료 처리: {{ $project->completedBy->display_name ?: $project->completedBy->username }}{{ $project->completed_at ? ' · '.$project->completed_at->format('Y.m.d') : '' }}</span>
+                    @endif
                 </div>
             </div>
         </div>
@@ -987,6 +990,10 @@
                     <div style="margin-top:12px;">
                         <div style="font-size:12px; color:var(--text-muted); margin-bottom:4px;">담당자</div>
                         <span id="peAssigneeWrap"></span>
+                    </div>
+                    <div style="margin-top:12px;">
+                        <div style="font-size:12px; color:var(--text-muted); margin-bottom:4px;">추가 담당자 <span style="opacity:.8;">함께 맡는 사람 (선택)</span></div>
+                        <span id="peExtraAssigneeWrap"></span>
                     </div>
                 </div>
                 <div style="display:flex; gap:8px; justify-content:flex-end; padding:14px 20px; border-top:1px solid var(--border);">
@@ -2198,6 +2205,7 @@ async function openProjectEditModal() {
 
     document.getElementById('peName').value = CURRENT_PROJECT.name || '';
     document.getElementById('peAssigneeWrap').innerHTML = assigneeSelectHtml('peAssignee', {{ $project->assigned_user_id ? (int) $project->assigned_user_id : 'null' }}, '', 'width:100%; padding:9px 12px; background:var(--surface2); border:1px solid var(--border); border-radius:8px; color:var(--text); font-size:14px; outline:none; box-sizing:border-box;', true);
+    document.getElementById('peExtraAssigneeWrap').innerHTML = assigneeExtraHtml('peExtraAssignees', @json($project->extraAssignees->pluck('id')->values()));
     document.getElementById('peScale').value = CURRENT_PROJECT.client_scale || '';
     updatePeWorkType();
     document.getElementById('projectEditModalOverlay').style.display = 'flex';
@@ -2221,6 +2229,7 @@ async function saveProjectEdit() {
         client_scale: document.getElementById('peScale').value || null,
         work_type: document.getElementById('peWorkType').value || null,
         assigned_user_id: assigneeValue('peAssignee'),
+        extra_assignee_ids: assigneeExtraValues('peExtraAssignees'),
     };
     const csrf = document.querySelector('meta[name="csrf-token"]').content;
     const res = await fetch(`/api/projects/{{ $project->id }}`, {

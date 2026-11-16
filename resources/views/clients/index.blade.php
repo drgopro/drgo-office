@@ -1417,6 +1417,10 @@ function renderClientContent(id) {
                     ${assigneeSelectHtml(`pf-assignee-${id}`, null, 'field-input field-select')}
                 </div>
                 <div class="field" style="margin-top:10px;">
+                    <div class="field-label">추가 담당자 <span style="font-weight:400; color:var(--text-muted);">함께 맡는 사람 (선택)</span></div>
+                    ${assigneeExtraHtml(`pf-extra-assignees-${id}`, [])}
+                </div>
+                <div class="field" style="margin-top:10px;">
                     <div class="field-label">프로젝트 개요</div>
                     <textarea class="field-input field-textarea" id="pf-memo-${id}" rows="2"></textarea>
                 </div>
@@ -1829,6 +1833,7 @@ async function createProject(clientId) {
         overview: document.getElementById('pf-memo-' + clientId).value,
         tags: CrmTagPicker.value('client-' + clientId),
         assigned_user_id: assigneeValue('pf-assignee-' + clientId),
+        extra_assignee_ids: assigneeExtraValues('pf-extra-assignees-' + clientId),
     };
     const res = await fetch(`/clients/${clientId}/projects`, {
         method:'POST', headers:{'Content-Type':'application/json','X-CSRF-TOKEN':CSRF,'Accept':'application/json'},

@@ -533,7 +533,7 @@
                             </span>
                         @endif
                     </td>
-                    <td>{{ $project->assignedUser?->display_name ?? '-' }}</td>
+                    <td>{{ implode(', ', $project->assigneeNames()) ?: '-' }}</td>
                     <td>
                         @if($showCancelled)
                             {{ $project->cancelled_at?->format('Y.m.d') ?? $project->created_at->format('Y.m.d') }}
@@ -623,6 +623,8 @@
             <div>
                 <div style="font-size:12px; color:var(--text-muted); margin-bottom:4px;">담당자 <span style="opacity:.8;">기본은 작성자</span></div>
                 <span id="npAssigneeWrap"></span>
+                <div style="font-size:12px; color:var(--text-muted); margin:10px 0 4px;">추가 담당자 <span style="opacity:.8;">함께 맡는 사람 (선택)</span></div>
+                <span id="npExtraAssigneeWrap"></span>
             </div>
             <div id="npMemoRow">
                 <div style="font-size:12px; color:var(--text-muted); margin-bottom:4px;">프로젝트 개요</div>
@@ -759,6 +761,7 @@ async function openNewProjectModal() {
     toggleNpNoClient();
     document.getElementById('npName').value = '';
     document.getElementById('npAssigneeWrap').innerHTML = assigneeSelectHtml('npAssignee', null, '', 'width:100%; padding:9px 12px; background:var(--surface2); border:1px solid var(--border); border-radius:8px; color:var(--text); font-size:14px; outline:none; box-sizing:border-box;');
+    document.getElementById('npExtraAssigneeWrap').innerHTML = assigneeExtraHtml('npExtraAssignees', []);
     document.getElementById('npScale').value = 'personal';
     document.getElementById('npMemo').value = '';
     document.getElementById('npPaymentOnly').checked = false;
@@ -904,6 +907,7 @@ async function submitNewProject() {
     }
     body.tags = CrmTagPicker.value('np'); // 대분류/소분류
     body.assigned_user_id = assigneeValue('npAssignee');
+    body.extra_assignee_ids = assigneeExtraValues('npExtraAssignees');
     if (noClient) {
         body.manual_client_name = document.getElementById('npManualName').value.trim() || null;
     }
