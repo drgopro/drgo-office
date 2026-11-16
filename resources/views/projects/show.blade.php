@@ -4578,22 +4578,36 @@ async function advanceToDone(openEditor) {
             await showFetchErrorVR(res, '완료 처리 실패');
             return;
         }
+        // 확인/취소 모두 새로고침해 진행 단계 표시를 완료로 갱신한다
+        // (예전에는 '확인'일 때 새로고침하지 않아 완료됐는데도 단계 표시가 그대로였음).
+        // '확인'이면 새로고침 뒤 보고서 칸을 열어 주도록 표시를 남긴다
         if (openEditor) {
-            // 카드 노출 + 포커스
-            const card = document.getElementById('visitReportCard');
-            if (card) card.style.display = 'block';
-            setTimeout(() => {
-                if (card) card.scrollIntoView({behavior:'smooth', block:'start'});
-                if (window.vrEditor) window.vrEditor.commands.focus();
-            }, 250);
-        } else {
-            // '아니오' 선택 시 단계 UI 갱신 위해 새로고침
-            location.reload();
+            try { sessionStorage.setItem(VR_OPEN_AFTER_DONE_KEY, '1'); } catch (e) {}
         }
+        location.reload();
     } catch(e) {
         alert('통신 오류: ' + e.message);
     }
 }
+
+// 완료 처리 직후 새로고침된 화면 — 보고서 칸을 작성 모드로 열고 포커스
+const VR_OPEN_AFTER_DONE_KEY = 'vrOpenAfterDone:{{ $project->id }}';
+(function openReportAfterDone() {
+    let pending = false;
+    try { pending = sessionStorage.getItem(VR_OPEN_AFTER_DONE_KEY) === '1'; sessionStorage.removeItem(VR_OPEN_AFTER_DONE_KEY); } catch (e) {}
+    if (!pending) return;
+    let tries = 0;
+    const timer = setInterval(() => {
+        const card = document.getElementById('visitReportCard');
+        // 에디터가 준비될 때까지 최대 5초 대기 (모듈 로딩 지연 대비)
+        if (!card || (!window.vrEditor && ++tries < 50)) { if (!card) clearInterval(timer); return; }
+        clearInterval(timer);
+        card.style.display = 'block';
+        if (typeof window.vrSetMode === 'function') window.vrSetMode('edit');
+        card.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        if (window.vrEditor) window.vrEditor.commands.focus();
+    }, 100);
+})();
 
 async function showFetchErrorVR(res, prefix) {
     let detail = '';

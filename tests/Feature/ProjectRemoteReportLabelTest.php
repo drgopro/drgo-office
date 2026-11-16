@@ -75,4 +75,20 @@ class ProjectRemoteReportLabelTest extends TestCase
         $this->assertStringNotContainsString('예: 즉시 작성 / 아니오: 완료만 처리', $html);
         $this->assertMatchesRegularExpression('/id="visitReportCard" style="display:block;"/', $html);
     }
+
+    public function test_confirming_report_reloads_so_stage_bar_updates_then_reopens_report_editor(): void
+    {
+        $admin = User::factory()->create(['role' => 'admin']);
+        $client = Client::create(['nickname' => '고블린', 'grade' => 'normal']);
+        $project = Project::create(['client_id' => $client->id, 'name' => '방문 건', 'project_type' => 'visit', 'stage' => 'consulting']);
+
+        $html = $this->actingAs($admin)->get("/projects/{$project->id}")->assertOk()->getContent();
+
+        // '확인'을 눌러도 새로고침해 진행 단계가 완료로 보이게 하고, 새로고침 뒤 보고서 칸을 열 표시를 남긴다
+        $this->assertMatchesRegularExpression('/if \(openEditor\) \{\s+try \{ sessionStorage\.setItem\(VR_OPEN_AFTER_DONE_KEY, \'1\'\); \} catch \(e\) \{\}\s+\}\s+location\.reload\(\);/', $html);
+        $this->assertStringContainsString("const VR_OPEN_AFTER_DONE_KEY = 'vrOpenAfterDone:{$project->id}';", $html);
+        $this->assertStringContainsString("window.vrSetMode('edit')", $html);
+        // 새로고침 없이 카드만 띄우던 예전 분기는 없어야 한다
+        $this->assertStringNotContainsString("// '아니오' 선택 시 단계 UI 갱신 위해 새로고침", $html);
+    }
 }
