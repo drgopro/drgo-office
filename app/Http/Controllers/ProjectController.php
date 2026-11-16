@@ -259,7 +259,7 @@ class ProjectController extends Controller
 
             return $project;
         });
-        $this->notifyNewProjectAssignees($project, []);
+        $this->notifyProjectAssigneeChanges($project, []);
 
         if ($request->wantsJson() || $request->expectsJson()) {
             return response()->json([
@@ -274,16 +274,19 @@ class ProjectController extends Controller
     }
 
     /**
-     * 새로 담당자가 된 사람에게 채널톡(아웃바운드 톡방) 알림.
-     * 이미 담당자이던 사람(대표↔추가 자리만 바뀐 경우 포함)과, 스스로를 지정한 본인은 알리지 않는다.
+     * 담당자 변경을 채널톡(아웃바운드 톡방)으로 알림 — 새로 담당자가 된 사람과 담당에서 빠진 사람.
+     * 대표↔추가 자리만 바뀐 사람(계속 담당자)과, 스스로를 지정·제외한 본인은 알리지 않는다.
      *
      * @param  array<int, int>  $previousUserIds  변경 전 담당자 전원
      */
-    private function notifyNewProjectAssignees(Project $project, array $previousUserIds): void
+    private function notifyProjectAssigneeChanges(Project $project, array $previousUserIds): void
     {
-        $added = array_values(array_diff($project->fresh()->assigneeUserIds(), $previousUserIds, [(int) Auth::id()]));
-        if ($added) {
-            app(ChannelTalkNotifier::class)->projectAssigneesAssigned($project, $added);
+        $current = $project->fresh()->assigneeUserIds();
+        $self = [(int) Auth::id()];
+        $added = array_values(array_diff($current, $previousUserIds, $self));
+        $removed = array_values(array_diff($previousUserIds, $current, $self));
+        if ($added || $removed) {
+            app(ChannelTalkNotifier::class)->projectAssigneesChanged($project, $added, $removed);
         }
     }
 
@@ -550,7 +553,7 @@ class ProjectController extends Controller
             }
         });
         if ($extraAssigneeIds !== null || array_key_exists('assigned_user_id', $validated)) {
-            $this->notifyNewProjectAssignees($project, $assigneesBefore);
+            $this->notifyProjectAssigneeChanges($project, $assigneesBefore);
         }
 
         return response()->json(['success' => true, 'project' => $project]);

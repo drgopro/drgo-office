@@ -95,9 +95,42 @@ class ProjectAssigneeAlertTest extends TestCase
         $this->actingAs($this->admin)->patchJson("/api/projects/{$project->id}", ['assigned_user_id' => $this->lee->id, 'extra_assignee_ids' => [$this->kim->id]])->assertOk();
         $this->assertCount(1, $this->alerts());
 
-        // 담당자 제외는 알리지 않는다
+    }
+
+    public function test_removed_assignees_are_alerted(): void
+    {
+        $project = Project::create(['client_id' => $this->client->id, 'name' => '세팅', 'project_type' => 'visit', 'stage' => 'consulting', 'assigned_user_id' => $this->kim->id]);
+        $project->syncExtraAssignees([$this->lee->id]);
+
+        // 추가 담당자에서 제외
         $this->actingAs($this->admin)->patchJson("/api/projects/{$project->id}", ['extra_assignee_ids' => []])->assertOk();
-        $this->assertCount(1, $this->alerts());
+        $alerts = $this->alerts();
+        $this->assertCount(1, $alerts);
+        $this->assertStringContainsString("'고블린 · 세팅' 프로젝트의 담당에서 제외되었습니다", $alerts[0]);
+        $this->assertTrue($this->mentions($alerts[0], $this->lee));
+        $this->assertFalse($this->mentions($alerts[0], $this->kim));
+
+        // 대표 담당자 교체 — 새 담당자에게는 지정, 빠진 사람에게는 제외 알림이 각각 나간다
+        $this->actingAs($this->admin)->patchJson("/api/projects/{$project->id}", ['assigned_user_id' => $this->lee->id])->assertOk();
+        $alerts = $this->alerts();
+        $this->assertCount(3, $alerts);
+        $this->assertStringContainsString('담당자로 지정되었습니다', $alerts[1]);
+        $this->assertTrue($this->mentions($alerts[1], $this->lee));
+        $this->assertStringContainsString('담당에서 제외되었습니다', $alerts[2]);
+        $this->assertTrue($this->mentions($alerts[2], $this->kim));
+    }
+
+    public function test_removing_or_assigning_oneself_sends_nothing(): void
+    {
+        $project = Project::create(['client_id' => $this->client->id, 'name' => '세팅', 'project_type' => 'visit', 'stage' => 'consulting', 'assigned_user_id' => $this->kim->id]);
+        $project->syncExtraAssignees([$this->admin->id]);
+
+        // 본인이 스스로 담당에서 빠지는 경우
+        $this->actingAs($this->admin)->patchJson("/api/projects/{$project->id}", ['extra_assignee_ids' => []])->assertOk();
+        // 본인이 스스로를 다시 지정하는 경우
+        $this->actingAs($this->admin)->patchJson("/api/projects/{$project->id}", ['extra_assignee_ids' => [$this->admin->id]])->assertOk();
+
+        $this->assertSame([], $this->alerts());
     }
 
     public function test_nothing_is_sent_when_channeltalk_is_not_configured(): void
