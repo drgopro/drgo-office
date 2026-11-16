@@ -85,7 +85,8 @@ class EstimatePresetController extends Controller
 
     /**
      * 프리셋 품목을 현재 판매가(기간 할인 포함)로 갱신 — 견적서에서 프리셋을 불러올 때와 같은 금액이 되도록.
-     * 수기 입력 품목·삭제된 제품은 저장된 가격 그대로 둔다.
+     * 수기 입력 품목·삭제된 제품, 가격 고정(price_fixed)·수동 특가·대체된 품목은 저장된 가격 그대로 둔다
+     * (Estimate::syncSnapshotPrices 와 같은 보호 규칙).
      *
      * @param  array<int, array<string, mixed>>  $items
      * @return array<int, array<string, mixed>>
@@ -96,13 +97,23 @@ class EstimatePresetController extends Controller
 
         return collect($items)->map(function (array $item) use ($products) {
             $qty = max(1, (int) ($item['qty'] ?? 1));
-            $product = (! empty($item['product_id']) && empty($item['manual'])) ? $products->get($item['product_id']) : null;
+            $manualDeal = ! empty($item['deal_type']) && empty($item['auto_deal']);
+            $protected = ! empty($item['manual']) || ! empty($item['price_fixed']) || ! empty($item['replaced']) || $manualDeal;
+            $product = (! empty($item['product_id']) && ! $protected) ? $products->get($item['product_id']) : null;
             if ($product) {
+                $sale = (int) $product->sale_price;
                 $discount = $product->activeDiscountAmount();
-                $item['sale_price'] = $discount > 0 ? $product->discountedPrice() : (int) $product->sale_price;
+                $item['sale_price'] = $discount > 0 ? $product->discountedPrice() : $sale;
                 if ($discount > 0) {
                     $item['deal_type'] = 'discount';
-                    $item['original_price'] = (int) $product->sale_price;
+                    $item['auto_deal'] = true;
+                    $item['original_price'] = $sale;
+                    $item['discount_rate'] = $sale > 0 ? ((int) round($discount / $sale * 100) ?: null) : null;
+                    $item['deal_starts_at'] = $product->discount_starts_at?->format('Y-m-d H:i');
+                    $item['deal_ends_at'] = $product->discount_ends_at?->format('Y-m-d H:i');
+                } else {
+                    // 할인이 끝났으면 저장돼 있던 할인 표시도 지운다 (정가인데 할인 배지가 남지 않게)
+                    unset($item['deal_type'], $item['auto_deal'], $item['original_price'], $item['discount_rate'], $item['deal_starts_at'], $item['deal_ends_at']);
                 }
             }
             $item['qty'] = $qty;

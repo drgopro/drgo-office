@@ -290,4 +290,30 @@ class EstimatePresetTest extends TestCase
             ->assertSee("{url:'/estimate-presets/\${p.id}/print'", false)
             ->assertSee('function estSafeFileName', false);
     }
+
+    public function test_preset_print_keeps_protected_prices_and_clears_expired_discount_marks(): void
+    {
+        $product = Product::create(['name' => '마이크 M1', 'sku' => 'MIC-001', 'sale_price' => 200000, 'purchase_price' => 100000]);
+        $preset = EstimatePreset::create([
+            'title' => '보호 가격 프리셋',
+            'created_by' => $this->admin->id,
+            'items' => [
+                // 가격 고정 — 현재 판매가로 덮어쓰지 않음
+                ['product_id' => $product->id, 'name' => '고정가 마이크', 'sale_price' => 170000, 'qty' => 1, 'price_fixed' => true],
+                // 수동 특가 — 지정 가격 유지
+                ['product_id' => $product->id, 'name' => '특가 마이크', 'sale_price' => 150000, 'qty' => 1, 'deal_type' => 'special', 'original_price' => 200000],
+                // 예전 자동 할인 스냅샷 — 지금은 할인이 없으므로 정가 + 할인 표시 제거
+                ['product_id' => $product->id, 'name' => '할인 끝난 마이크', 'sale_price' => 160000, 'qty' => 1, 'deal_type' => 'discount', 'auto_deal' => true, 'original_price' => 200000, 'discount_rate' => 20],
+            ],
+        ]);
+
+        $items = $this->actingAs($this->admin)->get("/estimate-presets/{$preset->id}/print")->assertOk()->viewData('estimate')->product_items;
+
+        $this->assertSame(170000, $items[0]['sale_price']);
+        $this->assertSame(150000, $items[1]['sale_price']);
+        $this->assertSame('special', $items[1]['deal_type']);
+        $this->assertSame(200000, $items[2]['sale_price']);
+        $this->assertArrayNotHasKey('deal_type', $items[2]);
+        $this->assertArrayNotHasKey('original_price', $items[2]);
+    }
 }

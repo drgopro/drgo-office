@@ -563,6 +563,7 @@ async function exportEstimate(id, type, opts) {
     const printUrl = opts?.url || `/estimates/${id}/print`;
     const exportName = () => opts?.name ? estSafeFileName(opts.name) : estExportName(id);
     const w = window.open(printUrl, '_blank', 'width=860,height=900,scrollbars=yes');
+    if (!w) { alert('팝업이 차단되어 저장할 수 없습니다. 이 사이트의 팝업을 허용한 뒤 다시 시도해주세요.'); return; }
     w.addEventListener('load', () => {
         setTimeout(async () => {
             try {
