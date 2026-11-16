@@ -4,14 +4,16 @@ namespace Tests\Feature;
 
 use App\Models\FeedbackPost;
 use App\Models\FeedbackReview;
+use App\Models\Setting;
 use App\Models\User;
 use App\Notifications\FeedbackActivity;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Notification;
 use Illuminate\Support\Facades\Storage;
 use Tests\TestCase;
 
-/** 피드백 AI 검수 — 에이전트 토큰 API(조회·검수 등록·결과 기록) + 관리자 전용 노출·승인 */
+/** 피드백 AI 검수 — 에이전트 토큰 API(조회·검수 등록·결과 기록) + 마스터·지정 열람자 전용 노출·승인 */
 class FeedbackReviewTest extends TestCase
 {
     use RefreshDatabase;
@@ -26,7 +28,8 @@ class FeedbackReviewTest extends TestCase
     {
         parent::setUp();
         config(['services.agent_events.token' => 'test-agent-token']);
-        $this->admin = User::factory()->create(['role' => 'admin']);
+        // 검수 열람·승인 주체 — 마스터 (admin 역할만으로는 볼 수 없다: 아래 열람 권한 테스트 참고)
+        $this->admin = User::factory()->create(['role' => 'master']);
         $this->member = User::factory()->create(['role' => 'member']);
     }
 
@@ -318,10 +321,88 @@ class FeedbackReviewTest extends TestCase
         $this->actingAs($this->admin)->get('/feedback')
             ->assertOk()
             ->assertSee('id="fbReviewPendingBtn"', false)
-            ->assertSee('if(FB_IS_ADMIN && p.review) html += fbReviewHtml(p);', false);
+            ->assertSee('if(FB_CAN_REVIEW && p.review) html += fbReviewHtml(p);', false);
 
         $this->actingAs($this->member)->get('/feedback')
             ->assertOk()
             ->assertDontSee('id="fbReviewPendingBtn"', false);
+    }
+
+    public function test_plain_admin_role_cannot_see_or_decide_reviews(): void
+    {
+        $plainAdmin = User::factory()->create(['role' => 'admin']);
+        $post = $this->makePost();
+        $this->review($post, ['summary' => '마스터와 지정 열람자만 보는 검수']);
+
+        $this->actingAs($plainAdmin)->getJson('/api/feedback?type=bug&review_pending=1')
+            ->assertOk()
+            ->assertJsonPath('posts.0.review', null)
+            ->assertJsonPath('review_pending_count', null)
+            ->assertDontSee('마스터와 지정 열람자만 보는 검수');
+        $this->actingAs($plainAdmin)->postJson("/api/feedback/{$post->id}/review-decision", ['decision' => 'approved'])->assertForbidden();
+        $this->actingAs($plainAdmin)->get('/feedback')->assertOk()
+            ->assertDontSee('id="fbReviewPendingBtn"', false)
+            ->assertDontSee('id="fbViewerList"', false);
+        $this->assertSame('pending', $post->fresh()->review->decision);
+    }
+
+    public function test_designated_viewer_can_see_and_decide_reviews(): void
+    {
+        $viewer = User::factory()->create(['role' => 'member', 'display_name' => '이유진']);
+        $post = $this->makePost();
+        $this->review($post, ['summary' => '지정 열람자에게 보이는 검수']);
+
+        $this->actingAs($this->admin)->postJson('/api/feedback-review-viewers', ['user_ids' => [$viewer->id]])
+            ->assertOk()->assertJson(['user_ids' => [$viewer->id]]);
+
+        $this->actingAs($viewer)->getJson('/api/feedback?type=bug')
+            ->assertOk()
+            ->assertJsonPath('posts.0.review.summary', '지정 열람자에게 보이는 검수')
+            ->assertJsonPath('review_pending_count', 1);
+        $this->actingAs($viewer)->postJson("/api/feedback/{$post->id}/review-decision", ['decision' => 'approved'])
+            ->assertOk()->assertJsonPath('review.decision', 'approved');
+        // 열람자에게는 검수 영역은 보이지만 열람자 지정 패널은 보이지 않는다 (마스터 전용)
+        $this->actingAs($viewer)->get('/feedback')->assertOk()
+            ->assertSee('id="fbReviewPendingBtn"', false)
+            ->assertDontSee('id="fbViewerList"', false);
+
+        // 목록에서 빼면 다시 볼 수 없다
+        $this->actingAs($this->admin)->postJson('/api/feedback-review-viewers', ['user_ids' => []])->assertOk();
+        $this->actingAs($viewer)->getJson('/api/feedback?type=bug')->assertJsonPath('posts.0.review', null);
+    }
+
+    public function test_only_master_can_change_review_viewers(): void
+    {
+        $plainAdmin = User::factory()->create(['role' => 'admin']);
+
+        // admin 이 자신을 열람자로 넣어 권한을 얻는 것을 막는다
+        $this->actingAs($plainAdmin)->postJson('/api/feedback-review-viewers', ['user_ids' => [$plainAdmin->id]])->assertForbidden();
+        $this->actingAs($this->member)->postJson('/api/feedback-review-viewers', ['user_ids' => [$this->member->id]])->assertForbidden();
+        $this->assertFalse($plainAdmin->fresh()->canSeeFeedbackReviews());
+
+        $this->actingAs($this->admin)->postJson('/api/feedback-review-viewers', ['user_ids' => [999999]])->assertUnprocessable();
+        $this->actingAs($this->admin)->get('/feedback')->assertOk()->assertSee('id="fbViewerList"', false);
+    }
+
+    public function test_viewer_seed_migration_adds_matching_active_user_only(): void
+    {
+        $migration = require database_path('migrations/2026_11_16_163915_seed_feedback_review_viewers.php');
+
+        // 같은 이름이 한 명이면 그 사용자를 넣는다
+        DB::table('settings')->where('key', 'feedback_review_viewers')->delete();
+        $one = User::factory()->create(['role' => 'admin', 'display_name' => '이유진']);
+        $migration->up();
+        $this->assertSame([$one->id], User::feedbackReviewViewerIds());
+
+        // 이미 지정된 목록은 다시 실행해도 건드리지 않는다
+        Setting::set('feedback_review_viewers', json_encode([]));
+        $migration->up();
+        $this->assertSame([], User::feedbackReviewViewerIds());
+
+        // 해당 이름의 활성 사용자가 없으면 비워 둔다
+        DB::table('settings')->where('key', 'feedback_review_viewers')->delete();
+        $one->update(['is_active' => false]);
+        $migration->up();
+        $this->assertSame([], User::feedbackReviewViewerIds());
     }
 }

@@ -95,7 +95,7 @@
     .fb-reject-input-wrap.show { display:flex; }
     .fb-reject-input-wrap input { flex:1; background:var(--surface); border:1px solid var(--border); border-radius:8px; padding:6px 10px; color:var(--text); font-size:13px; outline:none; }
 
-    /* AI 검수 — 관리자(master/admin) 전용 펼침 영역 */
+    /* AI 검수 — 마스터·지정 열람자 전용 펼침 영역 */
     .fb-review { margin-top:14px; border:1px solid var(--border); border-left:3px solid var(--accent); border-radius:10px; background:var(--surface2); }
     .fb-review > summary { display:flex; align-items:center; gap:8px; flex-wrap:wrap; padding:10px 12px; font-size:13px; font-weight:700; color:var(--text); cursor:pointer; list-style:none; }
     .fb-review > summary::-webkit-details-marker { display:none; }
@@ -114,6 +114,8 @@
     .fb-review-actions { display:flex; align-items:center; gap:7px; flex-wrap:wrap; }
     .fb-review-actions input { flex:1; min-width:200px; background:var(--surface); border:1px solid var(--border); border-radius:8px; padding:6px 10px; color:var(--text); font-size:13px; outline:none; }
     .fb-review-meta { font-size:12px; color:var(--text-muted); }
+    .fb-viewer-list { display:flex; flex-direction:column; gap:5px; max-height:220px; overflow-y:auto; font-size:13px; color:var(--text-muted); }
+    .fb-viewer-list label { display:flex; align-items:center; gap:7px; color:var(--text); cursor:pointer; }
     .fb-review-toggle { background:var(--surface2); border:1px solid var(--border); border-radius:10px; padding:8px 13px; font-size:13px; font-weight:600; color:var(--text); cursor:pointer; font-family:inherit; }
     .fb-review-toggle.on { border-color:var(--accent); color:var(--accent); }
 
@@ -233,8 +235,8 @@
                 <option value="priority">우선순위순</option>
             </select>
             <input type="search" id="fbSearch" placeholder="제목, 내용, 작성자 검색" onkeydown="if(event.key==='Enter')fbLoad()">
-            @if($isAdmin)
-                {{-- AI 검수 승인 대기 글만 보기 — 관리자 전용 --}}
+            @if($canSeeReviews)
+                {{-- AI 검수 승인 대기 글만 보기 — 마스터·지정 열람자 전용 --}}
                 <button type="button" class="fb-review-toggle" id="fbReviewPendingBtn" onclick="fbToggleReviewPending()" style="display:none;">AI 검수 승인 대기 <b id="fbReviewPendingCnt"></b></button>
             @endif
         </div>
@@ -247,6 +249,18 @@
             <div class="fb-panel-title">처리 현황</div>
             <div id="fbCounts"></div>
         </div>
+        @if($isDeveloper)
+        {{-- AI 검수 열람자 지정 — 마스터 전용. 마스터는 항상 볼 수 있고, 여기서 고른 사용자만 추가로 본다 --}}
+        <div class="fb-panel">
+            <div class="fb-panel-title">AI 검수 열람자</div>
+            <div class="fb-guide" style="margin-bottom:10px;">마스터는 항상 볼 수 있습니다. 추가로 볼 사용자를 고르세요.</div>
+            <div id="fbViewerList" class="fb-viewer-list">불러오는 중…</div>
+            <div style="display:flex; align-items:center; gap:8px; margin-top:10px;">
+                <button type="button" class="fb-dev-btn" onclick="fbSaveViewers()">저장</button>
+                <span id="fbViewerMsg" style="font-size:12px; color:var(--text-muted);"></span>
+            </div>
+        </div>
+        @endif
         <div class="fb-panel">
             <div class="fb-panel-title">작성 가이드</div>
             <div class="fb-guide">
@@ -265,6 +279,7 @@
 const FB_CSRF = document.querySelector('meta[name="csrf-token"]')?.content || @json(csrf_token());
 const FB_IS_DEV = @json($isDeveloper);
 const FB_IS_ADMIN = @json($isAdmin); // 관리자(master/admin) — 모든 글 수정·삭제 가능
+const FB_CAN_REVIEW = @json($canSeeReviews); // AI 검수 열람·승인 — 마스터 + 마스터가 지정한 사용자
 const FB_STATUS = {waiting:'대기', reviewing:'검토중', hold:'보류', done:'완료', rejected:'반려'};
 const FB_STATUS_DOT = {waiting:'#888', reviewing:'#c9a227', hold:'#a78bfa', done:'#5b8def', rejected:'#e06c6c'};
 let fbType = 'bug';
@@ -322,7 +337,7 @@ function fbRenderCounts(counts){
     ).join('');
 }
 
-// ── AI 검수 (관리자 전용) ──
+// ── AI 검수 (마스터·지정 열람자 전용) ──
 function fbRenderReviewPending(count){
     const btn = document.getElementById('fbReviewPendingBtn');
     if(!btn) return;
@@ -344,7 +359,7 @@ function fbReviewHtml(p){
     const open = (p.id in fbReviewOpen) ? fbReviewOpen[p.id] : r.decision === 'pending';
     const block = (label, text) => text ? `<div><div class="fb-review-label">${label}</div><div class="fb-review-text">${_e(text)}</div></div>` : '';
     let html = `<details class="fb-review" ${open?'open':''} ontoggle="fbReviewOpen[${p.id}]=this.open">
-        <summary>AI 검수 <span class="fb-review-admin">관리자 전용</span>
+        <summary>AI 검수 <span class="fb-review-admin">지정 열람자 전용</span>
             <span class="fb-review-chip">${_e(r.category_label)}</span>
             ${r.effort_label?`<span class="fb-review-chip">작업량 ${_e(r.effort_label)}</span>`:''}
             <span class="fb-review-chip ${state}">${_e(stateLabel)}</span>
@@ -376,6 +391,27 @@ async function fbDecideReview(id, decision){
     fbLoad();
 }
 
+// ── AI 검수 열람자 지정 (마스터 전용) ──
+const FB_VIEWER_IDS = @json($reviewViewerIds);
+async function fbLoadViewers(){
+    const box = document.getElementById('fbViewerList');
+    if(!box) return;
+    try{
+        const res = await fetch('/api/mention-users', {headers:{'Accept':'application/json'}});
+        if(!res.ok) throw new Error();
+        const users = await res.json();
+        box.innerHTML = users.map(u => `<label><input type="checkbox" value="${u.id}" ${FB_VIEWER_IDS.includes(u.id)?'checked':''}> ${_e(u.name)}</label>`).join('') || '사용자가 없습니다.';
+    }catch(e){ box.textContent = '사용자 목록을 불러오지 못했습니다.'; }
+}
+async function fbSaveViewers(){
+    const ids = [...document.querySelectorAll('#fbViewerList input:checked')].map(c => +c.value);
+    const msg = document.getElementById('fbViewerMsg');
+    const res = await fetch('/api/feedback-review-viewers', {method:'POST', headers:{'X-CSRF-TOKEN':FB_CSRF,'Content-Type':'application/json','Accept':'application/json'}, body:JSON.stringify({user_ids: ids})});
+    const data = await res.json().catch(()=>({}));
+    msg.textContent = res.ok ? '저장되었습니다.' : (data.message || '저장 실패');
+}
+fbLoadViewers();
+
 // ── 피드 렌더 ──
 function fbRenderFeed(){
     const feed = document.getElementById('fbFeed');
@@ -393,7 +429,7 @@ function fbRenderFeed(){
                 </div>
                 <span class="fb-badge ${p.status}">${_e(p.status_label)}</span>
                 ${p.priority ? `<span class="fb-prio ${p.priority}" title="우선순위">${_e(p.priority_label)}</span>` : ''}
-                ${(FB_IS_ADMIN && p.review && p.review.decision==='pending') ? '<span class="fb-review-chip pending" title="AI 검수 승인 대기 (관리자 전용)">검수 승인 대기</span>' : ''}
+                ${(FB_CAN_REVIEW && p.review && p.review.decision==='pending') ? '<span class="fb-review-chip pending" title="AI 검수 승인 대기 (지정 열람자 전용)">검수 승인 대기</span>' : ''}
                 <span class="fb-chevron">▼</span>
             </div>
             <div class="fb-card-body">${open ? fbBodyHtml(p) : ''}</div>
@@ -462,8 +498,8 @@ function fbBodyHtml(p){
             </span>
         </div>`;
     }
-    // AI 검수 — 관리자 전용 펼침 영역 (서버도 관리자에게만 review를 내려준다)
-    if(FB_IS_ADMIN && p.review) html += fbReviewHtml(p);
+    // AI 검수 — 지정 열람자 전용 펼침 영역 (서버도 열람 권한자에게만 review를 내려준다)
+    if(FB_CAN_REVIEW && p.review) html += fbReviewHtml(p);
     // 최상위 의견 + 대댓글 (1뎁스) 그룹 렌더
     const roots = p.comments.filter(c => !c.parent_id);
     const replies = {};

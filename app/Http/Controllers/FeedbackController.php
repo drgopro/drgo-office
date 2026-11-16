@@ -6,6 +6,7 @@ use App\Http\Controllers\Concerns\HandlesFileUploads;
 use App\Models\FeedbackAttachment;
 use App\Models\FeedbackComment;
 use App\Models\FeedbackPost;
+use App\Models\Setting;
 use App\Models\User;
 use App\Notifications\FeedbackActivity;
 use App\Notifications\MentionAlert;
@@ -35,6 +36,9 @@ class FeedbackController extends Controller
             'pageOptions' => self::PAGE_OPTIONS,
             'isDeveloper' => $this->isDeveloper(),
             'isAdmin' => (bool) Auth::user()?->isAdmin(),
+            'canSeeReviews' => (bool) Auth::user()?->canSeeFeedbackReviews(),
+            // 마스터만 AI 검수 열람자를 지정 — 화면에 현재 지정 목록을 내려준다
+            'reviewViewerIds' => $this->isDeveloper() ? User::feedbackReviewViewerIds() : [],
         ]);
     }
 
@@ -51,13 +55,13 @@ class FeedbackController extends Controller
             'review_pending' => 'nullable|boolean',
         ]);
 
-        $isAdmin = (bool) Auth::user()?->isAdmin();
+        $canSeeReviews = (bool) Auth::user()?->canSeeFeedbackReviews();
         $query = FeedbackPost::with(['author:id,display_name,username,role', 'comments.user:id,display_name,username,role', 'attachments'])
             ->withCount('comments')
             ->where('type', $validated['type']);
 
-        // AI 검수는 관리자(master/admin)에게만 — 일반 멤버 응답에는 관계 자체를 싣지 않는다
-        if ($isAdmin) {
+        // AI 검수는 마스터와 마스터가 지정한 열람자에게만 — 그 외 응답에는 관계 자체를 싣지 않는다
+        if ($canSeeReviews) {
             $query->with('review.decider:id,display_name,username');
             if (! empty($validated['review_pending'])) {
                 $query->whereHas('review', fn ($r) => $r->where('decision', 'pending'));
@@ -105,7 +109,7 @@ class FeedbackController extends Controller
                 'bug' => FeedbackPost::where('type', 'bug')->count(),
                 'feature' => FeedbackPost::where('type', 'feature')->count(),
             ],
-            'review_pending_count' => $isAdmin
+            'review_pending_count' => $canSeeReviews
                 ? FeedbackPost::where('type', $validated['type'])->whereHas('review', fn ($r) => $r->where('decision', 'pending'))->count()
                 : null,
         ]);
@@ -243,12 +247,12 @@ class FeedbackController extends Controller
     }
 
     /**
-     * AI 검수 결정 — 관리자(master/admin) 전용.
+     * AI 검수 결정 — 마스터와 마스터가 지정한 열람자 전용.
      * 승인하면 글이 "검토중"(수락)으로 넘어가고, 에이전트가 승인 건만 가져가 수정한다. revise = 메모를 반영해 다시 검수.
      */
     public function decideReview(Request $request, FeedbackPost $post): JsonResponse
     {
-        abort_unless((bool) Auth::user()?->isAdmin(), 403, '관리자만 검수를 승인할 수 있습니다.');
+        abort_unless((bool) Auth::user()?->canSeeFeedbackReviews(), 403, 'AI 검수 권한이 없습니다.');
 
         $validated = $request->validate([
             'decision' => 'required|in:approved,hold,rejected,revise',
@@ -283,6 +287,22 @@ class FeedbackController extends Controller
             'status' => $post->status,
             'review' => $review->fresh('decider:id,display_name,username')->toPayload(),
         ]);
+    }
+
+    /** AI 검수 열람자 지정 — 마스터 전용. 활성 사용자 ID 목록으로 통째 교체 (마스터는 목록과 무관하게 항상 열람) */
+    public function updateReviewViewers(Request $request): JsonResponse
+    {
+        abort_unless($this->isDeveloper(), 403, '마스터만 AI 검수 열람자를 지정할 수 있습니다.');
+
+        $validated = $request->validate([
+            'user_ids' => 'present|array|max:100',
+            'user_ids.*' => 'integer|exists:users,id',
+        ]);
+
+        $ids = array_values(array_unique(array_map('intval', $validated['user_ids'])));
+        Setting::set('feedback_review_viewers', json_encode($ids));
+
+        return response()->json(['ok' => true, 'user_ids' => $ids]);
     }
 
     public function updateStatus(Request $request, FeedbackPost $post): JsonResponse
@@ -464,8 +484,8 @@ class FeedbackController extends Controller
             'done_at' => $p->done_at?->format('n/j'),
             'comments_count' => $p->comments_count ?? 0,
             'comments' => $p->relationLoaded('comments') ? $p->comments->map(fn ($c) => $this->commentPayload($c))->all() : [],
-            // 관리자 응답에서만 review 관계가 로드됨 (list 참고) — 그 외에는 키 자체가 null
-            'review' => (Auth::user()?->isAdmin() && $p->relationLoaded('review')) ? $p->review?->toPayload() : null,
+            // 열람 권한자 응답에서만 review 관계가 로드됨 (list 참고) — 그 외에는 키 자체가 null
+            'review' => (Auth::user()?->canSeeFeedbackReviews() && $p->relationLoaded('review')) ? $p->review?->toPayload() : null,
             'attachments' => $p->relationLoaded('attachments') ? $p->attachments->map(fn ($a) => [
                 'id' => $a->id,
                 'file_name' => $a->file_name,
