@@ -7,6 +7,7 @@ use App\Jobs\SendChannelTalkGroupMessage;
 use App\Models\Assignee;
 use App\Models\Estimate;
 use App\Models\Notice;
+use App\Models\Project;
 use App\Models\Schedule;
 use App\Models\Setting;
 use App\Models\Todo;
@@ -151,6 +152,34 @@ class ChannelTalkNotifier
             }
         } catch (\Throwable $e) {
             Log::warning('채널톡 할 일 담당자 알림 실패: '.$e->getMessage());
+        }
+    }
+
+    /**
+     * 프로젝트 담당자 지정 알림 — 새로 담당자가 된 사람을 기본 팀챗 톡방(아웃바운드)에서 멘션.
+     * 대표·추가 담당자 구분 없이 "새로 지정된 사람"만 알린다.
+     *
+     * @param  array<int, int>  $userIds  새로 지정된 사용자 id
+     */
+    public function projectAssigneesAssigned(Project $project, array $userIds): void
+    {
+        if (! $this->client->isConfigured() || ! $userIds) {
+            return;
+        }
+
+        try {
+            $users = User::whereIn('id', $userIds)->where('is_active', true)->get();
+            if ($users->isEmpty()) {
+                return;
+            }
+            $owner = $project->client
+                ? (trim((string) $project->client->nickname) ?: trim((string) $project->client->name))
+                : trim((string) $project->manual_client_name);
+            $label = $owner !== '' ? "{$owner} · {$project->name}" : $project->name;
+
+            $this->send("📁 {$this->mentionList($users)} — '{$label}' 프로젝트의 담당자로 지정되었습니다\n".route('projects.show', $project));
+        } catch (\Throwable $e) {
+            Log::warning('채널톡 프로젝트 담당자 알림 실패: '.$e->getMessage());
         }
     }
 

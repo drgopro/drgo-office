@@ -157,6 +157,18 @@ class Project extends Model
     }
 
     /**
+     * 현재 담당자 전원의 사용자 id (대표 + 추가, 중복 없음).
+     *
+     * @return array<int, int>
+     */
+    public function assigneeUserIds(): array
+    {
+        return collect([$this->assigned_user_id])
+            ->merge($this->extraAssignees()->pluck('users.id'))
+            ->filter()->map(fn ($id) => (int) $id)->unique()->values()->all();
+    }
+
+    /**
      * 담당자 이름 목록 — 대표 담당자 먼저, 이어서 추가 담당자.
      *
      * @return array<int, string>

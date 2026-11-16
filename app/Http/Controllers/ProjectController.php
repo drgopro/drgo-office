@@ -13,6 +13,7 @@ use App\Models\ProjectSubtag;
 use App\Models\Schedule;
 use App\Models\User;
 use App\Models\WorkType;
+use App\Services\ChannelTalkNotifier;
 use App\Services\EstimatePaymentSync;
 use App\Services\EstimateStockSync;
 use Carbon\Carbon;
@@ -258,6 +259,7 @@ class ProjectController extends Controller
 
             return $project;
         });
+        $this->notifyNewProjectAssignees($project, []);
 
         if ($request->wantsJson() || $request->expectsJson()) {
             return response()->json([
@@ -269,6 +271,20 @@ class ProjectController extends Controller
         }
 
         return redirect()->route('projects.show', $project)->with('success', '프로젝트가 생성되었습니다.');
+    }
+
+    /**
+     * 새로 담당자가 된 사람에게 채널톡(아웃바운드 톡방) 알림.
+     * 이미 담당자이던 사람(대표↔추가 자리만 바뀐 경우 포함)과, 스스로를 지정한 본인은 알리지 않는다.
+     *
+     * @param  array<int, int>  $previousUserIds  변경 전 담당자 전원
+     */
+    private function notifyNewProjectAssignees(Project $project, array $previousUserIds): void
+    {
+        $added = array_values(array_diff($project->fresh()->assigneeUserIds(), $previousUserIds, [(int) Auth::id()]));
+        if ($added) {
+            app(ChannelTalkNotifier::class)->projectAssigneesAssigned($project, $added);
+        }
     }
 
     /**
@@ -520,6 +536,7 @@ class ProjectController extends Controller
         $extraAssigneeIds = $validated['extra_assignee_ids'] ?? null;
         unset($validated['extra_assignee_ids']);
 
+        $assigneesBefore = $project->assigneeUserIds();
         DB::transaction(function () use ($project, $validated, $extraAssigneeIds) {
             $project->update($validated);
             if ($extraAssigneeIds !== null) {
@@ -532,6 +549,9 @@ class ProjectController extends Controller
                 $project->syncExtraAssignees($project->extraAssignees()->pluck('users.id')->all());
             }
         });
+        if ($extraAssigneeIds !== null || array_key_exists('assigned_user_id', $validated)) {
+            $this->notifyNewProjectAssignees($project, $assigneesBefore);
+        }
 
         return response()->json(['success' => true, 'project' => $project]);
     }
