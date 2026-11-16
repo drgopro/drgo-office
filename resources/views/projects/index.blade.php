@@ -204,6 +204,10 @@
         $selectedMarketing = is_array($rawMk)
             ? array_filter($rawMk)
             : array_filter(array_map('trim', explode(',', (string) $rawMk)));
+        $rawAssignee = request('assignee');
+        $selectedAssignees = is_array($rawAssignee)
+            ? array_filter($rawAssignee)
+            : array_filter(array_map('trim', explode(',', (string) $rawAssignee)));
         $rawTag = request('tag');
         $selectedTags = is_array($rawTag)
             ? array_filter($rawTag)
@@ -297,6 +301,20 @@
             @endforeach
             </div>
         </div>
+        {{-- 담당자별 보기 — 칩의 숫자는 현재 탭에서 그 담당자가 맡은 프로젝트 수 --}}
+        @if(count($assigneeOptions) > 1 || !empty($selectedAssignees))
+        <div class="filter-group">
+            <span class="filter-label">담당자</span>
+            <div class="filter-chips">
+            @foreach($assigneeOptions as $ao)
+                <label class="chip-toggle">
+                    <input type="checkbox" name="assignee[]" value="{{ $ao['value'] }}" {{ in_array($ao['value'], $selectedAssignees, true) ? 'checked' : '' }}>
+                    <span class="chip">{{ $ao['name'] }} <span style="opacity:0.65; font-variant-numeric:tabular-nums;">{{ $ao['count'] }}</span></span>
+                </label>
+            @endforeach
+            </div>
+        </div>
+        @endif
         @if(!empty($tagOptions['major']) || !empty($tagOptions['minor']))
         <div class="tag-filter {{ !empty($selectedTags) ? 'open' : '' }}" id="tagFilter">
             <button type="button" class="tag-filter-toggle" onclick="document.getElementById('tagFilter').classList.toggle('open')">

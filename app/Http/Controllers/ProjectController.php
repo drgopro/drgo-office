@@ -11,6 +11,7 @@ use App\Models\ProjectFieldDefinition;
 use App\Models\ProjectPayment;
 use App\Models\ProjectSubtag;
 use App\Models\Schedule;
+use App\Models\User;
 use App\Models\WorkType;
 use App\Services\EstimatePaymentSync;
 use App\Services\EstimateStockSync;
@@ -45,6 +46,40 @@ class ProjectController extends Controller
             $query->whereNotIn('stage', ['cancelled', 'done']);
         } else {
             $query->where('stage', '!=', 'cancelled');
+        }
+
+        // 담당자 필터 칩용 — 현재 탭(진행/완료/취소/전체) 기준 담당자별 프로젝트 수. 다른 필터를 걸기 전의 수치
+        $assigneeCounts = (clone $query)->toBase()
+            ->selectRaw('assigned_user_id, count(*) as cnt')
+            ->groupBy('assigned_user_id')
+            ->pluck('cnt', 'assigned_user_id');
+        $assigneeNames = User::whereIn('id', $assigneeCounts->keys()->filter())->get(['id', 'display_name', 'username'])->keyBy('id');
+        $assigneeOptions = $assigneeCounts
+            ->map(fn ($cnt, $userId) => [
+                'value' => $userId ? (string) $userId : 'none',
+                'name' => $userId ? ($assigneeNames[$userId]?->display_name ?? $assigneeNames[$userId]?->username ?? '(삭제된 사용자)') : '미지정',
+                'count' => (int) $cnt,
+            ])
+            ->sortBy([fn ($a, $b) => ($a['value'] === 'none') <=> ($b['value'] === 'none'), fn ($a, $b) => $b['count'] <=> $a['count']])
+            ->values()->all();
+
+        // 담당자 필터 (단일/콤마/배열, 'none' = 담당자 미지정) — 담당자별로 프로젝트를 모아 본다
+        if ($assignee = $request->query('assignee')) {
+            $vals = is_array($assignee)
+                ? array_values(array_filter($assignee))
+                : array_values(array_filter(array_map('trim', explode(',', (string) $assignee))));
+            $ids = array_values(array_filter(array_map('intval', $vals), fn ($id) => $id > 0));
+            $includeNone = in_array('none', $vals, true);
+            if (! empty($ids) || $includeNone) {
+                $query->where(function ($q) use ($ids, $includeNone) {
+                    if (! empty($ids)) {
+                        $q->whereIn('assigned_user_id', $ids);
+                    }
+                    if ($includeNone) {
+                        $q->orWhereNull('assigned_user_id');
+                    }
+                });
+            }
         }
 
         // 검색 — 의뢰자명/닉네임/프로젝트명/미연동 주관식 이름 (그룹으로 묶어 status 필터와 AND 유지)
@@ -145,7 +180,7 @@ class ProjectController extends Controller
         ];
         $tabCounts['all'] = $tabCounts['active'] + $tabCounts['done'] + $tabCounts['cancelled'];
 
-        return view('projects.index', compact('projects', 'tagOptions', 'statusTab', 'showCancelled', 'showDone', 'tabCounts'));
+        return view('projects.index', compact('projects', 'tagOptions', 'statusTab', 'showCancelled', 'showDone', 'tabCounts', 'assigneeOptions'));
     }
 
     // 등록 (의뢰자 연동)
