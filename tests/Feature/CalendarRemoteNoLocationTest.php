@@ -20,13 +20,14 @@ class CalendarRemoteNoLocationTest extends TestCase
             ->assertSee("addr.style.display=currentColor==='teal'?'none':''", false);
     }
 
-    public function test_lock_summary_omits_location_line_for_remote_category_without_address(): void
+    public function test_lock_summary_omits_location_line_for_remote_category(): void
     {
         $user = User::factory()->create(['role' => 'admin']);
 
         $this->actingAs($user)->get('/calendar')
             ->assertOk()
-            ->assertSee("const hideLoc=color==='teal'&&!locDisplay;", false)
+            ->assertSee("const hideLoc=color==='teal';", false)
+            ->assertSee("\${hideLoc?'':addrActions}", false)
             ->assertSee("lsCard(hideLoc?'일시':'일시 · 장소'", false);
     }
 

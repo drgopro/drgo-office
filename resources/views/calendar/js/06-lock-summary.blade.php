@@ -243,14 +243,14 @@ function renderLockSummary(){
         // 미팅/내방·사내업무: 장소를 체크박스 선택지로 지정하면 location이 비므로 옵션 값을 장소로 표시
         const visitOptsSel=(color==='purple'||color==='blue')?[...document.querySelectorAll('#visitOptsList input:checked')].map(i=>i.value):[];
         const locDisplay=_esc(location) || (visitOptsSel.length?`🏢 ${visitOptsSel.map(v=>_esc(v)).join(', ')}`:'');
-        // 원격/방송룸(teal)은 장소 입력란이 없음 — 기존에 저장된 주소가 있을 때만 장소 줄 표시
-        const hideLoc=color==='teal'&&!locDisplay;
+        // 원격/방송룸(teal)은 장소가 없는 일정 — 과거에 저장된 주소가 있어도 장소 줄·지도 버튼을 표시하지 않음
+        const hideLoc=color==='teal';
         left.push(lsCard(hideLoc?'일시':'일시 · 장소', `
             <div class="ls-big">${timeBig}${durTxt}</div>
             ${hideLoc?'':`<div class="ls-addr">${addrLine((locDisplay || '<span style="color:var(--text-muted);font-weight:400;">— 장소 미입력 —</span>') + addrLabelChip(location || addr), (location || addr) ? (location || addr) : '', '주소')}</div>`}
-            ${accessLine}
+            ${hideLoc?'':accessLine}
             ${specialLine}
-            ${addrActions}`, '', 'ls-c-time ls-time-card'));
+            ${hideLoc?'':addrActions}`, '', 'ls-c-time ls-time-card'));
     }
 
     // 배송 현황 (gold/green, 송장 있을 때만) — 결제 카드 배지용 수치 겸용
