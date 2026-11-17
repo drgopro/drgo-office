@@ -5,6 +5,7 @@ namespace App\Models;
 use App\Services\ChannelTalkNotifier;
 use App\Services\LeaveLedger;
 use App\Traits\LogsActivity;
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
@@ -56,7 +57,19 @@ class Schedule extends Model
         'remote_data',
         'created_by',
         'completed_at',
+        'bench_id',
+        'bench_placed_at',
+        'bench_override',
     ];
+
+    /**
+     * 대기함에 들어간 보류 일정(bench_id 있음)은 달력·대시보드·알림·목록 등 모든 기본 조회에서 빠진다.
+     * 대기함 쪽에서만 withoutGlobalScope('not_benched')로 꺼내 쓴다.
+     */
+    protected static function booted(): void
+    {
+        static::addGlobalScope('not_benched', fn (Builder $query) => $query->whereNull($query->qualifyColumn('bench_id')));
+    }
 
     protected $casts = [
         'is_all_day' => 'boolean',
@@ -75,6 +88,8 @@ class Schedule extends Model
         'repeat_interval' => 'integer',
         'completed_at' => 'datetime',
         'notified_at' => 'datetime',
+        'bench_placed_at' => 'datetime',
+        'bench_override' => 'boolean',
     ];
 
     /** 장기 일정의 하위 일정 (일자별 시간·담당자) — 날짜·시간순 */

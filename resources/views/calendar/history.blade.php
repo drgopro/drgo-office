@@ -364,7 +364,7 @@ async function chOpenPanel(chipIdx) {
         return;
     }
 
-    const ACTION_LABEL = { update:'수정', delete:'삭제', complete:'완료', uncomplete:'완료해제', restore:'복원' };
+    const ACTION_LABEL = { update:'수정', delete:'삭제', complete:'완료', uncomplete:'완료해제', restore:'복원', benched:'대기함', placed:'대기함 배치', override:'알림 무시 배치' };
 
     document.getElementById('chPanelBody').innerHTML = items.map(h => {
         const changes = h.changes || {};
@@ -379,7 +379,7 @@ async function chOpenPanel(chipIdx) {
             if (snap.location) lines.push(`<div><span class="ch-log-key">장소</span> <span style="color:var(--text);">${chEsc(snap.location)}</span></div>`);
             body = `<div style="display:flex; flex-direction:column; gap:3px; margin-top:4px; font-size:12px;">${lines.join('')}</div>`;
         } else {
-            const entries = Object.entries(changes).filter(([k]) => k !== 'snapshot');
+            const entries = Object.entries(changes).filter(([k]) => k !== 'snapshot' && k !== 'bench');
             if (!entries.length) {
                 body = '';
             } else {

@@ -61,6 +61,8 @@
             <button class="nav-btn cal-wm-new wm-accent" onclick="drgoWriteMode.open('/calendar/write?new=1&date=' + viewedDateStr(), 'schedule-new-' + Date.now())" title="새 일정을 작성 모드(독립 창)로 작성합니다 — 상담하면서 다른 화면과 오가며 쓰기 편합니다">↗ 작성 모드</button>
         @endif
         @if(Auth::user()->hasPermission('calendar.edit'))
+            {{-- 대기함 — 보류·재방문·날짜 미정 일정 패널 열기/접기 (기본 접힘). 숫자는 전체 건수와 긴급 건수 --}}
+            <button class="nav-btn bench-btn" id="benchBtn" onclick="benchToggle()" aria-expanded="false" aria-controls="calBench" title="대기함 — 보류·재방문·날짜 미정 일정">대기함 <span class="bench-cnt">0</span></button>
             {{-- 휴지통 — 더보기 메뉴에서 꺼내 ⋯ 버튼 바로 왼쪽에 (데스크탑 우측 정렬은 아래 미디어쿼리에서) --}}
             <button class="nav-btn" id="calTrashBtn" onclick="openTrashModal()" title="휴지통 — 삭제된 일정 확인/복구"><x-icon name="trash" :size="14"/></button>
         @endif
@@ -74,9 +76,6 @@
                     <span id="calFontLabel" style="font-size:12px;color:var(--text-muted);min-width:34px;text-align:center;">100%</span>
                     <button class="cal-fz-btn" onclick="calFont(1)" aria-label="글자 크게" style="font-size:15px;">A+</button>
                 </div>
-                {{-- 디자인 전환 하나로 — 오피스 새 디자인(UX v2)과 캘린더 디자인(cal-v2)을 함께 켜고 끈다 (개인 설정, 새로고침). 라벨은 JS가 현재 상태로 갱신 --}}
-                <div style="height:1px;background:var(--border);margin:4px 0;"></div>
-                <button id="calDesignToggle" onclick="toggleCalDesign()" style="display:block;width:100%;text-align:left;background:none;border:none;color:var(--text);padding:10px 14px;font-size:13px;cursor:pointer;border-radius:6px;white-space:nowrap;"><x-icon name="calendar" :size="13"/> <span id="calDesignToggleLabel">새 디자인으로 보기</span></button>
                 @if(Auth::user()->isAdmin())
                 <div style="height:1px;background:var(--border);margin:4px 0;"></div>
                 <button onclick="location.href='/api/events/export/json'" style="display:block;width:100%;text-align:left;background:none;border:none;color:var(--text);padding:10px 14px;font-size:13px;cursor:pointer;border-radius:6px;white-space:nowrap;"><x-icon name="box" :size="13"/> JSON 백업</button>
@@ -288,6 +287,10 @@
 </div>
 
 </div>{{-- /calMain --}}
+@if(Auth::user()->hasPermission('calendar.edit'))
+{{-- 대기함 패널 — 기본 접힘, 내용은 js/13-bench가 그린다. 사용법 버튼은 이 패널 안에만 있다 --}}
+<aside id="calBench" class="bench" aria-label="대기함" hidden></aside>
+@endif
 </div>{{-- /calBody --}}
 
 <!-- 일정 모달 -->

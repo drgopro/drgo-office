@@ -501,6 +501,10 @@
                 <div class="field-label">안전재고 (선택 · 이하 경고)</div>
                 <input class="field-input" id="pSafety" type="number" min="0" placeholder="비워두면 미사용">
             </div>
+            <div class="field-group">
+                <div class="field-label">주문 소요일 (선택 · 캘린더 대기함의 제품 준비 계산)</div>
+                <input class="field-input" id="pLeadDays" type="number" min="0" max="365" placeholder="비워두면 담당자에게 3일 내 준비 가능 여부를 묻습니다">
+            </div>
         </div>
         <div class="field-group">
             <div class="field-label">매출 분류 <span style="font-weight:400; color:var(--text-muted); font-size:13px;">— 통계의 세팅비/장비판매 구분. 기본은 카테고리의 '서비스' 설정을 따릅니다</span></div>
@@ -1849,6 +1853,7 @@ async function openProductModal(p) {
     document.getElementById('pMarketUrlCompuzone').value = mps.find(m=>m.vendor==='compuzone')?.url || '';
     document.getElementById('pMarketUrlPcfactory').value = mps.find(m=>m.vendor==='pcfactory')?.url || '';
     document.getElementById('pSafety').value = p ? (p.safety_stock||'') : '';
+    document.getElementById('pLeadDays').value = p ? (p.order_lead_days ?? '') : '';
     // 현재고 — 수정 시 현재 수량 표시 (비워두면 변경 없음), 신규는 초기 재고 입력
     document.getElementById('pStock').value = p ? (p.inventory ? (p.inventory.quantity ?? 0) : '') : '';
     document.getElementById('pStock').placeholder = p ? '비워두면 변경 없음' : '초기 재고 (비워두면 0)';
@@ -1926,6 +1931,7 @@ async function saveProduct() {
         market_price_url_compuzone: document.getElementById('pMarketUrlCompuzone').value.trim() || null,
         market_price_url_pcfactory: document.getElementById('pMarketUrlPcfactory').value.trim() || null,
         safety_stock: document.getElementById('pSafety').value || null,
+        order_lead_days: document.getElementById('pLeadDays').value === '' ? null : Number(document.getElementById('pLeadDays').value),
         stock_quantity: document.getElementById('pIsBundle').checked ? null
             : (document.getElementById('pStock').value !== '' ? parseInt(document.getElementById('pStock').value, 10) : null),
         memo: document.getElementById('pMemo').value || null,

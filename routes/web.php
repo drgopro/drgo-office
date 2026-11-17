@@ -9,6 +9,7 @@ use App\Http\Controllers\AsRequestController;
 use App\Http\Controllers\AssigneeController;
 use App\Http\Controllers\Auth\LoginController;
 use App\Http\Controllers\BankDepositController;
+use App\Http\Controllers\BenchController;
 use App\Http\Controllers\BroadcastRoomController;
 use App\Http\Controllers\CalendarCategoryController;
 use App\Http\Controllers\CalendarController;
@@ -240,6 +241,18 @@ Route::middleware('auth')->group(function () {
         Route::post('/api/schedules/{schedule}/shipments', [ShipmentController::class, 'store']);
         Route::post('/api/schedules/{schedule}/shipments/refresh', [ShipmentController::class, 'refresh']);
         Route::delete('/api/schedule-shipments/{shipment}', [ShipmentController::class, 'destroy']);
+        // 캘린더 대기함 — 보류·재방문·날짜 미정 일정 (계산·차단 규칙은 App\Services\BenchCalculator)
+        Route::get('/api/bench', [BenchController::class, 'index']);
+        Route::post('/api/bench', [BenchController::class, 'store']);
+        Route::post('/api/events/{schedule}/bench', [BenchController::class, 'send']);
+        Route::get('/api/bench/{bench}', [BenchController::class, 'show']);
+        Route::get('/api/bench/{bench}/check', [BenchController::class, 'check']);
+        Route::put('/api/bench/{bench}/stock-checks/{product}', [BenchController::class, 'stockCheck']);
+        Route::put('/api/bench/{bench}/prep-answers/{product}', [BenchController::class, 'prepAnswer']);
+        Route::post('/api/bench/{bench}/place', [BenchController::class, 'place']);
+        Route::post('/api/bench/{bench}/resolve-block', [BenchController::class, 'resolveBlock']);
+        Route::post('/api/bench/{bench}/undo', [BenchController::class, 'undo']);
+        Route::delete('/api/bench/{bench}', [BenchController::class, 'destroy']);
     });
     Route::get('/schedule-attachments/{attachment}/view', [ScheduleAttachmentController::class, 'serve'])->name('schedule-attachments.serve');
     Route::get('/schedule-attachments/{attachment}/thumb', [ScheduleAttachmentController::class, 'thumb'])->name('schedule-attachments.thumb');

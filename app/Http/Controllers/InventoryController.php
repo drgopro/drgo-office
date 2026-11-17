@@ -419,6 +419,7 @@ class InventoryController extends Controller
             'market_price_url_compuzone' => $this->marketPriceUrlRules('compuzone'),
             'market_price_url_pcfactory' => $this->marketPriceUrlRules('pcfactory'),
             'safety_stock' => 'nullable|integer|min:0',
+            'order_lead_days' => 'nullable|integer|min:0|max:365', // 주문 소요일 — 캘린더 대기함의 제품 준비 계산용
             'stock_quantity' => 'nullable|integer|min:0', // 등록 시 초기 재고 (세트 제외)
             'memo' => 'nullable|string',
             'search_tags' => 'nullable|string|max:300', // 숨은 검색 태그 (쉼표 구분)
@@ -511,6 +512,7 @@ class InventoryController extends Controller
             'market_price_url_compuzone' => $this->marketPriceUrlRules('compuzone'),
             'market_price_url_pcfactory' => $this->marketPriceUrlRules('pcfactory'),
             'safety_stock' => 'nullable|integer|min:0',
+            'order_lead_days' => 'sometimes|nullable|integer|min:0|max:365', // 주문 소요일 — 캘린더 대기함의 제품 준비 계산용
             'stock_quantity' => 'nullable|integer', // 재고 직접 수정 — 음수 허용 (차감 운영으로 0 이하인 상시 구매 제품도 수정 가능해야 함)
             'group_id' => 'sometimes|nullable|integer|exists:product_groups,id', // null 전달 시 그룹에서 제외
             'option_name' => 'sometimes|nullable|string|max:60',
@@ -1077,6 +1079,7 @@ class InventoryController extends Controller
                 'category' => $p->category,
                 'quantity' => $qty,
                 'safety_stock' => $p->safety_stock,
+                'order_lead_days' => $p->order_lead_days,
                 'is_low' => $p->safety_stock && $qty <= $p->safety_stock,
                 'purchase_price' => $p->purchase_price,
                 'sale_price' => $p->sale_price,
