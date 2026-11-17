@@ -462,6 +462,7 @@ function renderMonth() {
                 }
                 chip.onclick=e=>{e.stopPropagation();if(dragEvent||isDragging)return; if(card)openEventPopover(ev,chip); else openDetailModal(ev);};
                 chip.onmousedown=e=>{if(e.button===0)dragStart(ev,e);};
+                chip.dataset.evid=ev.id; // 대기함: 같은 지역 일정 강조용
                 evList.appendChild(chip);
             });
 
@@ -483,6 +484,9 @@ function renderMonth() {
                         evList.appendChild(gc);
                     });
             }
+
+            // 대기함 — 원래 날짜 흔적, 선택한 카드의 배치 가능 기간·제품 준비·같은 지역 표시, 카드 끌어 놓기
+            benchDecorateCell(div, evList, cell.full);
 
             // 더보기 = (표시 못한 행 중 실제 일정) + (캡 초과 다일)
             const hiddenRealInRows=rows.slice(shownRows.length).filter(r=>!r.spacer).length;
@@ -575,14 +579,15 @@ function renderMobileDayEvents(dateStr, container){
     const DAYS_KO_FULL=['일요일','월요일','화요일','수요일','목요일','금요일','토요일'];
     const header=`${d.getMonth()+1}월 ${d.getDate()}일 ${DAYS_KO_FULL[d.getDay()]}`;
 
+    const benchRows=benchDayRowsHtml(dateStr); // 대기 일정의 원래 날짜 흔적 — '대기함' 줄
     if(!dayEvs.length){
-        container.innerHTML=`<div class="mde-header">${header}</div><div class="mde-empty">일정이 없습니다</div>`;
+        container.innerHTML=`<div class="mde-header">${header}</div>${benchRows||'<div class="mde-empty">일정이 없습니다</div>'}`;
         return;
     }
     const items=dayEvs.map(ev=>{
         const stD=(ev.start_date||'').substring(0,10);
         const tOn=evTimeOn(ev,dateStr);
-        const time=ev.is_all_day?'종일':(tOn?((dateStr!==stD&&dateStr===evEnd(ev)&&ev.end_time)?'~'+tOn:tOn):'—');
+        const time=ev.is_all_day?benchAllDayLabel(ev):(tOn?((dateStr!==stD&&dateStr===evEnd(ev)&&ev.end_time)?'~'+tOn:tOn):'—');
         const title=ev.title||'(제목 없음)';
         const assignees=assigneeNamesOf(ev).join(', ');
         const moveHtml=moveAddrLinesHtml(ev);
@@ -602,7 +607,7 @@ function renderMobileDayEvents(dateStr, container){
             </div>
         </div>`;
     }).join('');
-    container.innerHTML=`<div class="mde-header">${header} <span style="font-weight:500;color:var(--text-muted);">· ${dayEvs.length}건</span></div>${items}`;
+    container.innerHTML=`<div class="mde-header">${header} <span style="font-weight:500;color:var(--text-muted);">· ${dayEvs.length}건</span></div>${benchRows}${items}`;
 }
 
 // 소요시간 라벨 (예: 1시간 / 1시간 30분)

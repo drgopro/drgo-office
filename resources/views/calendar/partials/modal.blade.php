@@ -697,6 +697,7 @@
         <div class="modal-footer">
             <button class="btn-delete" id="btnDelete" style="display:none" onclick="deleteEvent()">일정 삭제</button>
             <div style="display:flex;gap:8px;align-items:center;">
+                <button class="btn-log" id="btnBench" style="display:none" onclick="benchSendFromModal()" title="보류·재방문 일정을 대기함에 모아 두고 나중에 다시 배치합니다">대기함으로 보내기</button>
                 <button class="btn-log" id="btnLog" style="display:none" onclick="openHistoryFromEdit()">📋 <span>변경 로그</span></button>
                 <button class="btn-complete" id="btnComplete" style="display:none" onclick="toggleCompleteFromDetail()">✓ 완료</button>
                 <button class="btn-save" onclick="saveEvent()">저장</button>

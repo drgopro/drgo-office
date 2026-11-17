@@ -112,6 +112,7 @@ function openNewModal(dateStr,timeStr,endStr){
     const d=dateStr?new Date(dateStr):new Date();
     document.getElementById('modalDateBadge').textContent=`${d.getFullYear()}년 ${d.getMonth()+1}월 ${d.getDate()}일 (${DAYS_KO[d.getDay()]})`;
     document.getElementById('btnDelete').style.display='none';
+    benchModalBtn(null);
     document.getElementById('btnLog').style.display='none';
     updateAssigneeBtn();
     renderAssigneeList();
@@ -253,6 +254,7 @@ function setViewModeUI(){
     applyLockUI();
     document.querySelector('.btn-save-top').style.display='none';
     document.getElementById('btnDelete').style.display='';
+    benchModalBtn(ev); // 대기함으로 보내기 — 방문·원격 단독 일정만
     document.getElementById('btnLog').style.display='';
     updateCompleteUI(true); // 푸터 완료 버튼 노출(보기 모드)
     // 외부 버튼을 수정으로
@@ -381,7 +383,7 @@ async function openHistoryModal() {
         return;
     }
 
-    const ACTION_LABEL = { update:'수정', delete:'삭제', complete:'완료', uncomplete:'완료해제', restore:'복원' };
+    const ACTION_LABEL = { update:'수정', delete:'삭제', complete:'완료', uncomplete:'완료해제', restore:'복원', benched:'대기함', placed:'대기함 배치', override:'알림 무시 배치' };
     const ACTION_COLOR = { update:'var(--accent)', delete:'var(--red)', complete:'var(--green)', uncomplete:'var(--text-muted)', restore:'var(--blue)' };
 
     document.getElementById('historyBody').innerHTML = items.map(h => {
@@ -398,7 +400,7 @@ async function openHistoryModal() {
         } else if (h.action === 'restore' || h.action === 'uncomplete' || (h.action === 'complete' && !Object.keys(changes).length)) {
             body = '';
         } else {
-            const rows = Object.entries(changes).filter(([k]) => k !== 'snapshot').map(([key, val]) => {
+            const rows = Object.entries(changes).filter(([k]) => k !== 'snapshot' && k !== 'bench').map(([key, val]) => {
                 const label = (typeof FIELD_LABELS !== 'undefined' && FIELD_LABELS[key]) || key;
                 const oldVal = fmtLogValue(key, val.old);
                 const newVal = fmtLogValue(key, val.new);
@@ -689,6 +691,7 @@ function openEditModal(ev){
     loadShipments();
     // UI
     document.getElementById('btnDelete').style.display='';
+    benchModalBtn(ev); // 대기함으로 보내기 — 방문·원격 단독 일정만
     document.getElementById('btnLog').style.display='';
     updateAssigneeBtn();updateBalanceBanner();
     renderAssigneeList();

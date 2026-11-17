@@ -263,7 +263,8 @@ class EstimatePaymentSync
     /** @return Collection<int, Schedule> */
     private static function linkedSchedules(Estimate $estimate)
     {
-        return Schedule::where(function ($q) use ($estimate) {
+        // 대기함에 보류 중인 일정도 결제·환불 표시는 계속 맞춰 둔다 (배치하면 그대로 달력에 돌아온다)
+        return Schedule::withoutGlobalScope('not_benched')->where(function ($q) use ($estimate) {
             $q->where('request_data->estimate_id', $estimate->id)
                 ->orWhere('request_data->estimate_id', (string) $estimate->id) // 구데이터 문자열 대비
                 ->orWhereJsonContains('request_data->estimate_ids', $estimate->id)

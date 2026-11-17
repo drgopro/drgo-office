@@ -40,6 +40,7 @@ body.cal-write .cal-wm-new, body.cal-write #calAddFab { display:none !important;
 @include('calendar.partials.layout')
 @include('calendar.partials.modal')
 @include('calendar.partials.extras')
+@include('calendar.partials.bench')
 @endsection
 
 <script src="//t1.daumcdn.net/mapjsapi/bundle/postcode/prod/postcode.v2.js"></script>
@@ -56,6 +57,7 @@ body.cal-write .cal-wm-new, body.cal-write #calAddFab { display:none !important;
 @include('calendar.js.09-modal-open-edit')
 @include('calendar.js.10-save')
 @include('calendar.js.12-write-mode')
+@include('calendar.js.13-bench')
 @include('calendar.js.11-misc')
 </script>
 @endpush

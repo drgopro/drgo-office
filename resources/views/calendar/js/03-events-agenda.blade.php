@@ -200,7 +200,7 @@ function openEventPopover(ev, anchorEl){
     const t=s=>(s||'').substring(0,5);
     const stD=(ev.start_date||'').substring(0,10), enD=evEnd(ev);
     const md=d=>d.substring(5).replace('-','.');
-    let range=ev.is_all_day?'종일':(t(ev.start_time)+(ev.end_time?'~'+t(ev.end_time):''));
+    let range=ev.is_all_day?benchAllDayLabel(ev):(t(ev.start_time)+(ev.end_time?'~'+t(ev.end_time):''));
     if(enD&&enD!==stD) range=`${md(stD)}~${md(enD)}`+(ev.is_all_day?'':' '+range);
     const cat=(typeof CS_CATS!=='undefined'&&CS_CATS[ev.color]&&CS_CATS[ev.color].label)||'';
     const urgent=(ev.sched_event_opts||[]).includes('urgent');
@@ -213,7 +213,7 @@ function openEventPopover(ev, anchorEl){
         <div class="ep-sub">${_esc([range,cat].filter(Boolean).join(' · '))}${urgent?'<span class="ep-urgent">🚨 긴급</span>':''}</div>
         ${names?`<div class="ep-row"><span class="ep-k">담당</span><span class="ep-v">${_esc(names)}</span></div>`:''}
         ${addr?`<div class="ep-addr">${_esc(addr)}</div>`:''}${moveHtml}
-        <div class="ep-actions">${canEditCalendar?'<button type="button" class="ep-edit" onclick="evPopEdit()">수정</button>':''}<button type="button" class="ep-detail" onclick="evPopDetail()">상세 보기</button></div>`;
+        <div class="ep-actions">${canEditCalendar?'<button type="button" class="ep-edit" onclick="evPopEdit()">수정</button>':''}${benchCanSend(ev)?`<button type="button" class="ep-edit" onclick="benchSendOpen(${ev.id})">대기함으로</button>`:''}<button type="button" class="ep-detail" onclick="evPopDetail()">상세 보기</button></div>`;
     pop.style.display='flex';
     // 위치: 칩 아래, 아래 공간이 부족하면 칩 위 — 화면 안으로 클램프
     const r=anchorEl.getBoundingClientRect();

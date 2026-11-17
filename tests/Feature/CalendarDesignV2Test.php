@@ -7,21 +7,20 @@ use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Tests\TestCase;
 
-/** 캘린더 디자인 v2 (가독성 개선) — 기본은 이전 디자인(v1), html.cal-v2 범위 스타일은 opt-in 토글로만 적용 */
+/** 캘린더 디자인 v2 (가독성 개선) — 이전 디자인(v1) 전환은 제거, 항상 html.cal-v2 */
 class CalendarDesignV2Test extends TestCase
 {
     use RefreshDatabase;
 
-    public function test_v2_styles_are_scoped_and_off_unless_opted_in(): void
+    public function test_v2_styles_are_scoped_and_always_on(): void
     {
         $user = User::factory()->create(['role' => 'member']);
 
         $response = $this->actingAs($user)->get('/calendar')->assertOk();
 
-        // 기본은 이전 디자인 — localStorage calDesign=v2 로 직접 켠 사람에게만 cal-v2 클래스를 붙임
-        $response->assertSee("var v2=false;try{v2=localStorage.getItem('calDesign')==='v2';}", false)
-            ->assertDontSee("localStorage.getItem('calDesign')!=='v1'", false)
-            ->assertSee("document.documentElement.classList.add('cal-v2')", false)
+        // 이전 디자인으로 돌아가는 개인 설정(localStorage calDesign)은 더 이상 읽지 않는다
+        $response->assertSee("<script>document.documentElement.classList.add('cal-v2');</script>", false)
+            ->assertDontSee('calDesign', false)
             ->assertSee('.cal-v2 .event-chip {', false)
             ->assertSee('.cal-v2 .mc-chip, .cal-v2 .mc-chip.in-lane, .cal-v2 .mc-bar {', false);
 
@@ -54,16 +53,14 @@ class CalendarDesignV2Test extends TestCase
         }
     }
 
-    public function test_menu_has_opt_in_toggle_to_new_design(): void
+    public function test_menu_has_no_toggle_back_to_old_design(): void
     {
         $user = User::factory()->create(['role' => 'member']);
 
         $this->actingAs($user)->get('/calendar')
             ->assertOk()
-            ->assertSee('id="calDesignToggle"', false)
-            ->assertSee('onclick="toggleCalDesign()"', false)
-            ->assertSee('<span id="calDesignToggleLabel">새 디자인으로 보기</span>', false)
-            ->assertSee("localStorage.setItem('calDesign', CAL_V2?'v1':'v2')", false);
+            ->assertDontSee('toggleCalDesign', false)
+            ->assertDontSee('이전 디자인으로 보기', false);
     }
 
     public function test_v2_rendering_hooks_are_present(): void

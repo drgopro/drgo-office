@@ -1,19 +1,10 @@
 {{-- 전역 상수·필터·사이드바·헬퍼 --}}
 const CSRF = document.querySelector('meta[name="csrf-token"]').content;
 const DAYS_KO = ['일','월','화','수','목','금','토'];
-// 디자인 v2 (가독성 개선, 기본 꺼짐) — localStorage calDesign=v2 일 때만 styles-v2 partial이 html.cal-v2를 붙임. ⋯ 메뉴에서 전환
+// 디자인 v2 — 이전 디자인(v1) 전환은 제거. styles-v2 partial이 항상 html.cal-v2를 붙인다
 const CAL_V2 = document.documentElement.classList.contains('cal-v2');
 function calMobileV2(){ return CAL_V2 && window.innerWidth<=768; }
 let calV2MonthAlias=false; // 모바일에서 '월'을 칩형 월간(monthc)으로 대신 보여주는 중 — 데스크탑 폭으로 넓히면 월간으로 복귀
-// 디자인 전환 버튼 하나 — 오피스 새 디자인(drgoUx)이 켜져 있으면 그 상태를 기준으로, 꺼져 있으면(서버 롤백) 캘린더 디자인만 전환
-function calDesignOn(){ return (window.drgoUx && drgoUx.allowed) ? drgoUx.on : CAL_V2; }
-function toggleCalDesign(){
-    const next = !calDesignOn();
-    try{ localStorage.setItem('calDesign', next?'v2':'v1'); }catch(e){}
-    if (window.drgoUx && drgoUx.allowed) { drgoUx.set(next?'v2':'v1'); return; } // 새로고침 포함
-    location.reload();
-}
-(function(){ const l=document.getElementById('calDesignToggleLabel'); if(l) l.textContent=calDesignOn()?'이전 디자인으로 보기':'새 디자인으로 보기'; })();
 // 뷰 → 탭 버튼 id (v2 모바일은 월 탭이 칩형 월간(monthc)을 담당)
 function calTabId(view){
     if(view==='monthc'&&calMobileV2()) view='month';
@@ -175,6 +166,9 @@ function optChip(label,cls,title){ return `<span class="opt-chip${cls?' '+cls:''
 function eventOptIconsHtml(ev){
     if(!ev) return '';
     let h='';
+    // 대기함에서 배치된 일정 — ⚠ 알림을 무시하고 배치, ↩ 대기함에서 배치
+    if(ev.bench_override) h+='<span class="opt-ic bench-mark warn" title="알림을 무시하고 배치한 일정">⚠</span>';
+    if(ev.bench_placed_at) h+='<span class="opt-ic bench-mark" title="대기함에서 배치한 일정">↩</span>';
     const ico=(k,fallback)=>(CAL_V2&&CAL_V2_ICONS[k])||fallback;
     // ic-{종류} 클래스 — v2 픽토그램에 종류별 색 (styles-v2)
     (ev.sched_event_opts||[]).forEach(o=>{ if(SCHED_EVENT_ICONS[o]) h+=`<span class="opt-ic ic-${o}${(o==='fast'||o==='after')?' opt-ic-arrow':''}" title="${SCHED_EVENT_FULL_LABELS[o]||o}">${ico(o,SCHED_EVENT_ICONS[o])}</span>`; });
@@ -396,7 +390,7 @@ function renderCsCats(){
         + `<div class="cs-cat cs-ghost-row${showGhosts?'':' off'}">
             <span class="cs-check${showGhosts?' on':''}" style="--cat-c:#9aa3b2" onclick="csToggleGhosts()" title="${showGhosts?'끄기':'켜기'}"><svg viewBox="0 0 24 24"><path d="M20 6L9 17l-5-5"/></svg></span>
             <span class="cs-cat-label" onclick="csToggleGhosts()" title="삭제·이동된 일정의 원래 위치를 취소선으로 표시">🗑 삭제/변경 흔적</span>
-        </div>`;
+        </div>` + benchSideHtml();
     // 접힘 레일: 카테고리 점 (클릭으로 토글)
     const rail = document.getElementById('csRail');
     if(rail) rail.innerHTML = '<button type="button" class="cs-collapse-btn" onclick="csToggleSide()" title="필터 펼치기">»</button>' + keys.map(k =>
@@ -502,7 +496,6 @@ function renderCalSide(){
 function csAlignTop(){
     const side=document.getElementById('calSide');
     if(!side) return;
-    if(window.innerWidth<=1024){ side.style.marginTop='0'; return; }
     let head=null;
     if(currentView==='month') head=document.querySelector('#monthView .weekdays');
     else if(currentView==='week'||currentView==='day') head=document.querySelector('#timelineView .tl-header');
@@ -511,6 +504,10 @@ function csAlignTop(){
         const bodyTop=document.getElementById('calBody').getBoundingClientRect().top;
         offset=Math.max(0, Math.round(head.getBoundingClientRect().bottom - bodyTop));
     }
+    // 대기함 패널도 같은 시작선에 맞춘다 (좁은 화면에서 달력 아래로 내려가면 CSS가 0으로 덮는다)
+    const bench=document.getElementById('calBench');
+    if(bench) bench.style.marginTop=offset?offset+'px':'0';
+    if(window.innerWidth<=1024){ side.style.marginTop='0'; return; }
     side.style.marginTop=offset?offset+'px':'0';
     // 패널 높이는 콘텐츠에 맞춤 — 그리드 전체 높이로 늘리면 아래 빈 공간이 과도함
     side.style.height='';
