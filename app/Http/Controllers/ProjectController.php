@@ -11,7 +11,9 @@ use App\Models\ProjectFieldDefinition;
 use App\Models\ProjectPayment;
 use App\Models\ProjectSubtag;
 use App\Models\Schedule;
+use App\Models\User;
 use App\Models\WorkType;
+use App\Services\ChannelTalkNotifier;
 use App\Services\EstimatePaymentSync;
 use App\Services\EstimateStockSync;
 use Carbon\Carbon;
@@ -33,7 +35,7 @@ class ProjectController extends Controller
         $hasReport = $request->boolean('has_report');
         $showCancelled = $statusTab === 'cancelled';
         $showDone = $statusTab === 'done';
-        $query = Project::with('client', 'assignedUser')
+        $query = Project::with('client', 'assignedUser', 'extraAssignees:id,display_name,username')
             ->where('status', '!=', 'cancelled');
         if ($showCancelled) {
             $query->where('stage', 'cancelled');
@@ -45,6 +47,57 @@ class ProjectController extends Controller
             $query->whereNotIn('stage', ['cancelled', 'done']);
         } else {
             $query->where('stage', '!=', 'cancelled');
+        }
+
+        // 담당자 필터 칩용 — 현재 탭(진행/완료/취소/전체) 기준 담당자별 프로젝트 수. 다른 필터를 걸기 전의 수치
+        // 대표 담당자 건수 + 추가 담당자 건수 (한 프로젝트가 담당자마다 1건씩 집계됨)
+        $primaryCounts = (clone $query)->toBase()
+            ->selectRaw('assigned_user_id, count(*) as cnt')
+            ->groupBy('assigned_user_id')
+            ->pluck('cnt', 'assigned_user_id');
+        $extraCounts = DB::table('project_assignees')
+            ->whereIn('project_id', (clone $query)->toBase()->select('projects.id'))
+            ->selectRaw('user_id, count(*) as cnt')
+            ->groupBy('user_id')
+            ->pluck('cnt', 'user_id');
+        $assigneeCounts = $primaryCounts->filter(fn ($cnt, $userId) => (bool) $userId);
+        foreach ($extraCounts as $userId => $cnt) {
+            $assigneeCounts[$userId] = ($assigneeCounts[$userId] ?? 0) + $cnt;
+        }
+        // 미지정 = 대표 담당자도 추가 담당자도 없는 프로젝트
+        $unassignedCount = (clone $query)->whereNull('assigned_user_id')->doesntHave('extraAssignees')->count();
+        if ($unassignedCount > 0) {
+            $assigneeCounts[''] = $unassignedCount;
+        }
+        $assigneeNames = User::whereIn('id', $assigneeCounts->keys()->filter())->get(['id', 'display_name', 'username'])->keyBy('id');
+        $assigneeOptions = $assigneeCounts
+            ->map(fn ($cnt, $userId) => [
+                'value' => $userId ? (string) $userId : 'none',
+                'name' => $userId ? ($assigneeNames[$userId]?->display_name ?? $assigneeNames[$userId]?->username ?? '(삭제된 사용자)') : '미지정',
+                'count' => (int) $cnt,
+            ])
+            ->sortBy([fn ($a, $b) => ($a['value'] === 'none') <=> ($b['value'] === 'none'), fn ($a, $b) => $b['count'] <=> $a['count']])
+            ->values()->all();
+
+        // 담당자 필터 (단일/콤마/배열, 'none' = 담당자 미지정) — 담당자별로 프로젝트를 모아 본다
+        if ($assignee = $request->query('assignee')) {
+            $vals = is_array($assignee)
+                ? array_values(array_filter($assignee, 'is_string'))
+                : array_values(array_filter(array_map('trim', explode(',', (string) $assignee))));
+            // 숫자로만 된 값과 'none' 만 인정 ('1abc' 같은 값이 1번 사용자로 해석되지 않게)
+            $ids = array_map('intval', array_values(array_filter($vals, fn ($v) => ctype_digit($v) && (int) $v > 0)));
+            $includeNone = in_array('none', $vals, true);
+            if (! empty($ids) || $includeNone) {
+                $query->where(function ($q) use ($ids, $includeNone) {
+                    if (! empty($ids)) {
+                        $q->whereIn('assigned_user_id', $ids)
+                            ->orWhereHas('extraAssignees', fn ($e) => $e->whereIn('users.id', $ids));
+                    }
+                    if ($includeNone) {
+                        $q->orWhere(fn ($n) => $n->whereNull('assigned_user_id')->doesntHave('extraAssignees'));
+                    }
+                });
+            }
         }
 
         // 검색 — 의뢰자명/닉네임/프로젝트명/미연동 주관식 이름 (그룹으로 묶어 status 필터와 AND 유지)
@@ -145,7 +198,7 @@ class ProjectController extends Controller
         ];
         $tabCounts['all'] = $tabCounts['active'] + $tabCounts['done'] + $tabCounts['cancelled'];
 
-        return view('projects.index', compact('projects', 'tagOptions', 'statusTab', 'showCancelled', 'showDone', 'tabCounts'));
+        return view('projects.index', compact('projects', 'tagOptions', 'statusTab', 'showCancelled', 'showDone', 'tabCounts', 'assigneeOptions'));
     }
 
     // 등록 (의뢰자 연동)
@@ -176,6 +229,8 @@ class ProjectController extends Controller
             'tags.minor' => 'nullable|array',
             'tags.minor.*' => 'string|max:60',
             'assigned_user_id' => 'nullable|integer|exists:users,id', // 담당자 — 비우면 작성자
+            'extra_assignee_ids' => 'nullable|array|max:20', // 추가 담당자 (복수)
+            'extra_assignee_ids.*' => 'integer|exists:users,id',
         ];
         if (! $client) {
             $rules['manual_client_name'] = 'nullable|string|max:100';
@@ -192,7 +247,19 @@ class ProjectController extends Controller
         $validated['stage'] = 'consulting';
         $validated['status'] = 'active';
 
-        $project = Project::create($validated);
+        $extraAssigneeIds = $validated['extra_assignee_ids'] ?? [];
+        unset($validated['extra_assignee_ids']);
+
+        // 프로젝트와 추가 담당자를 함께 저장 — 한쪽만 남는 일이 없게
+        $project = DB::transaction(function () use ($validated, $extraAssigneeIds) {
+            $project = Project::create($validated);
+            if (! empty($extraAssigneeIds)) {
+                $project->syncExtraAssignees($extraAssigneeIds);
+            }
+
+            return $project;
+        });
+        $this->notifyProjectAssigneeChanges($project, []);
 
         if ($request->wantsJson() || $request->expectsJson()) {
             return response()->json([
@@ -204,6 +271,23 @@ class ProjectController extends Controller
         }
 
         return redirect()->route('projects.show', $project)->with('success', '프로젝트가 생성되었습니다.');
+    }
+
+    /**
+     * 담당자 변경을 채널톡(아웃바운드 톡방)으로 알림 — 새로 담당자가 된 사람과 담당에서 빠진 사람.
+     * 대표↔추가 자리만 바뀐 사람(계속 담당자)과, 스스로를 지정·제외한 본인은 알리지 않는다.
+     *
+     * @param  array<int, int>  $previousUserIds  변경 전 담당자 전원
+     */
+    private function notifyProjectAssigneeChanges(Project $project, array $previousUserIds): void
+    {
+        $current = $project->fresh()->assigneeUserIds();
+        $self = [(int) Auth::id()];
+        $added = array_values(array_diff($current, $previousUserIds, $self));
+        $removed = array_values(array_diff($previousUserIds, $current, $self));
+        if ($added || $removed) {
+            app(ChannelTalkNotifier::class)->projectAssigneesChanged($project, $added, $removed);
+        }
     }
 
     /**
@@ -234,7 +318,7 @@ class ProjectController extends Controller
     // 상세
     public function show(Project $project)
     {
-        $project->load('client', 'assignedUser', 'consultations.consultant', 'documents', 'memos.user');
+        $project->load('client', 'assignedUser', 'extraAssignees:id,display_name,username', 'completedBy:id,display_name,username', 'consultations.consultant', 'documents', 'memos.user');
 
         return view('projects.show', compact('project'));
     }
@@ -294,9 +378,14 @@ class ProjectController extends Controller
         $data = ['stage' => $request->stage];
 
         if ($request->stage === 'done') {
-            $data['completed_at'] = now();
+            // 완료로 "바뀌는" 순간에만 기록 — 이미 완료된 프로젝트에 완료를 다시 보내도 완료 시각·완료자를 덮어쓰지 않는다
+            if ($project->stage !== 'done') {
+                $data['completed_at'] = now();
+                $data['completed_by'] = Auth::id();
+            }
         } elseif ($project->stage === 'done') {
             $data['completed_at'] = null; // 완료 취소(되돌리기) — 재완료 시 새 시각 기록
+            $data['completed_by'] = null;
         }
 
         // 취소 복구 — 취소 기록을 비워 진행 프로젝트로 되돌린다 (취소 탭 복구 버튼)
@@ -383,6 +472,8 @@ class ProjectController extends Controller
             'marketing_consent' => 'sometimes|nullable|boolean', // null=미확인, true=동의, false=거부
             'marketing_posted' => 'sometimes|boolean', // 마케팅 포스팅 완료 여부 — true면 완료 시각 기록, false면 해제
             'assigned_user_id' => 'sometimes|nullable|integer|exists:users,id', // 담당자 변경
+            'extra_assignee_ids' => 'sometimes|array|max:20', // 추가 담당자 (복수) — 보내면 통째 교체
+            'extra_assignee_ids.*' => 'integer|exists:users,id',
             'custom_data' => 'nullable|array',
             'tags' => 'sometimes|nullable|array',
             'tags.major' => 'nullable|array',
@@ -445,7 +536,25 @@ class ProjectController extends Controller
             }
         }
 
-        $project->update($validated);
+        $extraAssigneeIds = $validated['extra_assignee_ids'] ?? null;
+        unset($validated['extra_assignee_ids']);
+
+        $assigneesBefore = $project->assigneeUserIds();
+        DB::transaction(function () use ($project, $validated, $extraAssigneeIds) {
+            $project->update($validated);
+            if ($extraAssigneeIds !== null) {
+                // 화면의 선택 목록에는 활성 사용자만 나오므로, 이미 지정돼 있던 비활성(퇴사 등) 담당자는
+                // 목록에 없다는 이유로 조용히 빠지지 않게 그대로 유지한다
+                $inactiveKept = $project->extraAssignees()->where('users.is_active', false)->pluck('users.id')->all();
+                $project->syncExtraAssignees(array_merge($extraAssigneeIds, $inactiveKept));
+            } elseif (array_key_exists('assigned_user_id', $validated)) {
+                // 대표 담당자만 바꾼 경우 — 새 대표가 추가 담당자에도 들어 있으면 중복 제거
+                $project->syncExtraAssignees($project->extraAssignees()->pluck('users.id')->all());
+            }
+        });
+        if ($extraAssigneeIds !== null || array_key_exists('assigned_user_id', $validated)) {
+            $this->notifyProjectAssigneeChanges($project, $assigneesBefore);
+        }
 
         return response()->json(['success' => true, 'project' => $project]);
     }

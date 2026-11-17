@@ -29,6 +29,7 @@ function resetModalForm(){
     document.getElementById('linkedClientInfo').style.display='none';
     document.getElementById('linkedClientName').textContent=''; // 이전 일정의 의뢰자명이 다음 일정에 새는 것 방지
     document.getElementById('projectSelectWrap').style.display='none';
+    {const pdc=document.getElementById('projectDeferChk'); if(pdc){ pdc.checked=false; const pdr=document.getElementById('projectDeferReason'); if(pdr){ pdr.value=''; pdr.style.display='none'; } }} // 프로젝트 나중에 연결 — 초기화
     {const psel=document.getElementById('projectSelect'); if(psel) psel.innerHTML='';} // 이전 일정의 프로젝트가 다음 일정에 새는 것 방지
     syncProjectPaymentFields(); // 연동 해제 — 결제/잔금 수기 입력 복원
     document.getElementById('clientSearchInput').value='';
@@ -436,6 +437,7 @@ function openEditModal(ev){
     selectedNotifyAssignees=Array.isArray(ev.notify_assignees)?[...ev.notify_assignees]:[]; updateNotifyBtn();
     // 날짜/시간 원본 스냅샷 — 변경 사유 필수 여부 판정용
     editingOrigDT={
+        color:ev.color,
         sd:(ev.start_date||'').substring(0,10),
         ed:((ev.end_date||ev.start_date)||'').substring(0,10),
         st:(ev.start_time||'').substring(0,5),
@@ -631,6 +633,12 @@ function openEditModal(ev){
             if(g.paid==='결제완료'&&!(g.estimate_amount||'').toString().trim()&&typeof autofillEstimateAmountIfEmpty==='function') autofillEstimateAmountIfEmpty();
         }
     }
+    // '프로젝트는 나중에 연결' 사유 복원 — 다시 저장해도 사유가 지워지지 않게
+    if(g.project_defer_reason){
+        const pdc=document.getElementById('projectDeferChk'), pdr=document.getElementById('projectDeferReason');
+        if(pdc&&pdr){ pdc.checked=true; pdr.value=g.project_defer_reason; }
+    }
+    if(typeof updateProjectDeferUI==='function') updateProjectDeferUI();
     // 의뢰자/프로젝트 연결 복원
     if(g.client_id){
         linkedClientId=g.client_id;

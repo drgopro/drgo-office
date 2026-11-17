@@ -3,6 +3,7 @@
 namespace Tests\Feature;
 
 use App\Models\Setting;
+use Illuminate\Console\Scheduling\Schedule;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Http;
 use Tests\TestCase;
@@ -101,5 +102,15 @@ class WatchDrgoBoardsTest extends TestCase
         $this->artisan('drgo:watch-boards')->assertSuccessful();
 
         Http::assertNothingSent();
+    }
+
+    public function test_board_watch_is_scheduled_every_minute(): void
+    {
+        $event = collect(app(Schedule::class)->events())
+            ->first(fn ($e) => str_contains((string) $e->command, 'drgo:watch-boards'));
+
+        $this->assertNotNull($event, '게시판 감시가 스케줄에 등록되어 있어야 합니다.');
+        $this->assertSame('* * * * *', $event->expression);
+        $this->assertTrue($event->withoutOverlapping);
     }
 }

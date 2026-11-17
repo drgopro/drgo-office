@@ -395,8 +395,20 @@
                 <a href="{{ route('projects.index') }}" class="back-btn" onclick="event.preventDefault(); goProjectList();">← 프로젝트 목록</a>
                 @endunless
                 @if($project->client)
+                    @php
+                        // 방송인은 닉네임으로 찾는 일이 많아 닉네임 우선 — "닉네임 (이름)", 한쪽만 있으면 그것만
+                        $clientNick = trim((string) $project->client->nickname);
+                        $clientRealName = trim((string) $project->client->name);
+                        $clientShort = $clientNick !== '' ? $clientNick : ($clientRealName !== '' ? $clientRealName : '의뢰자');
+                        $clientLabel = ($clientNick !== '' && $clientRealName !== '' && $clientNick !== $clientRealName) ? "{$clientNick} ({$clientRealName})" : $clientShort;
+                        // 의뢰자 화면에서 열었으면(?from=client) 의뢰자로 바로 돌아가는 버튼 제공
+                        $openedFromClient = request()->query('from') === 'client';
+                    @endphp
+                    @if($openedFromClient && ! config('view.standalone'))
+                        <a href="{{ route('clients.index', ['open' => $project->client->id]) }}" class="back-btn" onclick="event.preventDefault(); backToClient({{ $project->client->id }}, this.href);" title="이 프로젝트 탭을 닫고 의뢰자 화면으로 돌아갑니다">← 의뢰자로 돌아가기</a>
+                    @endif
                     {{-- 의뢰자 이름 클릭 → 의뢰자 상세 --}}
-                    <a href="{{ route('clients.index', ['open' => $project->client->id]) }}" class="back-btn" style="color:var(--accent); border-color:var(--accent);" onclick="event.preventDefault(); if(window.DRGO_STANDALONE) drgoWriteMode.open('/clients/{{ $project->client->id }}/write','client-{{ $project->client->id }}'); else if(window.parent && window.parent.drgoTabs) window.parent.drgoTabs.openClientDetail({{ $project->client->id }}); else window.location.href=this.href;">👤 {{ $project->client->name ?? $project->client->nickname ?? '의뢰자' }}</a>
+                    <a href="{{ route('clients.index', ['open' => $project->client->id]) }}" class="back-btn" style="color:var(--accent); border-color:var(--accent);" onclick="event.preventDefault(); if(window.DRGO_STANDALONE) drgoWriteMode.open('/clients/{{ $project->client->id }}/write','client-{{ $project->client->id }}'); else if(window.parent && window.parent.drgoTabs) window.parent.drgoTabs.openClientDetail({{ $project->client->id }}); else window.location.href=this.href;">👤 {{ $clientLabel }}</a>
                 @else
                     <span class="back-btn" style="cursor:default;">👤 {{ $project->manual_client_name ?: '의뢰자 미상' }} <span style="font-size:12px; color:var(--text-muted);">(확인불가)</span></span>
                 @endif
@@ -422,6 +434,8 @@
                     // 원격 프로젝트는 실제 방문이 없으므로 보고서 라벨만 '원격 보고서'로 (로직은 방문 보고서와 동일)
                     $isRemoteProject = $project->project_type === 'remote' || str_contains((string) $projectTypeLabel, '원격');
                     $vrLabel = $isRemoteProject ? '원격 보고서' : '방문 보고서';
+                    // 단순문의는 방문·작업이 없어 보고서 대상이 아님 — 완료 시 보고서를 묻지 않고, 보고서 칸도 숨김 (이미 작성된 보고서는 표시)
+                    $skipsReport = $project->project_type === 'inquiry' || in_array(trim((string) $projectTypeLabel), ['문의', '단순문의'], true);
                 @endphp
                 <div class="project-meta">
                     <span class="badge badge-{{ $project->project_type }}">
@@ -450,7 +464,10 @@
                         <button type="button" id="mkPostedBtn" onclick="toggleMarketingPosted()" style="display:none;font-size:12px;padding:2px 8px;border-radius:4px;border:1px solid var(--border);background:var(--surface2);color:var(--text-muted);cursor:pointer;white-space:nowrap;"></button>
                     </span>
                     <span>{{ $project->created_at->format('Y.m.d') }} 시작</span>
-                    <span>담당: {{ $project->assignedUser?->display_name ?? '-' }}</span>
+                    <span>담당: {{ implode(', ', $project->assigneeNames()) ?: '-' }}</span>
+                    @if($project->stage === 'done' && $project->completedBy)
+                        <span title="프로젝트를 완료 처리한 사람">완료 처리: {{ $project->completedBy->display_name ?: $project->completedBy->username }}{{ $project->completed_at ? ' · '.$project->completed_at->format('Y.m.d') : '' }}</span>
+                    @endif
                 </div>
             </div>
         </div>
@@ -587,12 +604,13 @@
                 <div class="info-label">이름</div>
                 <div>
                     <a href="{{ route('clients.index', ['open' => $project->client->id]) }}" style="color:var(--accent); text-decoration:none;" onclick="event.preventDefault(); if(window.parent && window.parent.drgoTabs) window.parent.drgoTabs.openClientDetail({{ $project->client->id }}); else window.location.href=this.href;">
-                        {{ $project->client->name ?: $project->client->nickname }}
+                        {{ $clientRealName !== '' ? $clientRealName : '-' }}
                     </a>
-                    @if($project->client->name && $project->client->nickname)
-                        <span style="color:var(--text-muted); font-size:13px;"> ({{ $project->client->nickname }})</span>
-                    @endif
                 </div>
+            </div>
+            <div class="info-row">
+                <div class="info-label">닉네임</div>
+                <div>{{ $clientNick !== '' ? $clientNick : '-' }}</div>
             </div>
             <div class="info-row">
                 <div class="info-label">연락처</div>
@@ -973,6 +991,10 @@
                         <div style="font-size:12px; color:var(--text-muted); margin-bottom:4px;">담당자</div>
                         <span id="peAssigneeWrap"></span>
                     </div>
+                    <div style="margin-top:12px;">
+                        <div style="font-size:12px; color:var(--text-muted); margin-bottom:4px;">추가 담당자 <span style="opacity:.8;">함께 맡는 사람 (선택)</span></div>
+                        <span id="peExtraAssigneeWrap"></span>
+                    </div>
                 </div>
                 <div style="display:flex; gap:8px; justify-content:flex-end; padding:14px 20px; border-top:1px solid var(--border);">
                     <button type="button" onclick="closeProjectEditModal()" style="background:none;border:1px solid var(--border);color:var(--text-muted);padding:8px 16px;border-radius:7px;font-size:14px;cursor:pointer;">취소</button>
@@ -1082,7 +1104,7 @@
         </div>
 
         {{-- 방문 보고서 (stage=done 일 때만 노출 — 추가 정보 영역 상단) --}}
-        <div class="info-card full {{ $hasReport ? 'is-collapsed' : '' }}" id="visitReportCard" style="display:{{ $project->stage === 'done' ? 'block' : 'none' }};" data-mode="{{ $hasReport ? 'view' : 'edit' }}">
+        <div class="info-card full {{ $hasReport ? 'is-collapsed' : '' }}" id="visitReportCard" style="display:{{ ($project->stage === 'done' && (! $skipsReport || $hasReport)) ? 'block' : 'none' }};" data-mode="{{ $hasReport ? 'view' : 'edit' }}">
             <div class="card-title" style="display:flex; justify-content:space-between; align-items:center; gap:8px;">
                 <span>📋 {{ $vrLabel }}</span>
                 <div style="display:flex; gap:6px; align-items:center;">
@@ -1781,6 +1803,17 @@
 
 @push('scripts')
 <script>
+// 의뢰자 화면에서 연 프로젝트 — 의뢰자 화면으로 돌아가고 이 프로젝트 탭은 닫음
+function backToClient(clientId, fallbackHref) {
+    const tabs = window.parent && window.parent !== window ? window.parent.drgoTabs : null;
+    if (tabs && typeof tabs.openClientDetail === 'function') {
+        tabs.openClientDetail(clientId);
+        if (typeof tabs.closeByWindow === 'function') tabs.closeByWindow(window);
+    } else {
+        window.location.href = fallbackHref;
+    }
+}
+
 // 프로젝트 목록으로 — 같은 탭 안에서 이동(새 탭 생성 안 함)
 function goProjectList() {
     const p = window.parent;
@@ -1909,10 +1942,16 @@ function sortConsultations(order) {
     items.forEach(el => list.appendChild(el));
 }
 
-// 부모 탭 타이틀을 프로젝트명으로 갱신 (멀티 탭 식별)
+// 부모 탭 타이틀을 "의뢰자 · 프로젝트명"으로 갱신 (멀티 탭 식별)
+@php
+    $tabOwner = $project->client
+        ? (trim((string) $project->client->nickname) ?: trim((string) $project->client->name))
+        : trim((string) $project->manual_client_name);
+@endphp
 (function setParentTabTitle() {
     try {
-        const title = '📁 ' + @json($project->name);
+        // 여러 프로젝트 탭이 열려도 누구 것인지 보이도록 의뢰자 표시명을 앞에 붙임
+        const title = '📁 ' + @json($tabOwner !== '' ? $tabOwner.' · '.$project->name : $project->name);
         if (window.parent && window.parent.drgoTabs && typeof window.parent.drgoTabs.setActiveTitle === 'function') {
             // window를 함께 넘겨 자신이 속한 탭의 제목만 갱신 (활성 탭 오염 방지)
             window.parent.drgoTabs.setActiveTitle(title, window);
@@ -2166,6 +2205,7 @@ async function openProjectEditModal() {
 
     document.getElementById('peName').value = CURRENT_PROJECT.name || '';
     document.getElementById('peAssigneeWrap').innerHTML = assigneeSelectHtml('peAssignee', {{ $project->assigned_user_id ? (int) $project->assigned_user_id : 'null' }}, '', 'width:100%; padding:9px 12px; background:var(--surface2); border:1px solid var(--border); border-radius:8px; color:var(--text); font-size:14px; outline:none; box-sizing:border-box;', true);
+    document.getElementById('peExtraAssigneeWrap').innerHTML = assigneeExtraHtml('peExtraAssignees', @json($project->extraAssignees->pluck('id')->values()));
     document.getElementById('peScale').value = CURRENT_PROJECT.client_scale || '';
     updatePeWorkType();
     document.getElementById('projectEditModalOverlay').style.display = 'flex';
@@ -2189,6 +2229,7 @@ async function saveProjectEdit() {
         client_scale: document.getElementById('peScale').value || null,
         work_type: document.getElementById('peWorkType').value || null,
         assigned_user_id: assigneeValue('peAssignee'),
+        extra_assignee_ids: assigneeExtraValues('peExtraAssignees'),
     };
     const csrf = document.querySelector('meta[name="csrf-token"]').content;
     const res = await fetch(`/api/projects/{{ $project->id }}`, {
@@ -4523,8 +4564,12 @@ document.addEventListener('keydown', e => {
 
 // 완료 단계 클릭 시 확인 다이얼로그
 window.confirmDoneStage = function() {
-    if (!confirm('세팅을 완료합니다.\n보고서를 작성하시겠습니까?\n\n(예: 즉시 작성 / 아니오: 완료만 처리)')) {
-        // '아니오' — 완료만 처리하고 보고서는 비움
+    // 단순문의는 보고서 대상이 아님 — 묻지 않고 완료만 처리
+    if (@json($skipsReport)) {
+        return advanceToDone(false);
+    }
+    if (!confirm('세팅을 완료합니다.\n보고서를 작성하시겠습니까?\n\n확인: 완료 처리 후 보고서 작성\n취소: 보고서 없이 완료만 처리')) {
+        // '취소' — 완료만 처리하고 보고서는 비움
         return advanceToDone(false);
     }
     advanceToDone(true);
@@ -4542,22 +4587,36 @@ async function advanceToDone(openEditor) {
             await showFetchErrorVR(res, '완료 처리 실패');
             return;
         }
+        // 확인/취소 모두 새로고침해 진행 단계 표시를 완료로 갱신한다
+        // (예전에는 '확인'일 때 새로고침하지 않아 완료됐는데도 단계 표시가 그대로였음).
+        // '확인'이면 새로고침 뒤 보고서 칸을 열어 주도록 표시를 남긴다
         if (openEditor) {
-            // 카드 노출 + 포커스
-            const card = document.getElementById('visitReportCard');
-            if (card) card.style.display = 'block';
-            setTimeout(() => {
-                if (card) card.scrollIntoView({behavior:'smooth', block:'start'});
-                if (window.vrEditor) window.vrEditor.commands.focus();
-            }, 250);
-        } else {
-            // '아니오' 선택 시 단계 UI 갱신 위해 새로고침
-            location.reload();
+            try { sessionStorage.setItem(VR_OPEN_AFTER_DONE_KEY, '1'); } catch (e) {}
         }
+        location.reload();
     } catch(e) {
         alert('통신 오류: ' + e.message);
     }
 }
+
+// 완료 처리 직후 새로고침된 화면 — 보고서 칸을 작성 모드로 열고 포커스
+const VR_OPEN_AFTER_DONE_KEY = 'vrOpenAfterDone:{{ $project->id }}';
+(function openReportAfterDone() {
+    let pending = false;
+    try { pending = sessionStorage.getItem(VR_OPEN_AFTER_DONE_KEY) === '1'; sessionStorage.removeItem(VR_OPEN_AFTER_DONE_KEY); } catch (e) {}
+    if (!pending) return;
+    let tries = 0;
+    const timer = setInterval(() => {
+        const card = document.getElementById('visitReportCard');
+        // 에디터가 준비될 때까지 최대 5초 대기 (모듈 로딩 지연 대비)
+        if (!card || (!window.vrEditor && ++tries < 50)) { if (!card) clearInterval(timer); return; }
+        clearInterval(timer);
+        card.style.display = 'block';
+        if (typeof window.vrSetMode === 'function') window.vrSetMode('edit');
+        card.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        if (window.vrEditor) window.vrEditor.commands.focus();
+    }, 100);
+})();
 
 async function showFetchErrorVR(res, prefix) {
     let detail = '';

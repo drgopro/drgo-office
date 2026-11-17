@@ -97,6 +97,27 @@ class User extends Authenticatable
         return in_array($this->role, ['master', 'admin']);
     }
 
+    /**
+     * 피드백 AI 검수 열람·승인 권한 — 마스터는 항상, 그 외에는 마스터가 지정한 사용자(설정 feedback_review_viewers)만.
+     * 관리자(admin) 역할이라는 이유만으로는 볼 수 없다.
+     */
+    public function canSeeFeedbackReviews(): bool
+    {
+        if ($this->role === 'master') {
+            return true;
+        }
+
+        return in_array($this->id, self::feedbackReviewViewerIds(), true);
+    }
+
+    /** @return array<int, int> 마스터가 지정한 AI 검수 열람자 ID 목록 */
+    public static function feedbackReviewViewerIds(): array
+    {
+        $ids = json_decode((string) Setting::get('feedback_review_viewers', '[]'), true);
+
+        return is_array($ids) ? array_values(array_unique(array_map('intval', $ids))) : [];
+    }
+
     public function isGuest(): bool
     {
         return $this->role === 'guest';

@@ -8,6 +8,7 @@ use App\Models\BroadcastRoomUsage;
 use App\Models\CalendarCategory;
 use App\Models\Client;
 use App\Models\Estimate;
+use App\Models\Project;
 use App\Models\ProjectBilling;
 use App\Models\RentalContract;
 use App\Models\Schedule;
@@ -189,7 +190,17 @@ class CalendarController extends Controller
         return $value;
     }
 
-    // 일정 검색 (제목/의뢰자/장소/주소, 전체 기간)
+    /** 검색 대상 본문 컬럼 */
+    private const SEARCH_TEXT_COLUMNS = ['description', 'special_note', 'handover_note'];
+
+    /** 검색 대상 JSON 경로 — 방문의뢰 의뢰자 정보·의뢰 내용, 원격/방송룸 대상자·내용 */
+    private const SEARCH_JSON_PATHS = [
+        'request_data->name', 'request_data->nickname',
+        'request_data->req_detail', 'request_data->special', 'request_data->equipment',
+        'remote_data->name', 'remote_data->content', 'remote_data->desc',
+    ];
+
+    // 일정 검색 (제목/의뢰자/장소/주소 + 내용·의뢰자 실명·전화번호·연결 의뢰자, 전체 기간)
     public function search(Request $request)
     {
         // 게스트는 일정 내용 비노출 — 검색 불가
@@ -212,12 +223,48 @@ class CalendarController extends Controller
         $limit = max(1, min((int) $request->query('limit', 30), 100));
 
         $like = '%'.$q.'%';
+        // 전화번호 — 하이픈·공백 유무와 상관없이 숫자만으로 비교 (숫자 4자리 이상일 때만).
+        // 연락처 조회 권한이 없는 팀은 전화번호로 찾을 수 없다 (검색이 마스킹을 우회하는 통로가 되지 않도록)
+        $canSearchPhone = $this->canViewClientPii();
+        $digits = preg_replace('/\D+/', '', $q);
+        $phoneLike = ($canSearchPhone && mb_strlen($digits) >= 4) ? '%'.$digits.'%' : null;
+        // 연결된 의뢰자의 현재 이름·닉네임·전화번호로도 찾기 (일정 작성 후 의뢰자 정보가 바뀐 경우 대비)
+        $clientIds = $q === '' ? collect() : Client::query()
+            ->where(function ($c) use ($like, $phoneLike, $canSearchPhone) {
+                $c->where('name', 'like', $like)->orWhere('nickname', 'like', $like);
+                if ($canSearchPhone) {
+                    $c->orWhere('phone', 'like', $like);
+                }
+                if ($phoneLike) {
+                    $c->orWhereRaw("replace(replace(coalesce(phone, ''), '-', ''), ' ', '') like ?", [$phoneLike]);
+                }
+            })
+            ->orderByDesc('id')->limit(500)->pluck('id'); // 최근 등록 의뢰자 우선 — 상한을 넘는 흔한 검색어에서도 결과가 일정하게
+
         $events = Schedule::query()
-            ->when($q !== '', fn ($query) => $query->where(function ($w) use ($like) {
+            ->when($q !== '', fn ($query) => $query->where(function ($w) use ($like, $phoneLike, $clientIds, $canSearchPhone) {
                 $w->where('title', 'like', $like)
                     ->orWhere('client_name', 'like', $like)
                     ->orWhere('location', 'like', $like)
                     ->orWhere('address', 'like', $like);
+                foreach (self::SEARCH_TEXT_COLUMNS as $column) {
+                    $w->orWhere($column, 'like', $like);
+                }
+                // JSON 안의 값은 경로로 꺼내 비교 — 통째로 LIKE 하면 한글이 \uXXXX 로 저장돼 있어 걸리지 않는다
+                foreach (self::SEARCH_JSON_PATHS as $path) {
+                    $w->orWhere($path, 'like', $like);
+                }
+                if ($canSearchPhone) {
+                    $w->orWhere('request_data->phone', 'like', $like);
+                }
+                if ($phoneLike) {
+                    $phoneColumn = $w->getQuery()->getGrammar()->wrap('request_data->phone');
+                    $w->orWhereRaw("replace(replace(coalesce({$phoneColumn}, ''), '-', ''), ' ', '') like ?", [$phoneLike]);
+                }
+                if ($clientIds->isNotEmpty()) {
+                    // client_id 가 숫자·문자열 어느 쪽으로 저장돼 있어도 걸리도록 두 형태 모두 비교
+                    $w->orWhereIn('request_data->client_id', $clientIds->merge($clientIds->map(fn ($id) => (string) $id))->all());
+                }
             }))
             ->when($colors->isNotEmpty(), fn ($query) => $query->whereIn('color', $colors))
             ->when($assigneeIds->isNotEmpty(), fn ($query) => $query->whereHas('assignees', fn ($a) => $a->whereIn('assignees.id', $assigneeIds)))
@@ -241,6 +288,33 @@ class CalendarController extends Controller
 
             return $arr;
         }));
+    }
+
+    /**
+     * 방문의뢰 새 일정은 프로젝트를 먼저 만들어 연결해야 한다 (의뢰자 + 프로젝트 선택 필수).
+     * 급한 일정은 '나중에 연결' 사유(request_data.project_defer_reason)를 적으면 예외로 저장된다.
+     * 새 일정 등록과, 다른 유형의 일정을 방문의뢰로 바꾸는 수정에 적용 — 원래 방문의뢰이던 일정의 수정은 막지 않는다.
+     * 대상은 방문의뢰 템플릿을 쓰는 gold 키 (화면의 예외 입력 UI 와 같은 기준). 문제 없으면 null.
+     *
+     * @param  array<string, mixed>  $validated
+     */
+    private function visitProjectLinkError(array $validated): ?string
+    {
+        if (($validated['color'] ?? null) !== 'gold') {
+            return null;
+        }
+        $data = is_array($validated['request_data'] ?? null) ? $validated['request_data'] : [];
+        // 프로젝트가 실제로 있고 그 의뢰자의 것이어야 연결로 인정 (없는 ID·남의 프로젝트 조합 차단)
+        $hasProject = ! empty($data['client_id']) && ! empty($data['project_id'])
+            && is_scalar($data['client_id']) && is_scalar($data['project_id'])
+            && Project::whereKey((int) $data['project_id'])->where('client_id', (int) $data['client_id'])->exists();
+        $deferReason = is_string($data['project_defer_reason'] ?? null) ? trim($data['project_defer_reason']) : '';
+
+        if ($hasProject || $deferReason !== '') {
+            return null;
+        }
+
+        return '방문의뢰 일정은 의뢰자와 프로젝트를 먼저 연결해야 합니다. 프로젝트가 아직 없으면 의뢰자 화면에서 만들거나, \'프로젝트는 나중에 연결\'을 체크하고 사유를 적어주세요.';
     }
 
     /** 구버전 클라이언트(배포 전에 열린 탭)가 보내는 색상 키 기반 필드명 → 의미 기반 필드명 승계 */
@@ -301,6 +375,10 @@ class CalendarController extends Controller
             'repeat_until.required_with' => '반복 종료일을 선택해주세요.',
             'repeat_until.after' => '반복 종료일이 시작일보다 늦어야 합니다.',
         ]);
+
+        if ($msg = $this->visitProjectLinkError($validated)) {
+            return response()->json(['message' => $msg, 'errors' => ['project_id' => [$msg]]], 422);
+        }
 
         $repeat = collect($validated)->only(['repeat_freq', 'repeat_interval', 'repeat_unit', 'repeat_until'])->all();
         $brRental = $validated['broadcast_rental'] ?? null;
@@ -665,6 +743,12 @@ class CalendarController extends Controller
         $repeat = collect($validated)->only(['repeat_freq', 'repeat_interval', 'repeat_unit', 'repeat_until'])->all();
         $validated = collect($validated)->except(['repeat_freq', 'repeat_interval', 'repeat_unit', 'repeat_until'])->all();
         $validated = $this->stripClientLinkForExcludedColors($validated, $validated['color'] ?? $schedule->color);
+
+        // 다른 유형의 일정을 방문의뢰로 바꾸는 수정 — 새 방문의뢰 일정과 같은 프로젝트 연결 규칙 (유형 변경으로 우회 방지)
+        if ($schedule->color !== 'gold' && ($validated['color'] ?? null) === 'gold'
+            && ($msg = $this->visitProjectLinkError(['color' => 'gold', 'request_data' => $validated['request_data'] ?? $schedule->request_data]))) {
+            return response()->json(['message' => $msg, 'errors' => ['project_id' => [$msg]]], 422);
+        }
 
         // 변경 이력 기록 (날짜/시간은 포맷 차이로 인한 오탐 방지를 위해 정규화 후 비교)
         $dtChanged = false;

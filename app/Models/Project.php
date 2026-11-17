@@ -53,6 +53,7 @@ class Project extends Model
         'marketing_posted_at',
         'as_deadline',
         'completed_at',
+        'completed_by',
         'cancel_reason',
         'cancel_detail',
         'cancelled_at',
@@ -128,6 +129,55 @@ class Project extends Model
     public function assignedUser()
     {
         return $this->belongsTo(User::class, 'assigned_user_id');
+    }
+
+    /** 추가 담당자 — 대표 담당자(assigned_user_id) 외에 함께 맡는 사용자 */
+    public function extraAssignees()
+    {
+        return $this->belongsToMany(User::class, 'project_assignees')->withTimestamps();
+    }
+
+    /** 완료 처리한 사용자 */
+    public function completedBy()
+    {
+        return $this->belongsTo(User::class, 'completed_by');
+    }
+
+    /**
+     * 추가 담당자 저장 — 대표 담당자와 중복되는 사용자는 제외한다.
+     *
+     * @param  array<int, int|string>  $userIds
+     */
+    public function syncExtraAssignees(array $userIds): void
+    {
+        $ids = collect($userIds)->map(fn ($id) => (int) $id)
+            ->filter(fn ($id) => $id > 0 && $id !== (int) $this->assigned_user_id)
+            ->unique()->values()->all();
+        $this->extraAssignees()->sync($ids);
+    }
+
+    /**
+     * 현재 담당자 전원의 사용자 id (대표 + 추가, 중복 없음).
+     *
+     * @return array<int, int>
+     */
+    public function assigneeUserIds(): array
+    {
+        return collect([$this->assigned_user_id])
+            ->merge($this->extraAssignees()->pluck('users.id'))
+            ->filter()->map(fn ($id) => (int) $id)->unique()->values()->all();
+    }
+
+    /**
+     * 담당자 이름 목록 — 대표 담당자 먼저, 이어서 추가 담당자.
+     *
+     * @return array<int, string>
+     */
+    public function assigneeNames(): array
+    {
+        return collect([$this->assignedUser])->merge($this->extraAssignees)
+            ->filter()->unique('id')
+            ->map(fn (User $u) => $u->display_name ?: $u->username)->values()->all();
     }
 
     public function consultations()

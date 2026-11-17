@@ -565,8 +565,16 @@ class EstimateController extends Controller
                 if ($msg = app(EstimateReviewService::class)->gateErrorFor($estimate, $gateItems)) {
                     return response()->json(['message' => '발행할 수 없습니다 — '.$msg], 422);
                 }
+                if ($msg = $this->projectLinkErrorFor($estimate, $validated)) {
+                    return response()->json(['message' => '발행할 수 없습니다 — '.$msg], 422);
+                }
             }
             $becamePaid = ($validated['status'] ?? null) === 'paid' && $estimate->status !== 'paid';
+            // 발행을 거치지 않고 바로 결제완료로 기록하는 경우에도 같은 프로젝트 연동 관문을 적용
+            // (이미 발행된 견적서의 결제완료 기록은 막지 않는다 — 규칙 도입 전 발행분 보호)
+            if ($becamePaid && $estimate->status !== 'issued' && ($msg = $this->projectLinkErrorFor($estimate, $validated))) {
+                return response()->json(['message' => '결제완료로 기록할 수 없습니다 — '.$msg], 422);
+            }
             $becameCancelled = ($validated['status'] ?? null) === 'cancelled' && $estimate->status === 'paid';
             $oldItemsForStock = $estimate->product_items; // 직접발송 재고 연동 — 저장 전 스냅샷
 
@@ -693,6 +701,9 @@ class EstimateController extends Controller
             && ($msg = app(EstimateReviewService::class)->gateErrorFor($estimate))) {
             return response()->json(['message' => '발행할 수 없습니다 — '.$msg], 422);
         }
+        if ($estimate->status !== 'issued' && ($msg = $this->projectLinkErrorFor($estimate))) {
+            return response()->json(['message' => '발행할 수 없습니다 — '.$msg], 422);
+        }
 
         $estimate->update([
             'status' => 'issued',
@@ -708,6 +719,34 @@ class EstimateController extends Controller
             'payapp_warning' => $warning,
             'public_url' => $estimate->publicUrl(),
         ]);
+    }
+
+    /**
+     * 발행(=결제요청 생성) 전 프로젝트 연동 확인 — 의뢰자가 연결된 견적서는 프로젝트도 연결돼 있어야 발행할 수 있다.
+     * 예외: 의뢰자 없는 익명 견적서(연결할 프로젝트가 없음), 차수(추가 견적 — 본 견적이 이미 발행을 거쳤고,
+     * 결제완료된 본 견적은 수정이 잠겨 뒤늦게 연동할 수 없으므로 막지 않는다).
+     * 이번 저장에서 함께 바뀌는 값($incoming)이 있으면 그 값을 기준으로 본다. 문제 없으면 null.
+     *
+     * @param  array<string, mixed>  $incoming
+     */
+    private function projectLinkErrorFor(Estimate $estimate, array $incoming = []): ?string
+    {
+        if ($estimate->parent_estimate_id) {
+            return null;
+        }
+        $pick = fn (string $key) => array_key_exists($key, $incoming) ? $incoming[$key] : $estimate->{$key};
+
+        $clientId = $pick('client_id');
+        $projectId = $pick('project_id');
+        if (empty($clientId)) {
+            return null;
+        }
+        // 연동된 프로젝트가 이 의뢰자의 것인지까지 확인 (의뢰자만 바꿔 남의 프로젝트가 남아 있는 경우 차단)
+        if (! empty($projectId) && (int) Project::whereKey($projectId)->value('client_id') === (int) $clientId) {
+            return null;
+        }
+
+        return '의뢰자의 프로젝트를 연동해야 발행(결제요청)할 수 있습니다. 견적서에서 프로젝트를 선택한 뒤 다시 시도해주세요.';
     }
 
     /**
@@ -896,6 +935,11 @@ class EstimateController extends Controller
     {
         if ($estimate->status === 'paid') {
             return response()->json(['message' => '이미 결제 완료된 견적서입니다.'], 422);
+        }
+        // 아직 발행하지 않은 견적서에 결제요청을 직접 만드는 경로도 같은 관문 (발행 관문 우회 방지).
+        // 이미 발행된 견적서의 결제요청 재생성은 막지 않는다
+        if ($estimate->status !== 'issued' && ($msg = $this->projectLinkErrorFor($estimate))) {
+            return response()->json(['message' => '결제요청을 만들 수 없습니다 — '.$msg], 422);
         }
 
         $result = $payapp->requestPayment($estimate);

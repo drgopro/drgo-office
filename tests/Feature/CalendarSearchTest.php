@@ -3,6 +3,7 @@
 namespace Tests\Feature;
 
 use App\Models\Assignee;
+use App\Models\Client;
 use App\Models\Schedule;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
@@ -131,5 +132,79 @@ class CalendarSearchTest extends TestCase
         $this->makeSchedule(['title' => '아무 일정']);
 
         $this->assertCount(0, $this->actingAs($user)->getJson('/api/events/search?q=')->json());
+    }
+
+    /** 검색어를 URL 인코딩해 호출 — 한글·기호가 환경에 따라 깨지지 않도록 */
+    private function searchTitles(User $user, string $q): array
+    {
+        return collect($this->actingAs($user)->getJson('/api/events/search?'.http_build_query(['q' => $q]))->assertOk()->json())
+            ->pluck('title')->sort()->values()->all();
+    }
+
+    public function test_search_matches_content_real_name_and_remote_fields(): void
+    {
+        $user = User::factory()->create(['role' => 'member']);
+        $this->makeSchedule(['title' => '설명 일정', 'description' => '조명 추가 설치 요청']);
+        $this->makeSchedule(['title' => '특이사항 일정', 'special_note' => '주차 불가 건물']);
+        $this->makeSchedule(['title' => '전달사항 일정', 'handover_note' => '삼각대 챙기기']);
+        $this->makeSchedule(['title' => '실명 일정', 'client_name' => '닉네임', 'request_data' => ['name' => '홍길동', 'nickname' => '닉네임', 'phone' => '010-1234-5678']]);
+        $this->makeSchedule(['title' => '의뢰 내용 일정', 'request_data' => ['req_detail' => '캡처보드 교체', 'special' => '반려묘 있음']]);
+        $this->makeSchedule(['title' => '원격 일정', 'color' => 'teal', 'remote_data' => ['mode' => 'remote', 'name' => '감자튀김', 'content' => 'OBS 장면 전환 오류']]);
+        $this->makeSchedule(['title' => '무관한 일정']);
+
+        $this->assertSame(['설명 일정'], $this->searchTitles($user, '조명 추가'));
+        $this->assertSame(['특이사항 일정'], $this->searchTitles($user, '주차 불가'));
+        $this->assertSame(['전달사항 일정'], $this->searchTitles($user, '삼각대'));
+        $this->assertSame(['실명 일정'], $this->searchTitles($user, '홍길동'));
+        $this->assertSame(['의뢰 내용 일정'], $this->searchTitles($user, '캡처보드'));
+        $this->assertSame(['의뢰 내용 일정'], $this->searchTitles($user, '반려묘'));
+        $this->assertSame(['원격 일정'], $this->searchTitles($user, '감자튀김'));
+        $this->assertSame(['원격 일정'], $this->searchTitles($user, '장면 전환'));
+    }
+
+    public function test_search_matches_phone_with_or_without_hyphens_for_pii_viewers_only(): void
+    {
+        $admin = User::factory()->create(['role' => 'admin']);   // 연락처 조회 권한 있음
+        $member = User::factory()->create(['role' => 'member']); // 팀 권한 없음 → 연락처 마스킹 대상
+        $this->makeSchedule(['title' => '전화 일정', 'request_data' => ['name' => '홍길동', 'phone' => '010-1234-5678']]);
+        $this->makeSchedule(['title' => '다른 일정', 'request_data' => ['phone' => '010-9999-0000']]);
+
+        $this->assertSame(['전화 일정'], $this->searchTitles($admin, '010-1234-5678'));
+        $this->assertSame(['전화 일정'], $this->searchTitles($admin, '01012345678'));
+        $this->assertSame(['전화 일정'], $this->searchTitles($admin, '1234-5678'));
+        $this->assertSame(['전화 일정'], $this->searchTitles($admin, '12345678'));
+
+        // 연락처 조회 권한이 없으면 전화번호로는 찾을 수 없다 (이름으로는 가능)
+        $this->assertSame([], $this->searchTitles($member, '01012345678'));
+        $this->assertSame([], $this->searchTitles($member, '1234-5678'));
+        $this->assertSame(['전화 일정'], $this->searchTitles($member, '홍길동'));
+    }
+
+    public function test_search_matches_linked_client_current_name_and_phone(): void
+    {
+        $admin = User::factory()->create(['role' => 'admin']);
+        $member = User::factory()->create(['role' => 'member']);
+        $client = Client::create(['name' => '김철수', 'nickname' => '철수TV', 'phone' => '010-5555-7777', 'grade' => 'normal']);
+        $this->makeSchedule(['title' => '연결 일정', 'color' => 'green', 'request_data' => ['client_id' => $client->id, 'nickname' => '', 'name' => '', 'phone' => '']]);
+        $this->makeSchedule(['title' => '문자열 ID 일정', 'color' => 'green', 'request_data' => ['client_id' => (string) $client->id]]);
+        $this->makeSchedule(['title' => '무관한 일정']);
+
+        $this->assertSame(['문자열 ID 일정', '연결 일정'], $this->searchTitles($admin, '김철수'));
+        $this->assertSame(['문자열 ID 일정', '연결 일정'], $this->searchTitles($admin, '철수TV'));
+        $this->assertSame(['문자열 ID 일정', '연결 일정'], $this->searchTitles($admin, '55557777'));
+        $this->assertSame(['문자열 ID 일정', '연결 일정'], $this->searchTitles($member, '철수TV'));
+        $this->assertSame([], $this->searchTitles($member, '55557777'));
+    }
+
+    public function test_expanded_search_still_hides_other_users_private_events_and_blocks_guests(): void
+    {
+        $owner = User::factory()->create(['role' => 'member']);
+        $other = User::factory()->create(['role' => 'member']);
+        $guest = User::factory()->create(['role' => 'guest']);
+        $this->makeSchedule(['title' => '비공개', 'is_private' => true, 'created_by' => $owner->id, 'description' => '극비 회의 안건']);
+
+        $this->assertSame(['비공개'], $this->searchTitles($owner, '극비 회의'));
+        $this->assertSame([], $this->searchTitles($other, '극비 회의'));
+        $this->assertSame([], $this->searchTitles($guest, '극비 회의'));
     }
 }

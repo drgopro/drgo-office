@@ -23,4 +23,19 @@ window.assigneeSelectHtml = function (id, selected, cls, style, keepEmpty) {
     const opts = (window.ASSIGNEE_OPTIONS || []).map(u => `<option value="${u.id}" ${u.id === sel ? 'selected' : ''}>${esc(u.name)}${u.id === window.ASSIGNEE_ME ? ' (나)' : ''}</option>`).join('');
     return `<select id="${id}" class="${cls || ''}" style="${style || ''}" title="담당자 — 기본은 작성자">${keepEmpty ? `<option value="" ${sel === null ? 'selected' : ''}>미지정</option>` : ''}${opts}</select>`;
 };
+/**
+ * 추가 담당자(복수) 체크 칩 HTML — 프로젝트 전용. 대표 담당자는 위 select 로 고르고, 함께 맡는 사람을 여기서 체크한다.
+ * @param {string} id  감싸는 요소 id (값 수집 시 사용)
+ * @param {number[]} selectedIds  체크해 둘 사용자 id
+ */
+window.assigneeExtraHtml = function (id, selectedIds) {
+    const picked = (selectedIds || []).map(Number);
+    const esc = s => String(s ?? '').replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
+    const chips = (window.ASSIGNEE_OPTIONS || []).map(u => `<label style="display:inline-flex; align-items:center; gap:5px; padding:5px 10px; border:1px solid var(--border); border-radius:8px; font-size:13px; cursor:pointer;"><input type="checkbox" value="${u.id}" ${picked.includes(u.id) ? 'checked' : ''} style="width:13px; height:13px;">${esc(u.name)}</label>`).join('');
+    return `<div id="${id}" style="display:flex; flex-wrap:wrap; gap:6px;">${chips}</div>`;
+};
+/** 추가 담당자 체크 값 → id 배열 (대표 담당자와 겹치는 값은 서버가 제외) */
+window.assigneeExtraValues = function (id) {
+    return [...document.querySelectorAll(`#${CSS.escape(id)} input:checked`)].map(c => Number(c.value));
+};
 </script>

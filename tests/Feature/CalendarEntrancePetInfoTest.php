@@ -34,6 +34,8 @@ class CalendarEntrancePetInfoTest extends TestCase
             'is_all_day' => true, 'color' => 'gold',
             'address' => '서울시 동작구 장승배기로 142', 'location' => '서울시 동작구 장승배기로 142 101동 202호',
             'entrance_info' => '공동현관 #1234* 후 호출', 'pet_info' => '강아지 1마리 (소형견)',
+            // 방문의뢰 새 일정은 프로젝트 연결 필수 — 이 테스트는 출입 정보 검증이 목적이라 '나중에 연결' 사유로 통과
+            'request_data' => ['project_defer_reason' => '테스트'],
         ])->assertCreated()->json('id');
 
         $s = Schedule::find($id);
@@ -105,7 +107,7 @@ class CalendarEntrancePetInfoTest extends TestCase
             ->assertSee('공동현관 정보 (출입 방법·비밀번호 등)', false)
             ->assertSee('반려동물 여부', false)
             // 저장 payload·요약 뷰 표시
-            ->assertSee('entrance_info:document.getElementById', false)
-            ->assertSee("entranceTxt=_val('modalEntranceInfo')", false);
+            ->assertSee("entrance_info:dropLoc?null:(document.getElementById('modalEntranceInfo')", false)
+            ->assertSee("entranceTxt=dropLoc?'':_val('modalEntranceInfo')", false);
     }
 }

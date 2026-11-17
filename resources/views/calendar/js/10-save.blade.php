@@ -45,6 +45,9 @@ function collectGoldFields(){
         estimate_id:linkedEstimateIds[0]??null,
         estimate_ids:linkedEstimateIds.length?[...linkedEstimateIds]:null,
         client_id:linkedClientId,
+        // 프로젝트를 나중에 연결하는 사유 (방문의뢰 새 일정의 프로젝트 필수 규칙 예외)
+        // 프로젝트를 실제로 골랐으면 사유는 비운다 (연결과 예외 사유가 함께 남지 않게)
+        project_defer_reason:((document.getElementById('projectDeferChk')?.checked&&!(linkedClientId&&document.getElementById('projectSelectWrap')?.style.display!=='none'&&document.getElementById('projectSelect')?.value))?document.getElementById('projectDeferReason')?.value.trim():'')||'',
         // 의뢰자 연결 + 프로젝트 선택 UI가 열려 있을 때만 수집 (잔류값 저장 방지)
         project_id:(linkedClientId&&document.getElementById('projectSelectWrap')?.style.display!=='none')?(document.getElementById('projectSelect')?.value||null):null,
         // 출발지 (도착지는 기존 address/location 사용). 토글 꺼짐/'출발지 없음' 체크 시 빈 값
@@ -84,6 +87,17 @@ async function doSaveEvent(){
     const et=isGold?document.getElementById('goldEndTime').value:document.getElementById('endTime').value;
     if(!sd){alert('시작일을 입력하세요.');return;}
     if(ed && ed<sd){alert('종료일이 시작일보다 빠릅니다. 날짜를 확인해주세요.');return;}
+    // 방문의뢰 새 일정 — 프로젝트 연결(또는 '나중에 연결' 사유) 필수
+    {
+        const blockMsg=typeof projectLinkBlockMessage==='function'?projectLinkBlockMessage():null;
+        if(blockMsg){
+            alert(blockMsg);
+            const wrap=document.getElementById('projectDeferWrap');
+            if(wrap){ wrap.scrollIntoView({behavior:'smooth',block:'center'}); }
+            if(document.getElementById('projectDeferChk')?.checked) document.getElementById('projectDeferReason')?.focus();
+            return;
+        }
+    }
     const repeatEnabled=(()=>{
         const row=document.getElementById('repeatGroup')?.querySelector('.notif-row');
         const chk=document.getElementById('repeatChk');
@@ -110,6 +124,7 @@ async function doSaveEvent(){
     // 미팅/내방 옵션·사내업무 장소(체크박스)도 special_opts에 함께 저장
     if(currentColor==='purple'||currentColor==='blue'){ specialOpts=specialOpts.concat([...document.querySelectorAll('#visitOptsList input:checked')].map(i=>i.value)); }
 
+    const dropLoc=dropsLocationOnSave();
     const data={
         title:document.getElementById('modalTitle').value.trim()||'(제목 없음)',
         start_date:sd, end_date:ed||sd, start_time:isAllDay?null:st, end_time:isAllDay?null:et,
@@ -117,10 +132,10 @@ async function doSaveEvent(){
         // 공통 유형은 별도 이름 필드 없음 — 연결된 의뢰자명(있으면)만 보조 저장
         client_name:isGold?document.getElementById('g_nickname').value.trim():((linkedClientId&&colorSupportsClientLink(currentColor))?(document.getElementById('linkedClientName')?.textContent.trim()||''):''),
         // address=도로명(검색), location=도로명+상세주소(표시용)
-        address:document.getElementById('modalAddress').value.trim()||document.getElementById('modalLocation').value.trim(),
-        location:[document.getElementById('modalLocation').value.trim(), document.getElementById('modalLocationDetail').value.trim()].filter(Boolean).join(' '),
-        entrance_info:document.getElementById('modalEntranceInfo')?.value.trim()||null,
-        pet_info:document.getElementById('modalPetInfo')?.value.trim()||null,
+        address:dropLoc?'':(document.getElementById('modalAddress').value.trim()||document.getElementById('modalLocation').value.trim()),
+        location:dropLoc?'':[document.getElementById('modalLocation').value.trim(), document.getElementById('modalLocationDetail').value.trim()].filter(Boolean).join(' '),
+        entrance_info:dropLoc?null:(document.getElementById('modalEntranceInfo')?.value.trim()||null),
+        pet_info:dropLoc?null:(document.getElementById('modalPetInfo')?.value.trim()||null),
         description:isGold?'':document.getElementById('commonDesc').value.trim(),
         // 전달사항 — 메모 없는 공통 유형에서만 입력(gold/teal은 자체 필드 사용)
         handover_note:(isGold||currentColor==='teal')?null:(document.getElementById('commonHandoverNote')?.value.trim()||null),
@@ -322,7 +337,7 @@ function initAllRadioGroups(){
     ['g_career_group','g_source_group','g_budget_group','g_paid_group','g_order_group','g_balance_group'].forEach(id=>initRadioGroup(id));
     initRadioGroup('g_req_topic_group',{multi:true});
     // teal 모드 전환
-    initRadioGroup('teal_mode_group',{onChange:v=>{document.getElementById('teal_remote_fields').style.display=v==='remote'?'':'none';document.getElementById('teal_studio_fields').style.display=v==='studio'?'':'none';}});
+    initRadioGroup('teal_mode_group',{onChange:v=>{document.getElementById('teal_remote_fields').style.display=v==='remote'?'':'none';document.getElementById('teal_studio_fields').style.display=v==='studio'?'':'none';if(typeof updateBrRentalUI==='function') updateBrRentalUI();}});
     // 색상 dot 클릭
     document.querySelectorAll('.color-dot').forEach(dot=>{dot.addEventListener('click',()=>{if(!isLocked) setColor(dot.dataset.color);});});
     // schedEventOpts (멀티 토글)

@@ -37,7 +37,10 @@ class CalendarCompactViewTest extends TestCase
             ->assertSee('if(!wheelAtEdge(sc,dir)){ armedDir=0; return; }', false)
             // 뷰 안의 자체 스크롤 영역에서는 달을 넘기지 않음 / 버튼·뷰 전환으로 화면이 바뀌면 예고 무효
             ->assertSee('if(wheelInsideInnerScroller(e.target, el)){ armedDir=0; return; }', false)
-            ->assertSee('if(armedDir===dir&&armedKey===key&&gap>WHEEL_GESTURE_GAP){', false)
+            ->assertSee('const armed=armedDir===dir&&armedKey===key;', false)
+            // 끝에서 멈췄다 다시 굴림, 또는 멈추지 않고 계속 굴림(관성 꼬리 제외) → 이동
+            ->assertSee('const sustained=armed&&now-armedAt>=WHEEL_EDGE_DWELL&&abs>=peakAbs*0.8;', false)
+            ->assertSee('if(armed&&(gap>WHEEL_GESTURE_GAP||sustained)){', false)
             ->assertSee('if(now-movedAt<WHEEL_MOVE_COOLDOWN){ e.preventDefault(); return; }', false)
             ->assertSee('sc.scrollTop = dir>0 ? 0 : sc.scrollHeight;', false)
             ->assertDontSee('if(now-lock<400||Math.abs(e.deltaY)<15) return;', false);

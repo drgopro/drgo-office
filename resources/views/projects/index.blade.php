@@ -204,6 +204,10 @@
         $selectedMarketing = is_array($rawMk)
             ? array_filter($rawMk)
             : array_filter(array_map('trim', explode(',', (string) $rawMk)));
+        $rawAssignee = request('assignee');
+        $selectedAssignees = is_array($rawAssignee)
+            ? array_filter($rawAssignee)
+            : array_filter(array_map('trim', explode(',', (string) $rawAssignee)));
         $rawTag = request('tag');
         $selectedTags = is_array($rawTag)
             ? array_filter($rawTag)
@@ -242,7 +246,7 @@
                 <button type="button" class="search-clear" title="검색어 지우기" onclick="const f=this.closest('form'); f.querySelector('.search-input').value=''; f.submit();">✕</button>
             </span>
             <button type="submit" class="btn-search">검색</button>
-            @if(!empty($selectedStages) || !empty($selectedTypes) || !empty($selectedTags) || !empty($selectedMarketing) || request('search') || request()->boolean('has_report'))
+            @if(!empty($selectedStages) || !empty($selectedTypes) || !empty($selectedTags) || !empty($selectedMarketing) || !empty($selectedAssignees) || request('search') || request()->boolean('has_report'))
                 <a href="{{ $statusTab !== 'active' ? route('projects.index', ['status' => $statusTab]) : route('projects.index') }}" class="btn-search-reset">↺ 초기화</a>
             @endif
         </div>
@@ -297,6 +301,20 @@
             @endforeach
             </div>
         </div>
+        {{-- 담당자별 보기 — 칩의 숫자는 현재 탭에서 그 담당자가 맡은 프로젝트 수 --}}
+        @if(count($assigneeOptions) > 1 || !empty($selectedAssignees))
+        <div class="filter-group">
+            <span class="filter-label">담당자</span>
+            <div class="filter-chips">
+            @foreach($assigneeOptions as $ao)
+                <label class="chip-toggle">
+                    <input type="checkbox" name="assignee[]" value="{{ $ao['value'] }}" {{ in_array($ao['value'], $selectedAssignees, true) ? 'checked' : '' }}>
+                    <span class="chip">{{ $ao['name'] }} <span style="opacity:0.65; font-variant-numeric:tabular-nums;">{{ $ao['count'] }}</span></span>
+                </label>
+            @endforeach
+            </div>
+        </div>
+        @endif
         @if(!empty($tagOptions['major']) || !empty($tagOptions['minor']))
         <div class="tag-filter {{ !empty($selectedTags) ? 'open' : '' }}" id="tagFilter">
             <button type="button" class="tag-filter-toggle" onclick="document.getElementById('tagFilter').classList.toggle('open')">
@@ -515,7 +533,7 @@
                             </span>
                         @endif
                     </td>
-                    <td>{{ $project->assignedUser?->display_name ?? '-' }}</td>
+                    <td>{{ implode(', ', $project->assigneeNames()) ?: '-' }}</td>
                     <td>
                         @if($showCancelled)
                             {{ $project->cancelled_at?->format('Y.m.d') ?? $project->created_at->format('Y.m.d') }}
@@ -605,6 +623,8 @@
             <div>
                 <div style="font-size:12px; color:var(--text-muted); margin-bottom:4px;">담당자 <span style="opacity:.8;">기본은 작성자</span></div>
                 <span id="npAssigneeWrap"></span>
+                <div style="font-size:12px; color:var(--text-muted); margin:10px 0 4px;">추가 담당자 <span style="opacity:.8;">함께 맡는 사람 (선택)</span></div>
+                <span id="npExtraAssigneeWrap"></span>
             </div>
             <div id="npMemoRow">
                 <div style="font-size:12px; color:var(--text-muted); margin-bottom:4px;">프로젝트 개요</div>
@@ -741,6 +761,7 @@ async function openNewProjectModal() {
     toggleNpNoClient();
     document.getElementById('npName').value = '';
     document.getElementById('npAssigneeWrap').innerHTML = assigneeSelectHtml('npAssignee', null, '', 'width:100%; padding:9px 12px; background:var(--surface2); border:1px solid var(--border); border-radius:8px; color:var(--text); font-size:14px; outline:none; box-sizing:border-box;');
+    document.getElementById('npExtraAssigneeWrap').innerHTML = assigneeExtraHtml('npExtraAssignees', []);
     document.getElementById('npScale').value = 'personal';
     document.getElementById('npMemo').value = '';
     document.getElementById('npPaymentOnly').checked = false;
@@ -886,6 +907,7 @@ async function submitNewProject() {
     }
     body.tags = CrmTagPicker.value('np'); // 대분류/소분류
     body.assigned_user_id = assigneeValue('npAssignee');
+    body.extra_assignee_ids = assigneeExtraValues('npExtraAssignees');
     if (noClient) {
         body.manual_client_name = document.getElementById('npManualName').value.trim() || null;
     }

@@ -6,6 +6,7 @@ use App\Http\Controllers\Concerns\HandlesFileUploads;
 use App\Models\FeedbackAttachment;
 use App\Models\FeedbackComment;
 use App\Models\FeedbackPost;
+use App\Models\Setting;
 use App\Models\User;
 use App\Notifications\FeedbackActivity;
 use App\Notifications\MentionAlert;
@@ -18,6 +19,7 @@ use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Storage;
+use Illuminate\Validation\Rule;
 
 class FeedbackController extends Controller
 {
@@ -35,6 +37,9 @@ class FeedbackController extends Controller
             'pageOptions' => self::PAGE_OPTIONS,
             'isDeveloper' => $this->isDeveloper(),
             'isAdmin' => (bool) Auth::user()?->isAdmin(),
+            'canSeeReviews' => (bool) Auth::user()?->canSeeFeedbackReviews(),
+            // 마스터만 AI 검수 열람자를 지정 — 화면에 현재 지정 목록을 내려준다
+            'reviewViewerIds' => $this->isDeveloper() ? User::feedbackReviewViewerIds() : [],
         ]);
     }
 
@@ -48,11 +53,21 @@ class FeedbackController extends Controller
             'page' => 'nullable|string|max:50',
             'sort' => 'nullable|in:latest,oldest,priority',
             'q' => 'nullable|string|max:100',
+            'review_pending' => 'nullable|boolean',
         ]);
 
+        $canSeeReviews = (bool) Auth::user()?->canSeeFeedbackReviews();
         $query = FeedbackPost::with(['author:id,display_name,username,role', 'comments.user:id,display_name,username,role', 'attachments'])
             ->withCount('comments')
             ->where('type', $validated['type']);
+
+        // AI 검수는 마스터와 마스터가 지정한 열람자에게만 — 그 외 응답에는 관계 자체를 싣지 않는다
+        if ($canSeeReviews) {
+            $query->with('review.decider:id,display_name,username');
+            if (! empty($validated['review_pending'])) {
+                $query->whereHas('review', fn ($r) => $r->where('decision', 'pending'));
+            }
+        }
 
         if (! empty($validated['status'])) {
             $query->where('status', $validated['status']);
@@ -95,6 +110,9 @@ class FeedbackController extends Controller
                 'bug' => FeedbackPost::where('type', 'bug')->count(),
                 'feature' => FeedbackPost::where('type', 'feature')->count(),
             ],
+            'review_pending_count' => $canSeeReviews
+                ? FeedbackPost::where('type', $validated['type'])->whereHas('review', fn ($r) => $r->where('decision', 'pending'))->count()
+                : null,
         ]);
     }
 
@@ -227,6 +245,65 @@ class FeedbackController extends Controller
         $post->update(['priority' => $validated['priority'] ?? null]);
 
         return response()->json(['ok' => true, 'priority' => $post->priority]);
+    }
+
+    /**
+     * AI 검수 결정 — 마스터와 마스터가 지정한 열람자 전용.
+     * 승인하면 글이 "검토중"(수락)으로 넘어가고, 에이전트가 승인 건만 가져가 수정한다. revise = 메모를 반영해 다시 검수.
+     */
+    public function decideReview(Request $request, FeedbackPost $post): JsonResponse
+    {
+        abort_unless((bool) Auth::user()?->canSeeFeedbackReviews(), 403, 'AI 검수 권한이 없습니다.');
+
+        $validated = $request->validate([
+            'decision' => 'required|in:approved,hold,rejected,revise',
+            'note' => 'required_if:decision,revise|nullable|string|max:1000',
+        ], [
+            'note.required_if' => '재검토 요청에는 메모를 입력해주세요.',
+        ]);
+
+        $review = $post->review;
+        abort_unless((bool) $review, 404, '검수 내용이 없습니다.');
+        abort_if($review->applied_at !== null, 409, '이미 반영된 검수입니다.');
+        abort_if(in_array($post->status, ['done', 'rejected'], true), 409, '완료·반려된 글의 검수는 결정할 수 없습니다.');
+
+        $wasApproved = $review->decision === 'approved';
+
+        $review->update([
+            'decision' => $validated['decision'],
+            'decision_note' => $validated['note'] ?? null,
+            'decided_by' => Auth::id(),
+            'decided_at' => now(),
+        ]);
+
+        if ($validated['decision'] === 'approved' && in_array($post->status, ['waiting', 'hold'], true)) {
+            $post->update(['status' => 'reviewing']);
+        } elseif ($wasApproved && $validated['decision'] !== 'approved' && $post->status === 'reviewing') {
+            // 승인 철회 — 승인으로 올렸던 "검토중"을 되돌린다 (보류는 글도 보류로, 그 외는 대기로)
+            $post->update(['status' => $validated['decision'] === 'hold' ? 'hold' : 'waiting']);
+        }
+
+        return response()->json([
+            'ok' => true,
+            'status' => $post->status,
+            'review' => $review->fresh('decider:id,display_name,username')->toPayload(),
+        ]);
+    }
+
+    /** AI 검수 열람자 지정 — 마스터 전용. 활성 사용자 ID 목록으로 통째 교체 (마스터는 목록과 무관하게 항상 열람) */
+    public function updateReviewViewers(Request $request): JsonResponse
+    {
+        abort_unless($this->isDeveloper(), 403, '마스터만 AI 검수 열람자를 지정할 수 있습니다.');
+
+        $validated = $request->validate([
+            'user_ids' => 'present|array|max:100',
+            'user_ids.*' => ['integer', Rule::exists('users', 'id')->where('is_active', true)], // 비활성 계정은 지정 불가
+        ]);
+
+        $ids = array_values(array_unique(array_map('intval', $validated['user_ids'])));
+        Setting::set('feedback_review_viewers', json_encode($ids));
+
+        return response()->json(['ok' => true, 'user_ids' => $ids]);
     }
 
     public function updateStatus(Request $request, FeedbackPost $post): JsonResponse
@@ -408,6 +485,8 @@ class FeedbackController extends Controller
             'done_at' => $p->done_at?->format('n/j'),
             'comments_count' => $p->comments_count ?? 0,
             'comments' => $p->relationLoaded('comments') ? $p->comments->map(fn ($c) => $this->commentPayload($c))->all() : [],
+            // 열람 권한자 응답에서만 review 관계가 로드됨 (list 참고) — 그 외에는 키 자체가 null
+            'review' => (Auth::user()?->canSeeFeedbackReviews() && $p->relationLoaded('review')) ? $p->review?->toPayload() : null,
             'attachments' => $p->relationLoaded('attachments') ? $p->attachments->map(fn ($a) => [
                 'id' => $a->id,
                 'file_name' => $a->file_name,

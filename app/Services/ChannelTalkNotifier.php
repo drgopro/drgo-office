@@ -7,6 +7,7 @@ use App\Jobs\SendChannelTalkGroupMessage;
 use App\Models\Assignee;
 use App\Models\Estimate;
 use App\Models\Notice;
+use App\Models\Project;
 use App\Models\Schedule;
 use App\Models\Setting;
 use App\Models\Todo;
@@ -151,6 +152,39 @@ class ChannelTalkNotifier
             }
         } catch (\Throwable $e) {
             Log::warning('채널톡 할 일 담당자 알림 실패: '.$e->getMessage());
+        }
+    }
+
+    /**
+     * 프로젝트 담당자 지정/제외 알림 — 새로 담당자가 된 사람과 담당에서 빠진 사람을 기본 팀챗 톡방(아웃바운드)에서 멘션.
+     * 대표·추가 담당자 구분 없이 "새로 지정된 사람"과 "빠진 사람"만 알린다 (할 일 담당자 알림과 같은 방식).
+     *
+     * @param  array<int, int>  $addedUserIds  새로 지정된 사용자 id
+     * @param  array<int, int>  $removedUserIds  담당에서 제외된 사용자 id
+     */
+    public function projectAssigneesChanged(Project $project, array $addedUserIds, array $removedUserIds = []): void
+    {
+        if (! $this->client->isConfigured() || (! $addedUserIds && ! $removedUserIds)) {
+            return;
+        }
+
+        try {
+            $owner = $project->client
+                ? (trim((string) $project->client->nickname) ?: trim((string) $project->client->name))
+                : trim((string) $project->manual_client_name);
+            $label = $owner !== '' ? "{$owner} · {$project->name}" : $project->name;
+            $url = route('projects.show', $project);
+
+            $added = $addedUserIds ? User::whereIn('id', $addedUserIds)->where('is_active', true)->get() : collect();
+            if ($added->isNotEmpty()) {
+                $this->send("📁 {$this->mentionList($added)} — '{$label}' 프로젝트의 담당자로 지정되었습니다\n{$url}");
+            }
+            $removed = $removedUserIds ? User::whereIn('id', $removedUserIds)->where('is_active', true)->get() : collect();
+            if ($removed->isNotEmpty()) {
+                $this->send("🔕 {$this->mentionList($removed)} — '{$label}' 프로젝트의 담당에서 제외되었습니다\n{$url}");
+            }
+        } catch (\Throwable $e) {
+            Log::warning('채널톡 프로젝트 담당자 알림 실패: '.$e->getMessage());
         }
     }
 

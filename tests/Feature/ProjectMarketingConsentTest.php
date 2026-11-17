@@ -239,4 +239,34 @@ class ProjectMarketingConsentTest extends TestCase
         $this->assertCount(1, $res->viewData('marketingRefusedClients'));
         $this->assertSame(2, $res->viewData('marketingConsentProjectCount'));
     }
+
+    public function test_marketing_report_client_lists_show_five_per_page_with_pager(): void
+    {
+        $admin = User::factory()->create(['role' => 'admin']);
+        // 포스팅 대기 7명(2쪽), 거부 5명(쪽 넘김 없음)
+        foreach (range(1, 7) as $i) {
+            $c = Client::create(['nickname' => "대기자{$i}", 'grade' => 'normal']);
+            Project::create(['client_id' => $c->id, 'name' => "대기 프로젝트 {$i}", 'stage' => 'done', 'marketing_consent' => true]);
+        }
+        foreach (range(1, 5) as $i) {
+            $c = Client::create(['nickname' => "거부자{$i}", 'grade' => 'normal']);
+            Project::create(['client_id' => $c->id, 'name' => "거부 프로젝트 {$i}", 'stage' => 'done', 'marketing_consent' => false]);
+        }
+
+        $html = $this->actingAs($admin)->get('/marketing-report')->assertOk()->getContent();
+
+        // 대기 목록: 7명 모두 그려지되 6번째부터는 숨김, 쪽 표시는 1 / 2
+        preg_match('/<div class="mk-list" id="mcList-p">(.*?)<div class="mk-pager" id="mcPager-p"/s', $html, $m);
+        $this->assertNotEmpty($m, '포스팅 대기 목록과 쪽 넘김이 있어야 합니다.');
+        $this->assertSame(7, substr_count($m[1], 'data-mc-item'));
+        $this->assertSame(2, preg_match_all('/data-mc-item\s+style="display:none;"/', $m[1]));
+        $this->assertStringContainsString('id="mcPager-p" data-page="1" data-pages="2"', $html);
+        $this->assertStringContainsString('<span>1 / 2</span>', $html);
+
+        // 5명 이하 목록에는 쪽 넘김이 없음
+        $this->assertStringContainsString('id="mcList-r"', $html);
+        $this->assertStringNotContainsString('id="mcPager-r"', $html);
+        // 제목 옆 전체 인원 수는 그대로
+        $this->assertMatchesRegularExpression('/포스팅 대기 의뢰자 <span[^>]*>· 7<\/span>/', $html);
+    }
 }

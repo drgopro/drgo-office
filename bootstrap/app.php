@@ -24,6 +24,7 @@ return Application::configure(basePath: dirname(__DIR__))
             'api/bank-deposits/ingest',
             'api/payapp/feedback',
             'api/agent-events/ingest', // 맥북 Claude Code 훅 (X-Agent-Token)
+            'api/agent/*', // 피드백 AI 검수 API (X-Agent-Token)
             'estimate-view/*', // 페이앱 returnurl POST 리다이렉트 수신
         ]);
         $middleware->alias([

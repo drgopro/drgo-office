@@ -72,6 +72,7 @@ Laravel 13 + Blade 단일 파일 뷰(인라인 CSS/JS) 구조. SPA 프레임워�
 - 댓글: 대댓글 1뎁스(parent_id), `fbComment(id, parentId?)`, `fbToggleReply`
 - @멘션: `MentionService::users(body)`(접두어 매칭) → `MentionAlert` 알림. 자동완성은 `partials/mention-autocomplete.blade.php`(data-mention 속성, /api/mention-users)
 - `fbMentionHtml`(멘션 하이라이트) ≠ `fbBodyHtml(p)`(게시물 본문 렌더) — 이름 충돌 주의!
+- AI 검수: `FeedbackReview`(글당 1건, 관리자 전용 노출) — `AgentFeedbackController`(/api/agent/feedback*, X-Agent-Token) 가 검수 등록·결과 기록, `FeedbackController::decideReview` 가 승인/보류/반려/재검토. 화면 `fbReviewHtml`. 실행 절차는 `feedback-review` 스킬
 
 ## 위키 — `wiki/show.blade.php` + `WikiController`
 

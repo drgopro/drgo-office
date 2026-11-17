@@ -2,7 +2,10 @@
 
 namespace App\Http\Controllers;
 
+use App\Models\Estimate;
 use App\Models\EstimatePreset;
+use App\Models\Product;
+use App\Models\Setting;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
@@ -43,6 +46,81 @@ class EstimatePresetController extends Controller
     public function editPage(EstimatePreset $preset)
     {
         return view('estimates.preset-edit', compact('preset'));
+    }
+
+    /**
+     * 프리셋을 견적서 양식으로 출력 — 표준 견적 안내용 이미지를 견적서를 만들지 않고 바로 저장.
+     * 저장하지 않는 임시 견적서 객체에 프리셋 품목(현재 판매가 반영)을 담아 견적서 인쇄 화면을 그대로 쓴다.
+     */
+    public function print(EstimatePreset $preset)
+    {
+        $items = $this->itemsAtCurrentPrices($preset->items ?? []);
+        $total = (int) collect($items)->sum('subtotal');
+
+        $estimate = new Estimate([
+            'title' => $preset->title,
+            'product_items' => $items,
+            'service_items' => [],
+            'product_total' => $total,
+            'service_total' => 0,
+            'total_amount' => $total,
+            'currency' => 'KRW',
+            'status' => 'draft',
+            'validity_days' => 3,
+        ]);
+        $estimate->created_at = $estimate->updated_at = now();
+
+        $settings = Setting::getMany([
+            'seller_name', 'seller_biz_no', 'seller_address',
+            'seller_biz_type', 'seller_biz_item', 'seller_phone', 'seller_stamp_path',
+        ]);
+
+        return view('estimates.print', [
+            'estimate' => $estimate,
+            'settings' => $settings,
+            'rounds' => collect(),
+            'presetMode' => true,
+        ]);
+    }
+
+    /**
+     * 프리셋 품목을 현재 판매가(기간 할인 포함)로 갱신 — 견적서에서 프리셋을 불러올 때와 같은 금액이 되도록.
+     * 수기 입력 품목·삭제된 제품, 가격 고정(price_fixed)·수동 특가·대체된 품목은 저장된 가격 그대로 둔다
+     * (Estimate::syncSnapshotPrices 와 같은 보호 규칙).
+     *
+     * @param  array<int, array<string, mixed>>  $items
+     * @return array<int, array<string, mixed>>
+     */
+    private function itemsAtCurrentPrices(array $items): array
+    {
+        $products = Product::whereIn('id', collect($items)->pluck('product_id')->filter()->unique())->get()->keyBy('id');
+
+        return collect($items)->map(function (array $item) use ($products) {
+            $qty = max(1, (int) ($item['qty'] ?? 1));
+            $manualDeal = ! empty($item['deal_type']) && empty($item['auto_deal']);
+            $protected = ! empty($item['manual']) || ! empty($item['price_fixed']) || ! empty($item['replaced']) || $manualDeal;
+            $product = (! empty($item['product_id']) && ! $protected) ? $products->get($item['product_id']) : null;
+            if ($product) {
+                $sale = (int) $product->sale_price;
+                $discount = $product->activeDiscountAmount();
+                $item['sale_price'] = $discount > 0 ? $product->discountedPrice() : $sale;
+                if ($discount > 0) {
+                    $item['deal_type'] = 'discount';
+                    $item['auto_deal'] = true;
+                    $item['original_price'] = $sale;
+                    $item['discount_rate'] = $sale > 0 ? ((int) round($discount / $sale * 100) ?: null) : null;
+                    $item['deal_starts_at'] = $product->discount_starts_at?->format('Y-m-d H:i');
+                    $item['deal_ends_at'] = $product->discount_ends_at?->format('Y-m-d H:i');
+                } else {
+                    // 할인이 끝났으면 저장돼 있던 할인 표시도 지운다 (정가인데 할인 배지가 남지 않게)
+                    unset($item['deal_type'], $item['auto_deal'], $item['original_price'], $item['discount_rate'], $item['deal_starts_at'], $item['deal_ends_at']);
+                }
+            }
+            $item['qty'] = $qty;
+            $item['subtotal'] = (int) ($item['sale_price'] ?? 0) * $qty;
+
+            return $item;
+        })->all();
     }
 
     public function index(): JsonResponse
