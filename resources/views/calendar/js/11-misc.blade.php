@@ -744,7 +744,7 @@ async function toggleCompleteFromDetail() {
 }
 
 // ── 상세 내용 자동 높이(최대 400px, 초과 시 스크롤) ──
-const CAL_AUTOGROW_IDS = ['commonDesc', 'commonHandoverNote', 't_desc', 't_remote_content', 't_studio_content', 'g_req_detail', 'g_special'];
+const CAL_AUTOGROW_IDS = ['modalTitle', 'commonDesc', 'commonHandoverNote', 't_desc', 't_remote_content', 't_studio_content', 'g_req_detail', 'g_special'];
 function calAutoGrow(el) {
     if (!el) return;
     el.style.height = 'auto';

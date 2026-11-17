@@ -825,6 +825,13 @@
         /* 모바일 여백/크기 정돈 — 카드가 좁아지지 않도록 */
         #modalOverlay .modal-body { padding:12px; gap:12px; }
         #modalOverlay .modal-header { padding:14px 16px 12px; }
+        /* 모바일 머리: 버튼 묶음은 맨 위 한 줄(오른쪽), 날짜·제목·담당자는 아래에서 전체 폭 — 제목이 좁은 칸에 갇혀 잘리던 문제 */
+        #modalOverlay .modal-header { flex-wrap:wrap; row-gap:10px; }
+        #modalOverlay .modal-header > div:first-child { order:2; flex:1 1 100%; min-width:0; }
+        #modalOverlay .modal-header-btns { order:1; width:100%; justify-content:flex-end; flex-wrap:nowrap; }
+        #modalOverlay .modal-title-input { overflow:hidden; line-height:1.35; }
+        #modalOverlay .assignee-btn { max-width:100%; }
+        #modalOverlay .assignee-btn #assigneeBtnLabel, #modalOverlay .assignee-btn #notifyBtnLabel { overflow:visible; text-overflow:clip; white-space:normal; }
         #modalOverlay .modal-footer { padding:12px 16px 14px; }
         #modalOverlay .ls-card { padding:14px; border-radius:12px; }
         #modalOverlay .ls-grid { gap:10px; }
