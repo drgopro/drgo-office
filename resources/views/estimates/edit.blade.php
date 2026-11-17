@@ -1482,18 +1482,21 @@ function setItemDeal(idx) {
         delete item.auto_deal; delete item.deal_starts_at; delete item.deal_ends_at;
         item.sale_price = price;
     } else {
-        const p = prompt(`할인율(%) 또는 할인 후 금액(원)을 입력하세요.\n예: 10%  또는  ${fmt(Math.round(orig * 0.9))}\n정가 ${fmt(orig)}원`, item.discount_rate ? item.discount_rate + '%' : '');
+        const p = prompt(`할인율(1~100%) 또는 할인 후 금액(원)을 입력하세요.\n예: 10%  또는  ${fmt(Math.round(orig * 0.9))}  (100% = 0원, 무상 제공)\n정가 ${fmt(orig)}원`, item.discount_rate ? item.discount_rate + '%' : '');
         if (p === null) return;
         const s = String(p).trim();
+        if (s === '') return; // 빈칸 확인은 취소로 (0원으로 바뀌지 않게)
         if (/^\d+(\.\d+)?\s*%$/.test(s)) {
             const rate = parseFloat(s);
-            if (!(rate > 0 && rate < 100)) return alert('할인율은 0~100 사이여야 합니다.');
+            if (!(rate > 0 && rate <= 100)) return alert('할인율은 1~100% 사이로 입력해주세요.'); // 100% = 무상(0원)
             item.deal_type = 'discount'; item.original_price = orig; item.discount_rate = rate;
             delete item.auto_deal; delete item.deal_starts_at; delete item.deal_ends_at;
             item.sale_price = Math.round(orig * (1 - rate / 100));
         } else {
-            const price = parseInt(s.replace(/[^\d]/g, ''), 10) || 0;
-            if (!(price > 0 && price < orig)) return alert('할인 후 금액은 정가보다 작아야 합니다.');
+            const digits = s.replace(/[^\d]/g, '');
+            if (digits === '') return alert('할인율(%) 또는 금액(원)을 확인해주세요.');
+            const price = parseInt(digits, 10);
+            if (!(price >= 0 && price < orig)) return alert('할인 후 금액은 0원 이상, 정가보다 작아야 합니다.');
             item.deal_type = 'discount'; item.original_price = orig; item.discount_rate = null;
             delete item.auto_deal; delete item.deal_starts_at; delete item.deal_ends_at;
             item.sale_price = price;
