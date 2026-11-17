@@ -496,7 +496,6 @@ function renderCalSide(){
 function csAlignTop(){
     const side=document.getElementById('calSide');
     if(!side) return;
-    if(window.innerWidth<=1024){ side.style.marginTop='0'; return; }
     let head=null;
     if(currentView==='month') head=document.querySelector('#monthView .weekdays');
     else if(currentView==='week'||currentView==='day') head=document.querySelector('#timelineView .tl-header');
@@ -505,6 +504,10 @@ function csAlignTop(){
         const bodyTop=document.getElementById('calBody').getBoundingClientRect().top;
         offset=Math.max(0, Math.round(head.getBoundingClientRect().bottom - bodyTop));
     }
+    // 대기함 패널도 같은 시작선에 맞춘다 (좁은 화면에서 달력 아래로 내려가면 CSS가 0으로 덮는다)
+    const bench=document.getElementById('calBench');
+    if(bench) bench.style.marginTop=offset?offset+'px':'0';
+    if(window.innerWidth<=1024){ side.style.marginTop='0'; return; }
     side.style.marginTop=offset?offset+'px':'0';
     // 패널 높이는 콘텐츠에 맞춤 — 그리드 전체 높이로 늘리면 아래 빈 공간이 과도함
     side.style.height='';

@@ -28,7 +28,7 @@
     @media (min-width:769px) { #benchBtn { margin-left:auto; } #benchBtn + #calTrashBtn { margin-left:0; } }
 
     /* 패널 — 달력 오른쪽, 기본 접힘. 860px 이하에서는 달력 아래로 */
-    #calBench { width:360px; flex-shrink:0; align-self:flex-start; display:flex; flex-direction:column; min-width:0; max-height:calc(100vh - 140px); position:sticky; top:12px; background:var(--surface2); border:1px solid var(--border); border-radius:14px; overflow:hidden; font-size:13px; line-height:1.45; }
+    #calBench { width:360px; flex-shrink:0; align-self:flex-start; margin-right:16px; display:flex; flex-direction:column; min-width:0; max-height:calc(100vh - 140px); position:sticky; top:12px; background:var(--surface2); border:1px solid var(--border); border-radius:14px; overflow:hidden; font-size:13px; line-height:1.45; }
     #calBench[hidden] { display:none; }
     .bench-head { padding:12px 12px 8px; display:grid; gap:8px; border-bottom:1px solid var(--border); }
     .bench-head h3 { margin:0; font-size:15px; display:flex; justify-content:space-between; align-items:center; gap:8px; }
@@ -127,10 +127,10 @@
     #benchToast button { background:none; border:0; color:#9fc5ff; font-weight:700; padding:0; cursor:pointer; font-family:inherit; font-size:13px; white-space:nowrap; }
 
     .bench-close { display:none; }
-    @media (min-width:861px) { body.bench-open #calAddFab { right:408px; } }
+    @media (min-width:861px) { body.bench-open #calAddFab { right:424px; } }
     @media (max-width:860px) {
         #calBody { flex-wrap:wrap; }
-        #calBench { width:100%; max-height:none; position:static; }
+        #calBench { width:100%; max-height:none; position:static; margin:0 !important; }
         .bench-list { overflow:visible; }
     }
     /* 모바일 — 달력 아래는 하단 일정 시트에 가려지므로 전체 화면으로 띄우고 닫기 버튼을 둔다 */
