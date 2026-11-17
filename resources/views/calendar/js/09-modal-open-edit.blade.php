@@ -254,7 +254,7 @@ function setViewModeUI(){
     applyLockUI();
     document.querySelector('.btn-save-top').style.display='none';
     document.getElementById('btnDelete').style.display='';
-    benchModalBtn(ev); // 대기함으로 보내기 — 방문·원격 단독 일정만
+    benchModalBtn(editingId?events.find(e=>e.id===editingId):null); // 대기함으로 보내기 — 방문·원격 단독 일정만
     document.getElementById('btnLog').style.display='';
     updateCompleteUI(true); // 푸터 완료 버튼 노출(보기 모드)
     // 외부 버튼을 수정으로
