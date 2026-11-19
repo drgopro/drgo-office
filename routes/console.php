@@ -19,9 +19,6 @@ Schedule::command('shipments:refresh')->everyThirtyMinutes()->withoutOverlapping
 // drgo.pro 게시판 새 글/답변/댓글 감시 → 채널톡 알림 (1분 주기 — 등록 후 1분 내 도착).
 // 1코어 서버 시절 CPU 포화로 2분으로 늘렸던 것을, 2코어(Vultr) 이전 후 다시 1분으로
 Schedule::command('drgo:watch-boards')->everyMinute()->withoutOverlapping(10);
-// 채널톡 고객 미러 동기화 — 의뢰자 등록 '채널톡 연동' 검색 + 전화번호 자동 연동 (30분 주기 — 실행당 CPU 수 초·90MB).
-// withoutOverlapping 기본 잠금(24시간)은 실행이 비정상 종료되면 하루 내내 건너뛰므로 60분으로 제한
-Schedule::command('drgo:sync-channeltalk-users')->everyThirtyMinutes()->withoutOverlapping(60);
 
 // 컴퓨존 시세 자동 갱신 (매일 새벽 5시 30분)
 Schedule::command('products:refresh-market-prices')->dailyAt('05:30')->withoutOverlapping();

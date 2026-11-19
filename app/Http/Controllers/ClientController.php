@@ -2,16 +2,12 @@
 
 namespace App\Http\Controllers;
 
-use App\Models\ChannelTalkUser;
 use App\Models\Client;
 use App\Models\ClientContact;
 use App\Models\ClientMemo;
 use App\Models\Project;
 use App\Models\ProjectFieldDefinition;
 use App\Models\Schedule;
-use App\Services\ChannelTalkClient;
-use App\Services\ChannelTalkProfileSync;
-use App\Services\ChannelTalkUserMirror;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 
@@ -96,192 +92,6 @@ class ClientController extends Controller
             ->first(fn ($c) => preg_replace('/\D+/', '', (string) $c->phone) === $digits);
     }
 
-    /**
-     * 채널톡 고객 검색 (로컬 미러) — 의뢰자 등록의 '채널톡 연동' 버튼용.
-     * 이름/전화(숫자만 비교)/이메일 부분 일치, 최근 갱신순 10건.
-     */
-    public function channeltalkUsers(Request $request)
-    {
-        $q = trim((string) $request->query('q', ''));
-        if ($q === '') {
-            return response()->json([]);
-        }
-        $digits = preg_replace('/\D+/', '', $q);
-
-        $rows = ChannelTalkUser::query()
-            ->where(function ($query) use ($q, $digits) {
-                $query->where('name', 'like', "%{$q}%")
-                    ->orWhere('email', 'like', "%{$q}%");
-                if (strlen($digits) >= 4) {
-                    $query->orWhere('mobile_digits', 'like', "%{$digits}%");
-                }
-            })
-            ->orderByDesc('ct_updated_at')
-            ->limit(10)
-            ->get(['ct_id', 'name', 'mobile', 'mobile_digits', 'email', 'tags', 'profile']);
-
-        // 이미 연동된 의뢰자 표시 — 중복 등록 여부 판단 도움
-        $linked = Client::whereIn('channeltalk_user_id', $rows->pluck('ct_id'))
-            ->get(['id', 'nickname', 'name', 'channeltalk_user_id'])->keyBy('channeltalk_user_id');
-
-        return response()->json($rows->map(fn ($u) => [
-            'ct_id' => $u->ct_id,
-            'name' => $u->name,
-            'mobile' => $u->mobile,
-            'mobile_digits' => $u->mobile_digits,
-            'email' => $u->email,
-            'tags' => $u->tags ?? [],
-            ...$this->mapChanneltalkProfile($u->profile ?? []),
-            'linked_client' => $linked->has($u->ct_id) ? [
-                'id' => $linked[$u->ct_id]->id,
-                'label' => $linked[$u->ct_id]->nickname ?: $linked[$u->ct_id]->name,
-            ] : null,
-        ])->values());
-    }
-
-    /**
-     * 채널톡 '지금 동기화' — 검색에 안 뜰 때 수동 버튼으로 최근 상담 고객을 즉시 미러에 반영.
-     * 각 상담 상태(진행/보류/종료)의 최신 1페이지만 훑으므로 몇 초면 끝난다.
-     * 스케줄 동기화의 커서(워터마크)는 건드리지 않는다.
-     */
-    public function channeltalkSyncRecent(ChannelTalkClient $channelTalk)
-    {
-        if (! $channelTalk->isConfigured()) {
-            return response()->json(['message' => '채널톡 연동 정보가 설정되지 않았습니다.'], 422);
-        }
-
-        // 연타 방지 — 15초 안에 다시 누르면 방금 결과를 그대로 쓰도록 안내
-        $lock = cache()->lock('channeltalk.recent-sync', 15);
-        if (! $lock->get()) {
-            return response()->json(['message' => '방금 동기화했습니다. 다시 검색해 보세요.'], 429);
-        }
-
-        $upserted = 0;
-        $linked = 0;
-        $errors = [];
-        foreach (['opened', 'snoozed', 'closed'] as $state) {
-            $res = $channelTalk->listUsers($state); // 최신순 1페이지(100명)
-            if (! ($res['ok'] ?? false)) {
-                $errors[] = (string) ($res['error'] ?? $state.' 조회 실패');
-
-                continue;
-            }
-            foreach ($res['users'] ?? [] as $u) {
-                $r = ChannelTalkUserMirror::apply($u);
-                $upserted += $r['upserted'] ? 1 : 0;
-                $linked += $r['linked'];
-            }
-        }
-
-        if ($upserted === 0 && $errors !== []) {
-            return response()->json(['message' => '채널톡 조회 실패: '.implode(' / ', $errors)], 502);
-        }
-
-        return response()->json(['upserted' => $upserted, 'linked' => $linked]);
-    }
-
-    /**
-     * 채널톡 고객 1명 실시간 조회 — 선택 시점에 최신 프로필로 매핑 (미러에 프로필이 없어도 동작).
-     * 조회 성공 시 미러도 갱신, 실패하면 미러 값으로 폴백.
-     */
-    public function channeltalkUserFresh(string $ctId, ChannelTalkClient $channelTalk)
-    {
-        $res = $channelTalk->getUser($ctId);
-        if ($res['ok'] ?? false) {
-            $u = $res['user'];
-            $digits = ChannelTalkUser::normalizePhone($u['mobile']);
-            $row = ChannelTalkUser::updateOrCreate(['ct_id' => $u['ct_id']], [
-                'name' => $u['name'] ?: null,
-                'mobile' => $u['mobile'] ?: null,
-                'mobile_digits' => strlen($digits) >= 7 ? $digits : null,
-                'email' => $u['email'] ?: null,
-                'tags' => $u['tags'] ?: null,
-                'profile' => $u['profile'] ?: null,
-                'ct_updated_at' => $u['updated_at'] ? date('Y-m-d H:i:s', intdiv($u['updated_at'], 1000)) : null,
-            ]);
-        } else {
-            $row = ChannelTalkUser::where('ct_id', $ctId)->first(); // 통신 실패 — 미러 폴백
-            if (! $row) {
-                return response()->json(['message' => '채널톡 고객 조회 실패: '.($res['error'] ?? '')], 502);
-            }
-        }
-
-        return response()->json([
-            'ct_id' => $row->ct_id,
-            'name' => $row->name,
-            'mobile' => $row->mobile,
-            'mobile_digits' => $row->mobile_digits,
-            'email' => $row->email,
-            'tags' => $row->tags ?? [],
-            ...$this->mapChanneltalkProfile($row->profile ?? []),
-        ]);
-    }
-
-    /**
-     * 채널톡 커스텀 프로필 키 → 의뢰자 필드 매핑.
-     * profile.name=닉네임 / truename=이름 / platform=방송 플랫폼(list) / content=방송주제(list)
-     * / history=경력 / note=중요메모 / chname=방송국 주소 / address=주소.
-     * 오피스 선택지에 없는 플랫폼·주제는 '기타' + 직접입력 텍스트로 넘긴다.
-     *
-     * @param  array<string, mixed>  $profile
-     * @return array<string, mixed>
-     */
-    private function mapChanneltalkProfile(array $profile): array
-    {
-        $toList = fn ($v) => collect(is_array($v) ? $v : (trim((string) $v) !== '' ? preg_split('/[,\/]+/', (string) $v) : []))
-            ->map(fn ($x) => trim((string) $x))->filter()->values();
-
-        // 방송 플랫폼 — 오피스 명칭으로 정규화 (아프리카→SOOP 등), 미지원은 기타 텍스트
-        $platMap = ['SOOP' => 'SOOP', 'soop' => 'SOOP', '아프리카' => 'SOOP', '아프리카TV' => 'SOOP',
-            '유튜브' => '유튜브', 'YouTube' => '유튜브', '치지직' => '치지직', '틱톡' => '틱톡', '팬더티비' => '팬더티비', '팬더' => '팬더티비'];
-        $platforms = [];
-        $platformEtc = [];
-        foreach ($toList($profile['platform'] ?? null) as $p) {
-            if (isset($platMap[$p])) {
-                $platforms[] = $platMap[$p];
-            } elseif ($p !== '기타') {
-                $platformEtc[] = $p;
-            }
-        }
-        if ($platformEtc) {
-            $platforms[] = '기타';
-        }
-
-        // 방송주제 — 오피스 선택지 외는 기타 텍스트
-        $knownTopics = ['소통', '게임', '노래', '먹방', '야외', '버추얼', '코인', '주식', '미정'];
-        $topics = [];
-        $topicEtc = [];
-        foreach ($toList($profile['content'] ?? null) as $t) {
-            if (in_array($t, $knownTopics, true)) {
-                $topics[] = $t;
-            } elseif ($t !== '기타') {
-                $topicEtc[] = $t;
-            }
-        }
-        if ($topicEtc) {
-            $topics[] = '기타';
-        }
-
-        // 경력 — 오피스 선택지(처음/초보/경력)로 근사 매핑
-        $history = trim((string) ($profile['history'] ?? ''));
-        $career = str_contains($history, '경력') ? '경력'
-            : (str_contains($history, '초보') ? '초보'
-            : (str_contains($history, '처음') || str_contains($history, '신규') ? '처음' : ''));
-
-        return [
-            'truename' => trim((string) ($profile['truename'] ?? '')),
-            'platforms' => array_values(array_unique($platforms)),
-            'platform_etc' => implode(', ', $platformEtc),
-            'content_types' => array_values(array_unique($topics)),
-            'topic_etc' => implode(', ', $topicEtc),
-            'career' => $career,
-            'career_raw' => $history,
-            'broadcast_id' => trim((string) ($profile['chname'] ?? '')),
-            'address' => trim((string) ($profile['address'] ?? '')),
-            'important_memo' => trim((string) ($profile['note'] ?? '')),
-        ];
-    }
-
     /** 등록 폼의 사전 중복 확인 — 같은 번호의 기존 의뢰자 정보 반환 */
     public function checkPhone(Request $request)
     {
@@ -347,7 +157,6 @@ class ClientController extends Controller
         $validated['status'] = 'active';
 
         $client = Client::create($validated);
-        ChannelTalkProfileSync::push($client); // 채널톡 연동 등록이면 오피스 값 반영 (오피스가 원본)
 
         return redirect()->route('clients.show', $client)->with('success', '의뢰자가 등록되었습니다.');
     }
@@ -430,7 +239,6 @@ class ClientController extends Controller
             $validated['station_addresses'] = $this->cleanStationAddresses($validated['station_addresses']);
         }
         $client->update($validated);
-        ChannelTalkProfileSync::push($client->fresh()); // 연동 의뢰자 수정 → 채널톡 프로필 반영
 
         return redirect()->route('clients.show', $client)->with('success', '수정되었습니다.');
     }
@@ -732,7 +540,6 @@ class ClientController extends Controller
         }
 
         $client->update($validated);
-        ChannelTalkProfileSync::push($client->fresh()); // 연동 의뢰자 수정 → 채널톡 프로필 반영
 
         return response()->json(['message' => '저장되었습니다.']);
     }
@@ -770,7 +577,6 @@ class ClientController extends Controller
             'extra_addresses.*.label' => 'nullable|string|max:30', // 주소 용도 (이사 전/후, 자택/스튜디오 등)
             'important_memo' => 'nullable|string',
             'memo' => 'nullable|string',
-            'channeltalk_user_id' => 'nullable|string|max:60', // 채널톡 연동 버튼으로 불러온 고객 ID
             'force_duplicate' => 'nullable|boolean', // 중복 경고 팝업에서 '추가등록' 선택
         ]);
         unset($validated['force_duplicate']);
@@ -799,7 +605,6 @@ class ClientController extends Controller
         $validated['status'] = 'active';
 
         $client = Client::create($validated);
-        ChannelTalkProfileSync::push($client); // 채널톡 연동 등록이면 오피스 값 반영 (오피스가 원본)
 
         return response()->json(['id' => $client->id, 'message' => '등록되었습니다.'], 201);
     }

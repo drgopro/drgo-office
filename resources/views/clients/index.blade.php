@@ -428,24 +428,12 @@
                     @if(empty($newClientWrite))
                     <button type="button" class="ncm-btn wm-accent" onclick="openNewClientWriteMode()" title="이 등록 화면을 독립된 창으로 띄웁니다 — 상담하면서 다른 화면과 오가며 작성하기 편합니다. 등록하면 그 창이 그대로 의뢰자 작성 모드가 됩니다">↗ 작성 모드로 열기</button>
                     @endif
-                    <button type="button" class="ncm-btn" id="ncCtBtn" onclick="toggleCtPanel()" title="채널톡 상담 고객을 검색해 이름/연락처를 불러옵니다">채널톡 연동</button>
                     <button type="button" class="ncm-btn" onclick="closeNewClientModal()">취소</button>
                     <button type="button" class="ncm-btn primary" onclick="createClient()">등록</button>
                     <button type="button" class="ncm-btn icon" onclick="closeNewClientModal()" title="닫기">✕</button>
                 </div>
             </div>
             <input class="ncm-hero" id="ncNickname" placeholder="의뢰자 닉네임을 입력하세요 *" autocomplete="off">
-            {{-- 채널톡 연동 패널 — 미러(10분 주기 동기화)에서 검색해 이름/연락처 프리필 --}}
-            <div id="ncCtPanel" style="display:none; margin-top:10px; border:1px solid var(--border); border-radius:10px; padding:12px 14px; background:var(--surface2);">
-                <div style="display:flex; gap:8px; align-items:center;">
-                    <input class="ncm-input" id="ncCtSearch" placeholder="채널톡 고객 검색 — 이름/전화번호/이메일" style="flex:1;" oninput="ctSearchChanged()">
-                    <button type="button" class="ncm-btn" id="ncCtSyncBtn" style="height:30px; padding:0 10px; font-size:13px; white-space:nowrap;" onclick="ctSyncRecent()" title="검색에 안 뜨면 최근 상담 고객을 지금 바로 채널톡에서 가져옵니다">지금 동기화</button>
-                    <span id="ncCtLinkedBadge" style="display:none; font-size:12px; font-weight:700; color:var(--accent); border:1px solid var(--accent); border-radius:10px; padding:3px 9px; white-space:nowrap;">연동됨</span>
-                    <button type="button" class="ncm-btn" id="ncCtUnlinkBtn" style="display:none; height:30px; padding:0 10px; font-size:13px;" onclick="ctUnlink()">해제</button>
-                </div>
-                <div id="ncCtResults" style="margin-top:8px; max-height:220px; overflow-y:auto;"></div>
-                <div style="font-size:12px; color:var(--text-muted); margin-top:6px;">채널톡 고객 정보는 10분마다 자동 동기화됩니다. 선택하면 이름·연락처가 채워지고 등록 시 채널톡 고객과 연동됩니다.</div>
-            </div>
             <div class="ncm-pills">
                 <label class="ncm-pill">등급
                     <select id="ncGrade">
@@ -2344,147 +2332,6 @@ function showDupClientDialog(existing, onConfirm) {
     ov.onclick = e => { if (e.target === ov) ov.remove(); };
 }
 
-// ── 채널톡 연동 — 미러 검색 → 이름/연락처 프리필 + 등록 시 고객 ID 연동 ──
-let ncCtUserId = null;
-let ctSearchTimer = null;
-function toggleCtPanel() {
-    const p = document.getElementById('ncCtPanel');
-    const show = p.style.display === 'none';
-    p.style.display = show ? '' : 'none';
-    if (show) {
-        // 이미 입력한 전화/닉네임을 초기 검색어로
-        const seed = document.getElementById('ncPhone').value.trim() || document.getElementById('ncNickname').value.trim();
-        const inp = document.getElementById('ncCtSearch');
-        if (seed && !inp.value) { inp.value = seed; ctSearch(); }
-        setTimeout(() => inp.focus(), 50);
-    }
-}
-function ctSearchChanged() {
-    clearTimeout(ctSearchTimer);
-    ctSearchTimer = setTimeout(ctSearch, 300);
-}
-// 수동 '지금 동기화' — 최근 상담 고객(상태별 최신 1페이지)을 즉시 미러로 가져온 뒤 재검색
-let ctSyncBusy = false;
-async function ctSyncRecent() {
-    if (ctSyncBusy) return;
-    ctSyncBusy = true;
-    const btn = document.getElementById('ncCtSyncBtn');
-    const prev = btn ? btn.textContent : '';
-    if (btn) { btn.disabled = true; btn.textContent = '동기화 중...'; }
-    try {
-        const res = await fetch('/api/channeltalk/sync-recent', {
-            method: 'POST',
-            headers: {'Content-Type':'application/json','X-CSRF-TOKEN':CSRF,'Accept':'application/json'},
-        });
-        const body = await res.json().catch(() => ({}));
-        if (!res.ok) {
-            alert(body.message || '동기화에 실패했습니다.');
-            return;
-        }
-        const q = document.getElementById('ncCtSearch').value.trim();
-        if (q) {
-            await ctSearch(); // 갱신된 미러로 바로 재검색
-        } else {
-            const box = document.getElementById('ncCtResults');
-            if (box) box.innerHTML = `<div style="padding:8px; font-size:13px; color:var(--green);">동기화 완료 — 최근 상담 고객 ${body.upserted || 0}명 갱신${body.linked ? `, 의뢰자 자동 연동 ${body.linked}건` : ''}. 이제 검색해 보세요.</div>`;
-        }
-    } finally {
-        ctSyncBusy = false;
-        if (btn) { btn.disabled = false; btn.textContent = prev; }
-    }
-}
-async function ctSearch() {
-    const q = document.getElementById('ncCtSearch').value.trim();
-    const box = document.getElementById('ncCtResults');
-    if (!q) { box.innerHTML = ''; return; }
-    box.innerHTML = '<div style="padding:8px; font-size:13px; color:var(--text-muted);">검색 중...</div>';
-    const res = await fetch('/api/channeltalk/users?q=' + encodeURIComponent(q));
-    const list = res.ok ? await res.json() : [];
-    if (!list.length) {
-        box.innerHTML = `<div style="padding:8px; font-size:13px; color:var(--text-muted);">채널톡에서 찾지 못했습니다 — 방금 상담한 고객은 아직 미러에 없을 수 있습니다.
-            <button type="button" class="ncm-btn" style="height:26px; padding:0 10px; font-size:13px; margin-left:6px;" onclick="ctSyncRecent()">지금 동기화</button></div>`;
-        return;
-    }
-    box.innerHTML = list.map(u => `
-        <div style="display:flex; align-items:center; gap:10px; padding:8px 10px; border-bottom:1px solid var(--border); ${u.linked_client ? 'opacity:0.65;' : 'cursor:pointer;'}"
-            ${u.linked_client ? '' : `onclick='ctPick(${JSON.stringify(u).replace(/'/g, "&#39;")})'`}>
-            <div style="flex:1; min-width:0;">
-                <div style="font-size:14px; font-weight:600;">${_esc(u.name || '(이름 없음)')}</div>
-                <div style="font-size:13px; color:var(--text-muted);">${_esc(u.mobile || '-')}${u.email ? ' · ' + _esc(u.email) : ''}</div>
-            </div>
-            ${u.linked_client
-                ? `<span style="font-size:12px; color:var(--text-muted); white-space:nowrap;" title="이미 이 채널톡 고객과 연동된 의뢰자가 있습니다">연동됨: ${_esc(u.linked_client.label || '')}</span>`
-                : '<span style="font-size:12px; color:var(--accent); white-space:nowrap;">불러오기</span>'}
-        </div>`).join('');
-}
-// 체크박스 그룹(플랫폼/주제) 채우기 — 기존 선택은 유지하고 추가만, '기타' 텍스트는 빈 칸일 때만
-function ctSetCheckGroup(group, values, etcText) {
-    const wrap = document.getElementById(`chkgroup-${group}-nc`);
-    if (!wrap || (!values?.length && !etcText)) return;
-    (values || []).forEach(v => {
-        const cb = wrap.querySelector(`input[value="${v}"]`);
-        if (cb) cb.checked = true;
-    });
-    syncChipState(wrap);
-    if ((values || []).includes('기타') || etcText) {
-        toggleEtcInput(group, 'nc');
-        const etc = document.getElementById(`f-${group}-etc-nc`);
-        if (etc && etcText && !etc.value.trim()) etc.value = etcText;
-    }
-}
-async function ctPick(u) {
-    ncCtUserId = u.ct_id;
-    // 선택 시점에 채널톡에서 최신 프로필을 실시간 조회 — 미러가 프로필 저장 이전(구버전)이어도 매핑 동작
-    try {
-        const res = await fetch(`/api/channeltalk/users/${encodeURIComponent(u.ct_id)}/fresh`, { headers: { 'Accept': 'application/json' } });
-        if (res.ok) u = { ...u, ...(await res.json()) };
-    } catch (e) { /* 실시간 조회 실패 — 미러(검색 결과) 값으로 진행 */ }
-    const fillIfEmpty = (id, val) => {
-        const el = document.getElementById(id);
-        if (el && val && !el.value.trim()) el.value = val;
-    };
-    fillIfEmpty('ncNickname', u.name);              // profile.name = 닉네임
-    fillIfEmpty('ncName', u.truename || u.name);    // profile.truename = 이름
-    const phone = document.getElementById('ncPhone');
-    if (u.mobile_digits && !phone.value.trim()) {
-        phone.value = u.mobile_digits;
-        phone.dispatchEvent(new Event('input', { bubbles: true })); // 전역 하이픈 포맷터 적용
-    }
-    // 방송 플랫폼/주제 — 오피스 선택지로 매핑된 값 + 미지원은 기타 텍스트
-    ctSetCheckGroup('platforms', u.platforms, u.platform_etc);
-    syncStationAddrInputs('nc'); // 프로그램으로 체크한 플랫폼은 change 이벤트가 없어 직접 재구성
-    ctSetCheckGroup('topics', u.content_types, u.topic_etc);
-    // 경력 — 처음/초보/경력으로 근사 매핑된 값만 (원문이 다르면 특이사항에 남김)
-    const careerSel = document.getElementById('ncCareer');
-    if (careerSel && u.career && !careerSel.value) careerSel.value = u.career;
-    fillIfEmpty('ncBroadcastId', u.broadcast_id);   // profile.chname = 방송국 주소
-    fillIfEmpty('ncAddress', u.address);            // profile.address = 주소
-    fillIfEmpty('ncImportantMemo', u.important_memo); // profile.note = 중요메모
-    // 경력 원문이 선택지로 매핑되지 않은 경우 유실 방지 — 특이사항에 덧붙임
-    if (u.career_raw && !u.career) {
-        const memo = document.getElementById('ncImportantMemo');
-        if (memo && !memo.value.includes(u.career_raw)) {
-            memo.value = (memo.value ? memo.value + '\n' : '') + '채널톡 경력: ' + u.career_raw;
-        }
-    }
-    document.getElementById('ncCtResults').innerHTML = '';
-    document.getElementById('ncCtSearch').value = u.name || u.mobile || '';
-    document.getElementById('ncCtLinkedBadge').style.display = '';
-    document.getElementById('ncCtUnlinkBtn').style.display = '';
-    if (typeof ncmRefresh === 'function') ncmRefresh();
-}
-function ctUnlink() {
-    ncCtUserId = null;
-    document.getElementById('ncCtLinkedBadge').style.display = 'none';
-    document.getElementById('ncCtUnlinkBtn').style.display = 'none';
-}
-function ctResetPanel() {
-    ctUnlink();
-    document.getElementById('ncCtPanel').style.display = 'none';
-    document.getElementById('ncCtSearch').value = '';
-    document.getElementById('ncCtResults').innerHTML = '';
-}
-
 async function createClient(forceDuplicate = false) {
     const nickname = document.getElementById('ncNickname').value.trim();
     if (!nickname) return alert('닉네임을 입력하세요.');
@@ -2517,7 +2364,6 @@ async function createClient(forceDuplicate = false) {
         address_detail: document.getElementById('ncAddressDetail').value.trim() || null,
         important_memo: document.getElementById('ncImportantMemo').value.trim() || null,
         memo: document.getElementById('ncMemo').value.trim() || null,
-        channeltalk_user_id: ncCtUserId, // '채널톡 연동'으로 불러온 고객 ID (미사용 시 null)
         force_duplicate: forceDuplicate, // 중복 팝업에서 '추가등록'을 선택한 재시도
     };
 
@@ -2530,7 +2376,6 @@ async function createClient(forceDuplicate = false) {
     if (res.ok) {
         const data = await res.json();
         closeNewClientModal();
-        ctResetPanel();
         ['ncName','ncNickname','ncPhone','ncBroadcastId','ncCareer','ncPersonality','budget-nc-etc'].forEach(k => {
             const el = document.getElementById(k); if (el) el.value = '';
         });
