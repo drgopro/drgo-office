@@ -1578,26 +1578,25 @@
             <div class="field-row">
                 <div class="field-group">
                     <div class="field-label">상담일 *</div>
-                    <input class="field-input" type="date" name="consulted_at" id="ciDate" value="{{ date('Y-m-d') }}" required onchange="suggestInboundTime(this.value)">
+                    <input class="field-input" type="date" name="consulted_at" id="ciDate" value="{{ date('Y-m-d') }}" required>
                 </div>
                 <div class="field-group">
                     <div class="field-label">인입 시간</div>
                     <div style="display:flex; align-items:center; gap:6px;">
-                        <select class="field-select" id="ciHour" onchange="ciAutoFilled = false; syncInboundTime('ci')" title="인입 시각 (24시간)" style="flex:1;">
+                        <select class="field-select" id="ciHour" onchange="syncInboundTime('ci')" title="인입 시각 (24시간)" style="flex:1;">
                             <option value="">--</option>
                             @for($h = 0; $h < 24; $h++)
                                 <option value="{{ sprintf('%02d', $h) }}">{{ sprintf('%02d', $h) }}</option>
                             @endfor
                         </select>
                         <span style="font-size:13px; color:var(--text-muted);">시</span>
-                        <select class="field-select" id="ciMin" onchange="ciAutoFilled = false; syncInboundTime('ci')" title="분 (30분 단위)" style="flex:1;">
+                        <select class="field-select" id="ciMin" onchange="syncInboundTime('ci')" title="분 (30분 단위)" style="flex:1;">
                             <option value="00">00</option>
                             <option value="30">30</option>
                         </select>
                         <span style="font-size:13px; color:var(--text-muted);">분</span>
                         <input type="hidden" name="inbound_time" id="ciTime">
                     </div>
-                    <div id="ciAutoHint" style="display:none; margin-top:4px; font-size:12px; color:var(--text-muted);"></div>
                 </div>
                 <div class="field-group">
                     <div class="field-label">상담 유형 *</div>
@@ -1830,62 +1829,6 @@ function goProjectList() {
 // 상담 모달
 function openConsultModal() {
     document.getElementById('consultModal').classList.add('open');
-    suggestInboundTime(document.getElementById('ciDate')?.value);
-}
-
-// 채널톡 인입 시간 자동 기입 — 상담일에 시작된 첫 챗 시각을 그대로 기입 (등록 모달 전용)
-let ciAutoFilled = false;
-// 자동 기입 시 수동 입력폼(시/분 셀렉트) 잠금, 해제 시 30분 단위 외 임시 옵션 제거
-function setInboundLock(locked) {
-    const hourSel = document.getElementById('ciHour');
-    const minSel = document.getElementById('ciMin');
-    hourSel.disabled = locked;
-    minSel.disabled = locked;
-    if (!locked) {
-        [...minSel.options].filter(o => o.dataset.injected).forEach(o => o.remove());
-    }
-}
-async function suggestInboundTime(date) {
-    const hourSel = document.getElementById('ciHour');
-    const minSel = document.getElementById('ciMin');
-    const hint = document.getElementById('ciAutoHint');
-    if (!date || !hourSel) return;
-    // 사용자가 직접 고른 값은 덮어쓰지 않는다 (자동으로 채운 값만 갱신 대상)
-    if (hourSel.value !== '' && !ciAutoFilled) return;
-    let data = null;
-    try {
-        const res = await fetch(`/api/projects/{{ $project->id }}/consult-inbound-suggest?date=${encodeURIComponent(date)}`, { headers: { 'Accept': 'application/json' } });
-        if (!res.ok) return;
-        data = await res.json();
-    } catch (e) { return; } // 네트워크 오류는 조용히 무시 — 수동 입력으로 진행
-    if (data && data.found && data.time) {
-        const [h, m] = data.time.split(':');
-        setInboundLock(false); // 이전 임시 옵션 정리 후 다시 채움
-        hourSel.value = h;
-        if (![...minSel.options].some(o => o.value === m)) {
-            const opt = new Option(m, m);
-            opt.dataset.injected = '1';
-            minSel.add(opt);
-        }
-        minSel.value = m;
-        document.getElementById('ciTime').value = data.time;
-        setInboundLock(true);
-        ciAutoFilled = true;
-        if (hint) {
-            hint.textContent = `채널톡 ${date} 첫 문의 시각(${data.time})으로 자동 기입됨${data.chats > 1 ? ` · 당일 챗 ${data.chats}건` : ''} — 수동 변경 불가`;
-            hint.style.display = 'block';
-        }
-    } else {
-        // 해당 날짜에 챗 기록 없음 — 자동으로 채웠던 값만 해제하고 수동 입력 잠금 해제
-        if (ciAutoFilled) {
-            setInboundLock(false);
-            hourSel.value = '';
-            minSel.value = '00';
-            syncInboundTime('ci');
-            ciAutoFilled = false;
-        }
-        if (hint) hint.style.display = 'none';
-    }
 }
 
 function toggleDocUpload() {

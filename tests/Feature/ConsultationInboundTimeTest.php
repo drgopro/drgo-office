@@ -6,7 +6,6 @@ use App\Models\Client;
 use App\Models\Consultation;
 use App\Models\Project;
 use App\Models\User;
-use Carbon\Carbon;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Http;
 use PhpOffice\PhpSpreadsheet\IOFactory;
@@ -118,85 +117,24 @@ class ConsultationInboundTimeTest extends TestCase
         ]);
     }
 
-    public function test_inbound_suggest_returns_earliest_chat_time_exact(): void
+    public function test_inbound_time_is_manual_only(): void
     {
+        // 채널톡 해지 — 인입 시간은 수기 입력만. 자동 제안 API·스크립트는 없다
         $this->configureChannelTalk();
-        $this->project->client->update(['channeltalk_user_id' => 'ct-user-1']);
-
-        // 2026-09-18(Asia/Seoul) 챗 2건(09:47, 14:10) + 다른 날짜 1건 → 가장 이른 09:47 그대로
-        $ms = fn (string $dt) => Carbon::parse($dt, config('app.timezone'))->getTimestampMs();
-        Http::fake([
-            'api.channel.io/open/v5/users/ct-user-1/user-chats*' => Http::response(['userChats' => [
-                ['id' => 'c1', 'createdAt' => $ms('2026-09-18 14:10'), 'state' => 'closed'],
-                ['id' => 'c2', 'createdAt' => $ms('2026-09-18 09:47'), 'state' => 'closed'],
-                ['id' => 'c3', 'createdAt' => $ms('2026-09-17 11:00'), 'state' => 'closed'],
-            ]]),
-        ]);
-
-        $this->actingAs($this->admin)
-            ->getJson("/api/projects/{$this->project->id}/consult-inbound-suggest?date=2026-09-18")
-            ->assertOk()
-            ->assertJson(['found' => true, 'time' => '09:47', 'chats' => 2]);
-    }
-
-    public function test_inbound_suggest_uses_reopened_chat_time(): void
-    {
-        // 채널톡은 기존 챗을 재오픈해 이어가는 경우가 많다 — 생성일이 과거여도
-        // 상담일에 재오픈(openedAt)된 챗이면 그 시각으로 자동 기입되어야 한다.
-        $this->configureChannelTalk();
-        $this->project->client->update(['channeltalk_user_id' => 'ct-user-3']);
-
-        $ms = fn (string $dt) => Carbon::parse($dt, config('app.timezone'))->getTimestampMs();
-        Http::fake([
-            'api.channel.io/open/v5/users/ct-user-3/user-chats*' => Http::response(['userChats' => [
-                ['id' => 'c1', 'createdAt' => $ms('2026-08-01 10:00'), 'openedAt' => $ms('2026-09-18 14:01'), 'state' => 'snoozed'],
-            ]]),
-        ]);
-
-        $this->actingAs($this->admin)
-            ->getJson("/api/projects/{$this->project->id}/consult-inbound-suggest?date=2026-09-18")
-            ->assertOk()
-            ->assertJson(['found' => true, 'time' => '14:01', 'chats' => 1]);
-    }
-
-    public function test_inbound_suggest_without_linked_client_skips_channeltalk(): void
-    {
-        $this->configureChannelTalk();
+        $this->project->client->update(['channeltalk_user_id' => 'ct-old']);
         Http::fake();
 
         $this->actingAs($this->admin)
             ->getJson("/api/projects/{$this->project->id}/consult-inbound-suggest?date=2026-09-18")
-            ->assertOk()
-            ->assertJson(['found' => false]);
-        Http::assertNothingSent();
-    }
+            ->assertNotFound();
 
-    public function test_inbound_suggest_returns_not_found_when_no_chat_on_that_date(): void
-    {
-        $this->configureChannelTalk();
-        $this->project->client->update(['channeltalk_user_id' => 'ct-user-2']);
-
-        Http::fake([
-            'api.channel.io/open/v5/users/ct-user-2/user-chats*' => Http::response(['userChats' => [
-                ['id' => 'c1', 'createdAt' => Carbon::parse('2026-09-10 11:00', config('app.timezone'))->getTimestampMs(), 'state' => 'closed'],
-            ]]),
-        ]);
-
-        $this->actingAs($this->admin)
-            ->getJson("/api/projects/{$this->project->id}/consult-inbound-suggest?date=2026-09-18")
-            ->assertOk()
-            ->assertJson(['found' => false]);
-    }
-
-    public function test_project_page_renders_inbound_suggest_script(): void
-    {
-        // 등록 모달 — 상담일 변경/모달 오픈 시 자동 기입 스크립트 + 힌트 영역 + 수동 입력폼 잠금
         $this->actingAs($this->admin)->get("/projects/{$this->project->id}")->assertOk()
-            ->assertSee('suggestInboundTime', false)
-            ->assertSee('id="ciAutoHint"', false)
-            ->assertSee('consult-inbound-suggest', false)
-            ->assertSee('ciAutoFilled', false)
-            ->assertSee('setInboundLock', false);
+            ->assertSee('id="ciHour"', false)
+            ->assertDontSee('suggestInboundTime', false)
+            ->assertDontSee('ciAutoHint', false)
+            ->assertDontSee('consult-inbound-suggest', false);
+
+        Http::assertNothingSent();
     }
 
     public function test_excel_consultation_sheet_includes_inbound_time(): void

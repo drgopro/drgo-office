@@ -4,78 +4,16 @@ namespace App\Http\Controllers;
 
 use App\Models\Consultation;
 use App\Models\Project;
-use App\Services\ChannelTalkClient;
-use Carbon\Carbon;
-use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
-use Illuminate\Support\Facades\Cache;
 
 class ConsultationController extends Controller
 {
-    /**
-     * 상담 등록 시 인입 시간 자동 제안 — 연동 의뢰자의 채널톡 유저챗 중
-     * 해당 날짜에 시작되었거나 재오픈된 챗의 가장 이른 시각을 그대로(분 단위) 돌려준다.
-     * (채널톡은 기존 챗을 재오픈해 이어가는 경우가 많아 생성 시각만 보면 당일 문의를 놓친다.)
-     *
-     * @return JsonResponse array{found:bool, time?:string, chats?:int}
-     */
-    public function inboundSuggest(Request $request, Project $project, ChannelTalkClient $channelTalk)
-    {
-        $date = $request->validate(['date' => 'required|date_format:Y-m-d'])['date'];
-
-        $ctId = $project->client?->channeltalk_user_id;
-        if (! $ctId || ! $channelTalk->isConfigured()) {
-            return response()->json(['found' => false]);
-        }
-
-        $result = Cache::remember("ct.inbound.{$ctId}.{$date}", 300, function () use ($channelTalk, $ctId, $date) {
-            $res = $channelTalk->userChatsOf($ctId);
-            if (! ($res['ok'] ?? false)) {
-                return ['found' => false];
-            }
-
-            $earliest = null;
-            $count = 0;
-            foreach ($res['chats'] as $chat) {
-                $matched = false;
-                foreach ([$chat['created_at'], $chat['opened_at'] ?? null] as $ms) {
-                    if ($ms === null) {
-                        continue;
-                    }
-                    $at = Carbon::createFromTimestampMs($ms)->timezone(config('app.timezone'));
-                    if ($at->format('Y-m-d') !== $date) {
-                        continue;
-                    }
-                    $matched = true;
-                    if ($earliest === null || $at->lt($earliest)) {
-                        $earliest = $at;
-                    }
-                }
-                if ($matched) {
-                    $count++;
-                }
-            }
-
-            if ($earliest === null) {
-                return ['found' => false];
-            }
-
-            return [
-                'found' => true,
-                'time' => $earliest->format('H:i'),
-                'chats' => $count,
-            ];
-        });
-
-        return response()->json($result);
-    }
-
     public function store(Request $request, Project $project)
     {
         $validated = $request->validate([
             'consulted_at' => 'required|date',
-            'inbound_time' => ['nullable', 'regex:/^([01]\d|2[0-3]):[0-5]\d$/'], // 인입 시간 — 수동은 30분 단위 셀렉트, 채널톡 자동 기입은 분 단위 그대로
+            'inbound_time' => ['nullable', 'regex:/^([01]\d|2[0-3]):[0-5]\d$/'], // 인입 시간 — 수기 입력 (30분 단위 셀렉트, 기존 분 단위 기록도 허용)
             'consult_type' => 'required|in:kakao,phone,visit,field',
             'result' => 'required|in:in_progress,waiting,valid,invalid,done',
             'content' => 'nullable|string',
@@ -103,7 +41,7 @@ class ConsultationController extends Controller
     {
         $validated = $request->validate([
             'consulted_at' => 'required|date',
-            'inbound_time' => ['nullable', 'regex:/^([01]\d|2[0-3]):[0-5]\d$/'], // 인입 시간 — 수동은 30분 단위 셀렉트, 채널톡 자동 기입은 분 단위 그대로
+            'inbound_time' => ['nullable', 'regex:/^([01]\d|2[0-3]):[0-5]\d$/'], // 인입 시간 — 수기 입력 (30분 단위 셀렉트, 기존 분 단위 기록도 허용)
             'consult_type' => 'required|in:kakao,phone,visit,field',
             'result' => 'required|in:in_progress,waiting,valid,invalid,done',
             'content' => 'nullable|string',

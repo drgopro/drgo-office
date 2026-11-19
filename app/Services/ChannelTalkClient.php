@@ -166,56 +166,6 @@ class ChannelTalkClient
     }
 
     /**
-     * 고객의 유저챗 목록 — 상담 인입 시간 자동 기입용.
-     * 채널톡은 기존 챗을 재오픈해 이어가는 경우가 많아 생성 시각(createdAt)과
-     * 마지막 재오픈 시각(openedAt)을 함께 내려준다. 최신순 100건이면 상담일 기준 조회에 충분하다.
-     *
-     * @return array{ok:bool, chats?:array<int, array{id:string, created_at:?int, opened_at:?int, state:string}>, error?:string}
-     */
-    public function userChatsOf(string $ctId): array
-    {
-        if (! $this->isConfigured()) {
-            return ['ok' => false, 'error' => '채널톡 연동 정보가 설정되지 않았습니다.'];
-        }
-
-        try {
-            $res = Http::timeout(10)->connectTimeout(5)
-                ->withHeaders([
-                    'x-access-key' => config('services.channeltalk.access_key'),
-                    'x-access-secret' => config('services.channeltalk.access_secret'),
-                ])
-                ->get(self::API_BASE.'/users/'.rawurlencode($ctId).'/user-chats', ['limit' => 100, 'sortOrder' => 'desc']);
-        } catch (\Throwable $e) {
-            $this->log('유저챗 조회 실패', $ctId, $e->getMessage());
-
-            return ['ok' => false, 'error' => '채널톡 통신 실패: '.mb_substr($e->getMessage(), 0, 120)];
-        }
-
-        if (! $res->successful()) {
-            $this->log('유저챗 조회 실패 HTTP '.$res->status(), $ctId, mb_substr($res->body(), 0, 300));
-
-            return ['ok' => false, 'error' => 'HTTP '.$res->status().': '.mb_substr($res->body(), 0, 160)];
-        }
-
-        // 시각 필드는 epoch ms — 혹시 ISO 문자열이 와도 ms로 정규화
-        $toMs = fn ($raw): ?int => is_numeric($raw)
-            ? (int) $raw
-            : (is_string($raw) && strtotime($raw) !== false ? strtotime($raw) * 1000 : null);
-
-        $chats = [];
-        foreach ($res->json('userChats') ?? [] as $chat) {
-            $chats[] = [
-                'id' => (string) ($chat['id'] ?? ''),
-                'created_at' => $toMs($chat['createdAt'] ?? null),
-                'opened_at' => $toMs($chat['openedAt'] ?? null),
-                'state' => (string) ($chat['state'] ?? ''),
-            ];
-        }
-
-        return ['ok' => true, 'chats' => $chats];
-    }
-
-    /**
      * 채널톡 매니저 목록 (10분 캐시).
      *
      * @return array<int, array{id:string, name:string, email:string}>
