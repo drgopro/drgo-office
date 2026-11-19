@@ -111,6 +111,38 @@ class ChannelTalkClientSyncTest extends TestCase
         $this->assertSame(['s' => 1, 'c' => 'cursor-keep'], json_decode((string) Setting::get('channeltalk.users.cursor'), true));
     }
 
+    public function test_transient_failure_after_recent_success_does_not_fail_schedule(): void
+    {
+        Setting::set('channeltalk.users.cursor', json_encode(['s' => 0, 'c' => 'cursor-keep']));
+        Setting::set('channeltalk.users.last_sync_at', now()->subHour()->toDateTimeString());
+        Http::fake(['api.channel.io/*' => Http::response('rate limited', 429)]);
+
+        $this->artisan('drgo:sync-channeltalk-users')->assertSuccessful();
+
+        $this->assertSame(['s' => 0, 'c' => 'cursor-keep'], json_decode((string) Setting::get('channeltalk.users.cursor'), true));
+    }
+
+    public function test_failure_after_long_outage_fails_schedule(): void
+    {
+        Setting::set('channeltalk.users.last_sync_at', now()->subHours(7)->toDateTimeString());
+        Http::fake(['api.channel.io/*' => Http::response('error', 500)]);
+
+        $this->artisan('drgo:sync-channeltalk-users')->assertFailed();
+    }
+
+    public function test_partial_progress_then_failure_saves_progress_without_failing(): void
+    {
+        Http::fakeSequence('api.channel.io/*')
+            ->push(['users' => [['id' => 'ct-p1', 'name' => '부분', 'profile' => []]], 'next' => 'cursor-2'])
+            ->push('error', 500)
+            ->push('error', 500);
+
+        $this->artisan('drgo:sync-channeltalk-users')->assertSuccessful();
+
+        $this->assertSame(['s' => 0, 'c' => 'cursor-2'], json_decode((string) Setting::get('channeltalk.users.cursor'), true));
+        $this->assertNotNull(Setting::get('channeltalk.users.last_sync_at'));
+    }
+
     public function test_channeltalk_search_endpoint_matches_phone_and_marks_linked(): void
     {
         $admin = User::factory()->create(['role' => 'admin']);

@@ -6,6 +6,7 @@ use App\Models\Setting;
 use App\Services\ChannelTalkClient;
 use App\Services\ChannelTalkUserMirror;
 use Illuminate\Console\Command;
+use Illuminate\Support\Carbon;
 
 /**
  * 채널톡 고객 → 로컬 미러 동기화 + 전화번호 매칭으로 기존 의뢰자 자동 연동.
@@ -22,6 +23,9 @@ class SyncChannelTalkUsers extends Command
     protected $description = '채널톡 고객 프로필을 로컬 미러로 동기화하고 전화번호로 의뢰자와 자동 연동';
 
     private const CURSOR_KEY = 'channeltalk.users.cursor';
+
+    /** 마지막 성공 후 이 시간 안의 조회 실패는 일시 장애로 보고 알림을 보내지 않는다 */
+    private const FAILURE_GRACE_HOURS = 6;
 
     public function handle(ChannelTalkClient $channelTalk): int
     {
@@ -51,7 +55,19 @@ class SyncChannelTalkUsers extends Command
             }
             if (! ($res['ok'] ?? false)) {
                 Setting::set(self::CURSOR_KEY, json_encode(['s' => $stateIdx, 'c' => $cursor]));
-                $this->error('채널톡 고객 조회 실패: '.($res['error'] ?? '알 수 없는 오류'));
+                $message = '채널톡 고객 조회 실패: '.($res['error'] ?? '알 수 없는 오류');
+
+                // 이번 실행에서 일부라도 받아왔거나 최근에 성공한 적이 있으면 일시 장애로 보고
+                // 경고만 남긴다 (서버 에러 알림 X). 성공이 오래 끊겼을 때만 실패로 알린다.
+                if ($page > 0) {
+                    Setting::set('channeltalk.users.last_sync_at', now()->toDateTimeString());
+                }
+                if ($page > 0 || $this->syncedRecently()) {
+                    $this->warn($message.' — 다음 실행에서 이어서 재시도');
+
+                    return self::SUCCESS;
+                }
+                $this->error($message);
 
                 return self::FAILURE; // 워터마크 유지 — 다음 실행에서 같은 지점부터 재시도
             }
@@ -83,5 +99,20 @@ class SyncChannelTalkUsers extends Command
             .($stateIdx > 0 || $cursor !== '' ? ' (다음 실행에서 이어서)' : ''));
 
         return self::SUCCESS;
+    }
+
+    /** 마지막 성공 동기화가 허용 공백 이내인지 — 일시 장애를 서버 에러로 알리지 않기 위한 기준 */
+    private function syncedRecently(): bool
+    {
+        $last = Setting::get('channeltalk.users.last_sync_at');
+        if (! $last) {
+            return false;
+        }
+
+        try {
+            return Carbon::parse($last)->gt(now()->subHours(self::FAILURE_GRACE_HOURS));
+        } catch (\Throwable) {
+            return false;
+        }
     }
 }
