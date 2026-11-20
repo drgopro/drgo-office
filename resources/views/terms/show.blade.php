@@ -28,31 +28,44 @@
     .agree-btn:disabled { background:#b9c2cc; cursor:not-allowed; }
     .agreed { color:var(--green); font-weight:800; font-size:15px; }
     .close-btn { background:none; border:1px solid var(--line); border-radius:10px; padding:12px 20px; font-size:14px; cursor:pointer; }
+    .close-btn:disabled { color:#a3abb5; cursor:not-allowed; }
+    @media (max-width:560px) { .foot-in .agree-btn, .foot-in .close-btn { flex:1; padding-left:10px; padding-right:10px; white-space:nowrap; } .hint { flex-basis:100%; } }
 </style>
 </head>
 <body>
 <div class="wrap">
     <div class="head">
-        <h1>{{ $doc['title'] }}@if($type === 'marketing')<span class="optional-badge">선택 동의</span>@endif</h1>
+        <h1>{{ $doc['title'] }}@if($type === 'marketing')<span class="optional-badge">동의 여부 선택</span>@endif</h1>
         <small>(주)닥터고블린컴퍼니 · {{ $doc['version'] }}</small>
     </div>
     <div class="doc" id="doc">{!! $doc['html'] !!}</div>
 </div>
 
 @if($estimate)
-@php $already = $estimate->agreements[$type]['at'] ?? null; @endphp
+@php
+    $rec = $estimate->agreements[$type] ?? null;
+    $already = $rec['at'] ?? null;
+    $isMarketing = $type === 'marketing';
+    $mkAgreed = $isMarketing ? \App\Http\Controllers\ConsentController::isAgreed($rec) : true;
+@endphp
 <div class="foot"><div class="foot-in">
-    @if($already)
+    @if($already && ! $isMarketing)
         <span class="agreed">✓ {{ $already }}에 동의하셨습니다</span>
         <button class="close-btn" onclick="window.close()">창 닫기</button>
+    @elseif($isMarketing)
+        {{-- 마케팅: 동의/동의 안 함 중 하나를 반드시 고른다 (결제 전 필수). 이미 골랐으면 변경 가능 --}}
+        <span class="hint" id="hint">
+            @if($already)
+                현재 선택: <b>{{ $mkAgreed ? '동의함' : '동의하지 않음' }}</b> ({{ $already }}) — 바꾸시려면 아래에서 다시 선택하세요.
+            @else
+                동의 여부를 선택해 주세요. 동의하지 않아도 결제와 서비스 이용에 불이익이 없습니다.
+            @endif
+        </span>
+        <button class="close-btn" id="declineBtn" onclick="doAgree(false)" {{ $already && ! $mkAgreed ? 'disabled' : '' }}>동의하지 않습니다</button>
+        <button class="agree-btn" id="agreeBtn" disabled data-keep="{{ $already && $mkAgreed ? '1' : '' }}" onclick="doAgree(true)">사례 활용에 동의합니다</button>
     @else
         <span class="hint" id="hint">문서를 끝까지 읽으시면 동의 버튼이 활성화됩니다.</span>
-        <button class="agree-btn" id="agreeBtn" disabled onclick="doAgree()">
-            {{ $type === 'penalty' ? '내용을 확인했으며 동의합니다' : '사례 활용에 동의합니다 (선택)' }}
-        </button>
-        @if($type === 'marketing')
-        <button class="close-btn" onclick="window.close()">동의하지 않고 닫기</button>
-        @endif
+        <button class="agree-btn" id="agreeBtn" disabled onclick="doAgree(true)">내용을 확인했으며 동의합니다</button>
     @endif
 </div></div>
 <script>
@@ -64,29 +77,30 @@
         const bottom = window.innerHeight + window.scrollY;
         const full = document.documentElement.scrollHeight;
         if (bottom >= full - 40) {
-            btn.disabled = false;
+            btn.disabled = btn.dataset.keep === '1'; // 이미 동의한 상태면 그대로
             const h = document.getElementById('hint');
-            if (h) h.textContent = '내용을 확인하셨다면 동의 버튼을 눌러주세요.';
+            if (h && !{{ $already ? 'true' : 'false' }}) h.textContent = '내용을 확인하셨다면 버튼을 눌러 선택해 주세요.';
             window.removeEventListener('scroll', check);
         }
     }
     window.addEventListener('scroll', check, { passive: true });
     check();
 })();
-async function doAgree() {
-    const btn = document.getElementById('agreeBtn');
-    btn.disabled = true;
+async function doAgree(agree) {
+    const btns = [document.getElementById('agreeBtn'), document.getElementById('declineBtn')].filter(Boolean);
+    btns.forEach(b => b.disabled = true);
     try {
         const res = await fetch({!! json_encode(url('/estimate-view/'.$estimate->share_token.'/agree')) !!}, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json', 'X-CSRF-TOKEN': '{{ csrf_token() }}', 'Accept': 'application/json' },
-            body: JSON.stringify({ type: '{{ $type }}' }),
+            body: JSON.stringify({ type: '{{ $type }}', agree: agree }),
         });
         if (!res.ok) throw new Error();
         if (window.opener && !window.opener.closed) { try { window.opener.location.reload(); } catch (e) {} }
-        document.querySelector('.foot-in').innerHTML = '<span class="agreed">✓ 동의가 기록되었습니다. 이 창을 닫고 견적서에서 이어서 진행해 주세요.</span><button class="close-btn" onclick="window.close()">창 닫기</button>';
+        const msg = agree ? '✓ 동의가 기록되었습니다.' : '✓ ‘동의하지 않음’으로 기록되었습니다.';
+        document.querySelector('.foot-in').innerHTML = '<span class="agreed">' + msg + ' 이 창을 닫고 견적서에서 이어서 진행해 주세요.</span><button class="close-btn" onclick="window.close()">창 닫기</button>';
     } catch (e) {
-        btn.disabled = false;
+        btns.forEach(b => b.disabled = false);
         alert('잠시 후 다시 시도해 주세요.');
     }
 }

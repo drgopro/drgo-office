@@ -285,13 +285,18 @@
                 // 위약 카드가 숨김이면 결제를 잠그지 않는다 — 보이지 않는 동의를 요구하지 않음
                 $penaltyEnabled = ($settings['terms_penalty_enabled'] ?? '1') !== '0';
                 $penaltyAgreed = ! $penaltyEnabled || !empty(($estimate->agreements ?? [])['penalty']['at']);
+                // 마케팅 활용은 동의/동의 안 함 중 하나를 골라야 결제 가능 (카드가 숨김이면 요구하지 않음)
+                $marketingEnabled = ($settings['terms_marketing_enabled'] ?? '1') !== '0';
+                $marketingChosen = ! $marketingEnabled || !empty(($estimate->agreements ?? [])['marketing']['at']);
+                $payReady = $penaltyAgreed && $marketingChosen;
+                $payMissing = collect([$penaltyAgreed ? null : '‘위약 안내’ 동의', $marketingChosen ? null : '‘설치 사례 활용’ 동의 여부 선택'])->filter()->implode(' · ');
             @endphp
             @foreach($payables as $p)
-                <button class="pay-btn {{ $penaltyAgreed ? '' : 'locked' }}" data-url="{{ $p['url'] }}" data-amount="{{ number_format($p['amount']) }}"
+                <button class="pay-btn {{ $payReady ? '' : 'locked' }}" data-missing="{{ $payMissing }}" data-url="{{ $p['url'] }}" data-amount="{{ number_format($p['amount']) }}"
                     onclick="payClick(this)">💳 {{ $p['label'] !== '' ? $p['label'].' ' : '' }}{{ number_format($p['amount']) }}원 결제하기</button>
             @endforeach
-            @unless($penaltyAgreed)
-                <div class="pay-note">아래 ‘위약 안내’를 읽고 동의하시면 결제하실 수 있습니다.</div>
+            @unless($payReady)
+                <div class="pay-note">아래 항목을 마치시면 결제하실 수 있습니다 — {{ $payMissing }}</div>
             @endunless
             @if($notReadyRounds->isNotEmpty())
                 <div class="pay-note">작성 중인 {{ $notReadyRounds->map(fn ($r) => $r->round.'차')->implode('·') }} 금액({{ number_format($notReadyRounds->sum('total_amount')) }}원)은 발행 후 결제하실 수 있습니다.</div>
@@ -706,7 +711,7 @@ function showMobileSaveOverlay(dataUrl, blob, filename){
     $showPenalty = ($settings['terms_penalty_enabled'] ?? '1') !== '0';
     $showMarketing = ($settings['terms_marketing_enabled'] ?? '1') !== '0';
 @endphp
-{{-- 동의 카드 — 위약(필수)·마케팅(선택). 관리자 페이지 '판매처 설정'에서 노출/비노출 --}}
+{{-- 동의 카드 — 위약(필수 동의)·마케팅(동의 여부 필수 선택). 관리자 페이지 '판매처 설정'에서 노출/비노출 --}}
 @if($showPenalty || $showMarketing)
 <div class="consent-row no-print" style="{{ ($showPenalty && $showMarketing) ? '' : 'grid-template-columns:1fr;' }}">
     @if($showPenalty)
@@ -721,13 +726,19 @@ function showMobileSaveOverlay(dataUrl, blob, filename){
     </div>
     @endif
     @if($showMarketing)
-    <div class="consent-card {{ !empty($ag['marketing']['at']) ? 'ok' : '' }}">
-        <div><b>설치 사례 활용 동의 <span style="color:#2e6cb5; font-size:12px;">(선택)</span></b>
-            <small>세팅 사진·채널명을 사례로 소개하는 데 동의해 주시면 큰 힘이 됩니다</small></div>
-        @if(!empty($ag['marketing']['at']))
-            <span class="consent-ok-txt">✓ 동의 완료 · {{ $ag['marketing']['at'] }}</span>
+    @php
+        $mk = $ag['marketing'] ?? null;
+        $mkChosen = !empty($mk['at']);
+        $mkAgreed = \App\Http\Controllers\ConsentController::isAgreed($mk);
+    @endphp
+    <div class="consent-card {{ $mkChosen ? 'ok' : '' }}">
+        <div><b>설치 사례 활용 동의 <span style="color:#b03030; font-size:12px;">(동의 여부 선택 필수)</span></b>
+            <small>세팅 사진·채널명을 사례로 소개하는 데 동의하실지 골라 주세요 — 동의하지 않아도 불이익은 없습니다</small></div>
+        @if($mkChosen)
+            <span class="consent-ok-txt" style="{{ $mkAgreed ? '' : 'color:#5b6573;' }}">✓ {{ $mkAgreed ? '동의함' : '동의하지 않음' }} · {{ $mk['at'] }}
+                <a href="#" onclick="openTerms('marketing'); return false;" style="margin-left:6px; font-size:12.5px; color:#3b5ea0; font-weight:600;">변경</a></span>
         @else
-            <button class="consent-open" onclick="openTerms('marketing')">내용 보기</button>
+            <button class="consent-open" onclick="openTerms('marketing')">내용 보고 선택하기</button>
         @endif
     </div>
     @endif
@@ -762,7 +773,7 @@ window.addEventListener('focus', () => {
 });
 function payClick(btn) {
     if (btn.classList.contains('locked')) {
-        alert('결제 전에 아래 [위약 안내]를 읽고 동의해 주세요.');
+        alert('결제 전에 아래 항목을 마쳐 주세요.\n— ' + (btn.dataset.missing || '동의 항목'));
         document.querySelector('.consent-row').scrollIntoView({ behavior: 'smooth', block: 'center' });
         return;
     }

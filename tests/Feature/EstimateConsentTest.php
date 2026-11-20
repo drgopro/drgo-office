@@ -4,6 +4,7 @@ namespace Tests\Feature;
 
 use App\Models\Client;
 use App\Models\Estimate;
+use App\Models\Project;
 use App\Models\Setting;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
@@ -57,9 +58,17 @@ class EstimateConsentTest extends TestCase
 
         $this->postJson("/estimate-view/{$this->estimate->share_token}/agree", ['type' => 'penalty'])->assertOk();
 
+        // 위약 동의만으로는 아직 잠김 — 마케팅 동의 여부 선택이 남았다
+        $res = $this->get("/estimate-view/{$this->estimate->share_token}")->assertOk();
+        $res->assertSee('pay-btn locked', false);
+        $res->assertSee('동의 완료');
+        $res->assertSee('동의 여부 선택');
+
+        $this->postJson("/estimate-view/{$this->estimate->share_token}/agree", ['type' => 'marketing', 'agree' => false])->assertOk();
+
         $res = $this->get("/estimate-view/{$this->estimate->share_token}")->assertOk();
         $res->assertDontSee('pay-btn locked', false);
-        $res->assertSee('동의 완료');
+        $res->assertSee('동의하지 않음');
 
         $state = $this->estimate->fresh()->agreements;
         $this->assertNotEmpty($state['penalty']['at']);
@@ -112,13 +121,66 @@ class EstimateConsentTest extends TestCase
         Setting::set('terms_penalty_enabled', '0');
         $res = $this->get("/estimate-view/{$this->estimate->share_token}")->assertOk();
         $res->assertDontSee('위약 안내 <span', false);
-        $res->assertDontSee('pay-btn locked', false);
+        $res->assertSee('pay-btn locked', false); // 마케팅 동의 여부는 아직 선택 전
         $res->assertSee('설치 사례 활용 동의'); // 마케팅 카드는 그대로
 
         // 마케팅도 숨김 → 동의 영역 전체 미출력
         Setting::set('terms_marketing_enabled', '0');
         $res = $this->get("/estimate-view/{$this->estimate->share_token}")->assertOk();
         $res->assertDontSee('class="consent-row', false);
+        $res->assertDontSee('pay-btn locked', false); // 보이지 않는 선택은 요구하지 않음
+    }
+
+    public function test_marketing_decline_is_recorded_and_withdraws_client_consent_from_this_estimate(): void
+    {
+        $token = $this->estimate->share_token;
+        $this->postJson("/estimate-view/{$token}/agree", ['type' => 'marketing'])->assertOk();
+        $this->assertNotNull($this->client->fresh()->marketing_agreed_at);
+
+        $this->postJson("/estimate-view/{$token}/agree", ['type' => 'marketing', 'agree' => false])
+            ->assertOk()->assertJson(['agreed' => false]);
+
+        $record = $this->estimate->fresh()->agreements['marketing'];
+        $this->assertFalse($record['agreed']);
+        $this->assertNotEmpty($record['at']);
+        $this->assertNull($this->client->fresh()->marketing_agreed_at);
+    }
+
+    public function test_marketing_decline_keeps_consent_given_on_other_estimate(): void
+    {
+        $this->client->forceFill(['marketing_agreed_at' => now()->subDay(), 'marketing_agree_estimate_id' => 999])->save();
+
+        $this->postJson("/estimate-view/{$this->estimate->share_token}/agree", ['type' => 'marketing', 'agree' => false])->assertOk();
+
+        $this->assertNotNull($this->client->fresh()->marketing_agreed_at);
+    }
+
+    public function test_marketing_choice_updates_linked_project(): void
+    {
+        $project = Project::create(['name' => '동의 연동 프로젝트', 'client_id' => $this->client->id]);
+        $this->estimate->forceFill(['project_id' => $project->id])->save();
+
+        $this->postJson("/estimate-view/{$this->estimate->share_token}/agree", ['type' => 'marketing', 'agree' => false])->assertOk();
+        $this->assertFalse($project->fresh()->marketing_consent);
+
+        $this->postJson("/estimate-view/{$this->estimate->share_token}/agree", ['type' => 'marketing', 'agree' => true])->assertOk();
+        $this->assertTrue($project->fresh()->marketing_consent);
+        $this->assertNotNull($project->fresh()->marketing_consent_updated_at);
+    }
+
+    public function test_marketing_terms_page_offers_agree_and_decline(): void
+    {
+        $this->get("/estimate-view/{$this->estimate->share_token}/terms/marketing")->assertOk()
+            ->assertSee('동의하지 않습니다')
+            ->assertSee('사례 활용에 동의합니다')
+            ->assertSee('동의 여부를 선택해 주세요');
+    }
+
+    public function test_legacy_marketing_record_without_choice_flag_counts_as_agreed(): void
+    {
+        $this->estimate->forceFill(['agreements' => ['marketing' => ['at' => '2026-11-10 10:00:00', 'ver' => 'v1']]])->save();
+
+        $this->get("/estimate-view/{$this->estimate->share_token}")->assertOk()->assertSee('동의함 · 2026-11-10 10:00:00');
     }
 
     public function test_penalty_terms_assemble_sections_per_estimate(): void

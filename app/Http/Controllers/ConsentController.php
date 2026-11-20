@@ -4,11 +4,12 @@ namespace App\Http\Controllers;
 
 use App\Models\Client;
 use App\Models\Estimate;
+use App\Models\Project;
 use App\Models\Setting;
 use Illuminate\Http\Request;
 
 /**
- * 의뢰자 동의 — 위약 안내(필수)·마케팅 활용(선택) 전문 열람과 동의 기록.
+ * 의뢰자 동의 — 위약 안내(필수 동의)·마케팅 활용(동의/동의 안 함 필수 선택) 전문 열람과 기록.
  *
  * - /terms/{type}: 토큰 없이 보는 공개 전문 (홈페이지에서 링크 게시용)
  * - /estimate-view/{token}/terms/{type}: 전문 + 끝까지 읽으면 동의 버튼 활성화
@@ -39,17 +40,26 @@ class ConsentController extends Controller
         return view('terms.show', ['doc' => $doc, 'type' => $type, 'estimate' => $estimate]);
     }
 
-    /** 동의 기록 */
+    /**
+     * 동의 기록 — 위약은 동의만, 마케팅은 동의/동의 안 함 중 하나를 반드시 고른다(결제 전 필수 선택).
+     * 마케팅은 선택을 바꿀 수 있고, 바꾸면 시각·버전을 새로 남긴다. 같은 선택 반복은 최초 시각 보존.
+     */
     public function agree(Request $request, string $token)
     {
         abort_if(strlen($token) < 32, 404);
         $estimate = Estimate::where('share_token', $token)->firstOrFail();
-        $data = $request->validate(['type' => 'required|in:penalty,marketing']);
+        $data = $request->validate([
+            'type' => 'required|in:penalty,marketing',
+            'agree' => 'sometimes|boolean', // 마케팅 전용 — false = 동의하지 않음 (생략 시 동의)
+        ]);
         $type = $data['type'];
+        $agreed = $type === 'penalty' ? true : filter_var($data['agree'] ?? true, FILTER_VALIDATE_BOOLEAN);
         $doc = $type === 'penalty' ? self::penaltyDocFor($estimate->terms_sections) : self::doc($type);
 
         $agreements = $estimate->agreements ?? [];
-        if (empty($agreements[$type]['at'])) { // 중복 클릭 — 최초 동의 시각 보존
+        $current = $agreements[$type] ?? null;
+        $unchanged = ! empty($current['at']) && self::isAgreed($current) === $agreed;
+        if (! $unchanged) {
             $agreements[$type] = array_filter([
                 'at' => now()->format('Y-m-d H:i:s'),
                 'ver' => $doc['version'],
@@ -57,16 +67,42 @@ class ConsentController extends Controller
                 // 위약: 어떤 섹션 조합(각 버전)에 동의했는지 — 유형별 개정 대비
                 'sections' => $doc['sections'] ?? null,
             ]);
+            if ($type === 'marketing') {
+                $agreements[$type]['agreed'] = $agreed;
+            }
             $estimate->forceFill(['agreements' => $agreements])->save();
 
-            // 마케팅 동의는 의뢰자에도 기록 — 이미 동의한 의뢰자는 최초 기록 유지
-            if ($type === 'marketing' && $estimate->client_id) {
-                Client::where('id', $estimate->client_id)->whereNull('marketing_agreed_at')
-                    ->update(['marketing_agreed_at' => now(), 'marketing_agree_estimate_id' => $estimate->id]);
+            if ($type === 'marketing') {
+                $this->applyMarketingChoice($estimate, $agreed);
             }
         }
 
-        return response()->json(['ok' => true, 'at' => $agreements[$type]['at']]);
+        return response()->json(['ok' => true, 'at' => $agreements[$type]['at'], 'agreed' => $agreed]);
+    }
+
+    /** 마케팅 기록이 '동의'인지 — 이전 기록(agreed 키 없음)은 동의만 있었으므로 동의로 본다 */
+    public static function isAgreed(?array $record): bool
+    {
+        return ! empty($record['at']) && ($record['agreed'] ?? true) !== false;
+    }
+
+    /** 의뢰자·프로젝트에 마케팅 선택 반영 — 사례 업로드 대상 필터와 프로젝트 마케팅 상태용 */
+    private function applyMarketingChoice(Estimate $estimate, bool $agreed): void
+    {
+        if ($estimate->client_id) {
+            if ($agreed) { // 이미 동의한 의뢰자는 최초 기록 유지
+                Client::where('id', $estimate->client_id)->whereNull('marketing_agreed_at')
+                    ->update(['marketing_agreed_at' => now(), 'marketing_agree_estimate_id' => $estimate->id]);
+            } else { // 이 견적서로 동의했던 기록만 철회
+                Client::where('id', $estimate->client_id)->where('marketing_agree_estimate_id', $estimate->id)
+                    ->update(['marketing_agreed_at' => null, 'marketing_agree_estimate_id' => null]);
+            }
+        }
+
+        $project = $estimate->project_id ? Project::find($estimate->project_id) : null;
+        if ($project && $project->marketing_consent !== $agreed) {
+            $project->forceFill(['marketing_consent' => $agreed, 'marketing_consent_updated_at' => now()])->save();
+        }
     }
 
     /**
