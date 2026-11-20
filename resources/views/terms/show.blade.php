@@ -62,7 +62,7 @@
             @endif
         </span>
         <button class="close-btn" id="declineBtn" onclick="doAgree(false)" {{ $already && ! $mkAgreed ? 'disabled' : '' }}>동의하지 않습니다</button>
-        <button class="agree-btn" id="agreeBtn" disabled data-keep="{{ $already && $mkAgreed ? '1' : '' }}" onclick="doAgree(true)">사례 활용에 동의합니다</button>
+        <button class="agree-btn" id="agreeBtn" disabled data-keep="{{ $already && $mkAgreed ? '1' : '' }}" onclick="doAgree(true)">포트폴리오 사용에 동의합니다</button>
     @else
         <span class="hint" id="hint">문서를 끝까지 읽으시면 동의 버튼이 활성화됩니다.</span>
         <button class="agree-btn" id="agreeBtn" disabled onclick="doAgree(true)">내용을 확인했으며 동의합니다</button>

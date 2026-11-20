@@ -289,7 +289,7 @@
                 $marketingEnabled = ($settings['terms_marketing_enabled'] ?? '1') !== '0';
                 $marketingChosen = ! $marketingEnabled || !empty(($estimate->agreements ?? [])['marketing']['at']);
                 $payReady = $penaltyAgreed && $marketingChosen;
-                $payMissing = collect([$penaltyAgreed ? null : '‘위약 안내’ 동의', $marketingChosen ? null : '‘설치 사례 활용’ 동의 여부 선택'])->filter()->implode(' · ');
+                $payMissing = collect([$penaltyAgreed ? null : '‘위약 안내’ 동의', $marketingChosen ? null : '‘포트폴리오 사용’ 동의 여부 선택'])->filter()->implode(' · ');
             @endphp
             @foreach($payables as $p)
                 <button class="pay-btn {{ $payReady ? '' : 'locked' }}" data-missing="{{ $payMissing }}" data-url="{{ $p['url'] }}" data-amount="{{ number_format($p['amount']) }}"
@@ -732,8 +732,8 @@ function showMobileSaveOverlay(dataUrl, blob, filename){
         $mkAgreed = \App\Http\Controllers\ConsentController::isAgreed($mk);
     @endphp
     <div class="consent-card {{ $mkChosen ? 'ok' : '' }}">
-        <div><b>설치 사례 활용 동의 <span style="color:#b03030; font-size:12px;">(동의 여부 선택 필수)</span></b>
-            <small>세팅 사진·채널명을 사례로 소개하는 데 동의하실지 골라 주세요 — 동의하지 않아도 불이익은 없습니다</small></div>
+        <div><b>포트폴리오 사용 동의 <span style="color:#b03030; font-size:12px;">(동의 여부 선택 필수)</span></b>
+            <small>세팅 사진·방송 화면을 사례로 소개하는 데 동의하실지 골라 주세요 — 동의하지 않아도 불이익은 없습니다</small></div>
         @if($mkChosen)
             <span class="consent-ok-txt" style="{{ $mkAgreed ? '' : 'color:#5b6573;' }}">✓ {{ $mkAgreed ? '동의함' : '동의하지 않음' }} · {{ $mk['at'] }}
                 <a href="#" onclick="openTerms('marketing'); return false;" style="margin-left:6px; font-size:12.5px; color:#3b5ea0; font-weight:600;">변경</a></span>

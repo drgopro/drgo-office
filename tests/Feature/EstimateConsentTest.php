@@ -122,7 +122,7 @@ class EstimateConsentTest extends TestCase
         $res = $this->get("/estimate-view/{$this->estimate->share_token}")->assertOk();
         $res->assertDontSee('위약 안내 <span', false);
         $res->assertSee('pay-btn locked', false); // 마케팅 동의 여부는 아직 선택 전
-        $res->assertSee('설치 사례 활용 동의'); // 마케팅 카드는 그대로
+        $res->assertSee('포트폴리오 사용 동의'); // 마케팅 카드는 그대로
 
         // 마케팅도 숨김 → 동의 영역 전체 미출력
         Setting::set('terms_marketing_enabled', '0');
@@ -172,8 +172,9 @@ class EstimateConsentTest extends TestCase
     {
         $this->get("/estimate-view/{$this->estimate->share_token}/terms/marketing")->assertOk()
             ->assertSee('동의하지 않습니다')
-            ->assertSee('사례 활용에 동의합니다')
-            ->assertSee('동의 여부를 선택해 주세요');
+            ->assertSee('포트폴리오 사용에 동의합니다')
+            ->assertSee('동의 여부를 선택해 주세요')
+            ->assertSee('포트폴리오 사용 동의');
     }
 
     public function test_legacy_marketing_record_without_choice_flag_counts_as_agreed(): void

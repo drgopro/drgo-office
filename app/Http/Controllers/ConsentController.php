@@ -120,7 +120,7 @@ class ConsentController extends Controller
         }
 
         return [
-            'title' => '설치 사례 활용(마케팅) 동의',
+            'title' => '포트폴리오 사용 동의',
             'version' => $version !== '' ? $version : 'v1 (2026-11-06)',
             'html' => $html !== '' ? $html : self::defaultMarketing(),
         ];

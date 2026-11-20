@@ -1035,7 +1035,7 @@
                 </label>
                 <label style="display:flex; align-items:center; gap:7px; font-size:15px; cursor:pointer;">
                     <input type="checkbox" id="termsMarketingEnabled" {{ ($sellerSettings['terms_marketing_enabled'] ?? '1') !== '0' ? 'checked' : '' }}>
-                    설치 사례 활용(마케팅) 동의 표시
+                    포트폴리오 사용(마케팅) 동의 표시
                 </label>
             </div>
             <div class="field-group">
@@ -1044,7 +1044,7 @@
                 <button type="button" class="btn-save" style="margin-top:8px; width:auto;" onclick="tpsAdd()">+ 섹션 추가</button>
             </div>
             <div class="field-group">
-                <div class="field-label">마케팅(설치 사례 활용) 동의 전문 (HTML) — /terms/marketing. 비우면 기본 초안</div>
+                <div class="field-label">마케팅(포트폴리오 사용) 동의 전문 (HTML) — /terms/marketing. 비우면 기본 초안</div>
                 <textarea class="field-input" id="termsMarketingHtml" rows="8" style="font-family:monospace; font-size:13px;">{{ $sellerSettings['terms_marketing_html'] ?? '' }}</textarea>
                 <input class="field-input" id="termsMarketingVersion" value="{{ $sellerSettings['terms_marketing_version'] ?? '' }}" placeholder="버전 표기 — 예: v2 (2026-11-10)" style="margin-top:6px;">
             </div>
