@@ -105,6 +105,42 @@ class CalendarBenchTest extends TestCase
         $this->assertSame('윤서진 송파 방문세팅 재방문', ScheduleBench::first()->title);
     }
 
+    public function test_etc_kind_behaves_like_hold_and_returns_the_same_schedule(): void
+    {
+        $schedule = $this->schedule();
+        $benchId = $this->send($schedule, ['kind' => 'etc', 'reason' => '의뢰자 사정으로 무기한 연기']);
+
+        $this->assertNotContains($schedule->id, $this->calendarIds());
+        $this->assertSame('etc', $this->getJson('/api/bench')->json('items.0.kind'));
+
+        $this->postJson("/api/bench/{$benchId}/place", ['date' => '2026-11-27', 'sched_opt' => 'suggest', 'override_reason' => '테스트'])->assertOk();
+        $this->assertContains($schedule->id, $this->calendarIds()); // 새 일정이 아니라 원래 일정이 돌아온다
+        $this->assertSame(1, Schedule::count());
+    }
+
+    public function test_completed_schedule_cannot_be_sent_as_etc(): void
+    {
+        $schedule = $this->schedule(['completed_at' => now()]);
+
+        $this->postJson("/api/events/{$schedule->id}/bench", ['kind' => 'etc', 'reason' => '기타', 'window_type' => 'asap'])->assertUnprocessable();
+        $this->send($schedule, ['kind' => 'revisit', 'reason' => '재점검']); // 완료된 일정도 재방문으로는 보낼 수 있다
+    }
+
+    public function test_revisit_cannot_be_sent_twice_while_the_first_is_waiting(): void
+    {
+        $schedule = $this->schedule(['start_date' => '2026-11-12', 'end_date' => '2026-11-12']);
+        $benchId = $this->send($schedule, ['kind' => 'revisit', 'reason' => '마이크 노이즈 재점검']);
+
+        $this->postJson("/api/events/{$schedule->id}/bench", ['kind' => 'revisit', 'reason' => '한 번 더', 'window_type' => 'asap'])
+            ->assertStatus(409)->assertJsonFragment(['message' => '이 일정의 재방문이 이미 대기함에 있습니다.']);
+        $this->assertSame(1, ScheduleBench::count());
+
+        // 대기함에서 빼면(또는 배치하면) 다시 보낼 수 있다
+        $this->deleteJson("/api/bench/{$benchId}")->assertOk();
+        $this->send($schedule, ['kind' => 'revisit', 'reason' => '두 번째 재방문']);
+        $this->assertSame(1, ScheduleBench::where('status', 'waiting')->count());
+    }
+
     public function test_only_standalone_visit_and_remote_schedules_can_be_sent(): void
     {
         foreach ([['color' => 'red'], ['repeat_group' => 'g1'], ['is_locked' => true], ['sched_event_opts' => ['no_change']]] as $over) {

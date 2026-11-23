@@ -1,6 +1,6 @@
 {{-- 캘린더 대기함 — 보류·재방문·날짜 미정 일정 패널 (기본 접힘). 계산·차단 규칙은 서버(BenchCalculator)가 하고 화면은 결과만 그린다 --}}
 // 시스템은 날짜·시간·담당자를 추천하지 않는다 — '이 날로'는 같은 지역 일정의 날짜와 담당자만 채운다
-const BENCH_KINDS={hold:['보류','#b4610e','⏸'],revisit:['재방문','#7a3fc4','↻'],undated:['날짜 미정','#4d5967','·']};
+const BENCH_KINDS={hold:['보류','#b4610e','⏸'],revisit:['재방문','#7a3fc4','↻'],undated:['날짜 미정','#4d5967','·'],etc:['기타','#3d6f8f','…']};
 const BENCH_OPTS={confirmed:'확정',suggest:'제안',hope:'희망',target:'목표'};
 let benchOpen=false, benchData={items:[],total:0,urgent:0,today:todayStr()};
 let benchSel=null, benchDetail=null, benchForm=null, benchFilter='all', benchPop=null, benchDragId=null, benchUndo=null, benchToastTimer=null;
@@ -186,7 +186,7 @@ async function benchRemove(id){
 }
 function benchPlan(id,date,assigneeIds){
     const b=benchData.items.find(x=>x.id===id); if(!b) return;
-    benchForm={id,date,time:'',assignee_ids:[...(assigneeIds||[])],opt:b.kind==='hold'?'suggest':'confirmed',ovr:false,ovrWhy:'',check:null,busy:[],busyLoading:true};
+    benchForm={id,date,time:'',assignee_ids:[...(assigneeIds||[])],opt:['hold','etc'].includes(b.kind)?'suggest':'confirmed',ovr:false,ovrWhy:'',check:null,busy:[],busyLoading:true};
     benchRender();
     benchCheck().then(()=>{ const f=document.querySelector('.bench-form'); if(f) f.scrollIntoView({block:'nearest',behavior:'smooth'}); });
 }
@@ -251,7 +251,7 @@ function benchSendOpen(evId){
     const ids=[...new Set([...(Array.isArray(g.estimate_ids)?g.estimate_ids:[]),...(g.estimate_id?[g.estimate_id]:[])].filter(Boolean).map(Number))];
     const opts=ev.sched_event_opts||[];
     const after=opts.includes('after')&&ev.sched_after_date?String(ev.sched_after_date).substring(0,10):'';
-    benchPop={type:'send',ev,kind:evEnd(ev)<benchData.today?'revisit':'hold',reason:'',ests:ids.map(id=>({id,label:'#'+id})),estQuery:'',estResults:[],
+    benchPop={type:'send',ev,kind:(ev.completed_at||evEnd(ev)<benchData.today)?'revisit':'hold',reason:'',ests:ids.map(id=>({id,label:'#'+id})),estQuery:'',estResults:[],
         win:after&&after>benchData.today?'after':'asap',from:after&&after>benchData.today?after:shiftDate(benchData.today,3),to:'',due:'',block:''};
     benchPopRender();
     ids.forEach(id=>benchEstLabel(id));
@@ -309,7 +309,7 @@ function benchPopRender(keepFocus){
     else if(p.type==='send'){
         const ev=p.ev, past=evEnd(ev)<=benchData.today;
         body=`<h3>대기함으로 보내기</h3><div class="bench-why">${_esc(ev.title||'')}<br><span class="bench-muted">${benchMdw((ev.start_date||'').substring(0,10))} · 담당 ${_esc(assigneeNamesOf(ev).join(', ')||'미정')}</span></div>
-            <div class="bench-form"><label>이유<div class="bench-seg">${['hold','revisit'].map(k=>`<button type="button" class="bench-mini${p.kind===k?' pri':''}" aria-pressed="${p.kind===k}" onclick="benchPop.kind='${k}';benchPopRender()">${BENCH_KINDS[k][0]}</button>`).join('')}</div></label>
+            <div class="bench-form"><label>이유<div class="bench-seg">${['hold','revisit','etc'].map(k=>`<button type="button" class="bench-mini${p.kind===k?' pri':''}" aria-pressed="${p.kind===k}"${ev.completed_at&&k!=='revisit'?' disabled title="완료된 일정은 재방문으로만 보낼 수 있습니다"':''} onclick="benchPop.kind='${k}';benchPopRender()">${BENCH_KINDS[k][0]}</button>`).join('')}</div></label>
             ${p.kind==='revisit'&&!past?'<div class="bench-flag f-wait wrap">아직 방문 전 일정입니다. 재방문은 다녀온 뒤에 고르는 이유입니다.</div>':''}
             ${benchPopFieldsHtml(p,false)}
             <div class="bench-acts"><button type="button" class="bench-mini pri" onclick="benchSendSubmit()">보내기</button><button type="button" class="bench-mini" onclick="benchPopClose()">취소</button></div>

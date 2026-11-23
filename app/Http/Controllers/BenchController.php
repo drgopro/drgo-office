@@ -29,7 +29,7 @@ use Illuminate\Validation\Rule;
  */
 class BenchController extends Controller
 {
-    private const KIND_LABELS = ['hold' => '보류', 'revisit' => '재방문', 'undated' => '날짜 미정'];
+    private const KIND_LABELS = ['hold' => '보류', 'revisit' => '재방문', 'undated' => '날짜 미정', 'etc' => '기타'];
 
     /** 재방문 일정을 새로 만들 때 원래 일정에서 이어받는 의뢰자 식별 정보 — 결제·청구 연결 키는 복사하지 않는다 */
     private const REQUEST_DATA_CARRY = ['client_id', 'project_id', 'name', 'phone', 'nickname', 'platform'];
@@ -71,7 +71,7 @@ class BenchController extends Controller
     public function send(Request $request, Schedule $schedule): JsonResponse
     {
         $validated = $request->validate([
-            'kind' => 'required|in:hold,revisit',
+            'kind' => 'required|in:hold,revisit,etc',
             'reason' => 'required|string|max:2000',
             'estimate_ids' => 'nullable|array',
             'estimate_ids.*' => 'integer|exists:estimates,id',
@@ -88,7 +88,10 @@ class BenchController extends Controller
         $bench = DB::transaction(function () use ($schedule, $validated, $request): ScheduleBench {
             $isRevisit = $validated['kind'] === 'revisit';
             // 같은 일정을 동시에 두 번 보류하면 대기 카드가 두 장 생긴다 — 잠그고, 이미 대기함에 있으면(기본 조회에서 빠짐) 막는다
-            abort_unless($isRevisit || Schedule::whereKey($schedule->id)->lockForUpdate()->exists(), 409, '이미 대기함에 있는 일정입니다. 새로고침해 주세요.');
+            abort_unless(Schedule::whereKey($schedule->id)->lockForUpdate()->exists() || $isRevisit, 409, '이미 대기함에 있는 일정입니다. 새로고침해 주세요.');
+            // 재방문은 원래 일정이 남아 여러 번 보낼 수 있다 — 같은 일정의 재방문이 아직 대기 중이면 막는다 (배치하거나 뺀 뒤에는 다시 가능)
+            abort_if($isRevisit && ScheduleBench::where('schedule_id', $schedule->id)->where('kind', 'revisit')->where('status', 'waiting')->exists(),
+                409, '이 일정의 재방문이 이미 대기함에 있습니다.');
             $bench = ScheduleBench::create([
                 'kind' => $validated['kind'],
                 'schedule_id' => $schedule->id,
@@ -109,7 +112,7 @@ class BenchController extends Controller
                 'created_by' => Auth::id(),
             ]);
             if (! $isRevisit) {
-                $schedule->update(['bench_id' => $bench->id]); // 보류: 달력에서 빠지고 흔적만 남는다
+                $schedule->update(['bench_id' => $bench->id]); // 보류·기타: 달력에서 빠지고 흔적만 남는다
             }
             $this->log($schedule, 'benched', '대기함으로 보냄('.self::KIND_LABELS[$bench->kind].'): '.$bench->reason, [
                 'bench' => ['kind' => self::KIND_LABELS[$bench->kind], 'reason' => $bench->reason],
@@ -268,7 +271,7 @@ class BenchController extends Controller
                 'bench_override' => $overridden,
             ];
 
-            if ($bench->kind === 'hold' && ($schedule = $bench->schedule)) {
+            if ($bench->movesSchedule() && ($schedule = $bench->schedule)) {
                 $snapshot = collect($schedule->getAttributes())
                     ->only(['start_date', 'end_date', 'start_time', 'end_time', 'is_all_day', 'sched_opt', 'bench_placed_at', 'bench_override'])
                     ->all() + ['request_data' => $schedule->request_data, 'assignee_ids' => $schedule->assignees()->pluck('assignees.id')->all()];
@@ -334,7 +337,7 @@ class BenchController extends Controller
                 'override_reason' => $overridden ? $overrideReason : null,
             ], fn ($v): bool => $v !== null)]
         );
-        $this->notify($schedule, $bench->kind === 'hold' ? new ScheduleUpdated($schedule) : new ScheduleCreated($schedule));
+        $this->notify($schedule, $bench->movesSchedule() ? new ScheduleUpdated($schedule) : new ScheduleCreated($schedule));
 
         return response()->json(['ok' => true, 'schedule_id' => $schedule->id, 'overridden' => $overridden, 'notices' => $check['notices']]);
     }
@@ -347,7 +350,7 @@ class BenchController extends Controller
 
         DB::transaction(function () use ($bench, $validated): void {
             $reason = trim((string) ($validated['reason'] ?? ''));
-            if ($bench->kind === 'hold' && ($schedule = $bench->schedule)) {
+            if ($bench->movesSchedule() && ($schedule = $bench->schedule)) {
                 $this->log($schedule, 'delete', '대기함에서 뺌'.($reason !== '' ? ': '.$reason : ''), [
                     'snapshot' => collect($schedule->getAttributes())->only([
                         'title', 'start_date', 'end_date', 'start_time', 'end_time',
@@ -375,7 +378,7 @@ class BenchController extends Controller
         }
 
         DB::transaction(function () use ($bench): void {
-            $holdSchedule = $bench->kind === 'hold'
+            $holdSchedule = $bench->movesSchedule()
                 ? Schedule::withoutGlobalScope('not_benched')->withTrashed()->find($bench->schedule_id)
                 : null;
 
@@ -448,9 +451,9 @@ class BenchController extends Controller
             filled($schedule->repeat_group) => '반복 일정은 대기함으로 보낼 수 없습니다.',
             filled($schedule->source_type) => '다른 화면에서 연동된 일정은 대기함으로 보낼 수 없습니다.',
             (bool) $schedule->is_private => '비공개 일정은 대기함으로 보낼 수 없습니다.',
-            $kind === 'hold' && $schedule->is_locked => '잠긴 일정은 보류할 수 없습니다.',
-            $kind === 'hold' && in_array('no_change', $schedule->sched_event_opts ?? [], true) => '일정 변경 불가로 표시된 일정은 보류할 수 없습니다.',
-            $kind === 'hold' && $schedule->completed_at !== null => '완료된 일정은 보류할 수 없습니다. 다시 가야 하면 재방문을 골라 주세요.',
+            $kind !== 'revisit' && $schedule->is_locked => '잠긴 일정은 보류할 수 없습니다.',
+            $kind !== 'revisit' && in_array('no_change', $schedule->sched_event_opts ?? [], true) => '일정 변경 불가로 표시된 일정은 보류할 수 없습니다.',
+            $kind !== 'revisit' && $schedule->completed_at !== null => '완료된 일정은 보류할 수 없습니다. 다시 가야 하면 재방문을 골라 주세요.',
             default => null,
         };
     }
