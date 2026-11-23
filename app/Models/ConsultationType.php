@@ -86,6 +86,8 @@ class ConsultationType extends Model
             ['code' => 'proposal', 'label' => '일정제안', 'kind' => 'proposal'],
             ['code' => 'estimate', 'label' => '견적', 'kind' => 'estimate'],
             ['code' => 'payment', 'label' => '결제/계약', 'kind' => 'payment'],
+            ['code' => 'visit', 'label' => '렌탈 이용', 'kind' => 'work'],
+            ['code' => 'done', 'label' => '완료', 'kind' => 'done'],
         ],
         'broadcast' => [
             ['code' => 'consulting', 'label' => '상담', 'kind' => 'normal'],
