@@ -835,7 +835,7 @@ function searchShipAddress() {
     }).open();
     if (window.daum && window.daum.Postcode) return open();
     const s = document.createElement('script');
-    s.src = 'https://t1.daumcdn.net/mapjsapi/bundle/postcode/prod/postcode.v2.js';
+    s.src = 'https://t1.kakaocdn.net/mapjsapi/bundle/postcode/prod/postcode.v2.js';
     s.onload = open;
     s.onerror = () => alert('주소 검색 스크립트를 불러오지 못했습니다. 주소를 직접 입력해 주세요.');
     document.head.appendChild(s);

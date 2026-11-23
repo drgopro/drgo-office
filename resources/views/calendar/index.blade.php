@@ -43,7 +43,7 @@ body.cal-write .cal-wm-new, body.cal-write #calAddFab { display:none !important;
 @include('calendar.partials.bench')
 @endsection
 
-<script src="//t1.daumcdn.net/mapjsapi/bundle/postcode/prod/postcode.v2.js"></script>
+<script src="https://t1.kakaocdn.net/mapjsapi/bundle/postcode/prod/postcode.v2.js"></script>
 @push('scripts')
 <script>
 @include('calendar.js.01-core')

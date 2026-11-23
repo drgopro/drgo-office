@@ -1690,7 +1690,7 @@ function searchAddress(clientId, xIdx) {
     if (typeof daum === 'undefined' || !daum.Postcode) {
         // 다음 주소 API 동적 로드
         const script = document.createElement('script');
-        script.src = '//t1.daumcdn.net/mapjsapi/bundle/postcode/prod/postcode.v2.js';
+        script.src = 'https://t1.kakaocdn.net/mapjsapi/bundle/postcode/prod/postcode.v2.js';
         script.onload = () => _openPostcode(clientId, xIdx);
         document.head.appendChild(script);
     } else {
@@ -2299,7 +2299,7 @@ function ncSearchAddress() {
     }).open();
     if (typeof daum === 'undefined' || !daum.Postcode) {
         const s = document.createElement('script');
-        s.src = '//t1.daumcdn.net/mapjsapi/bundle/postcode/prod/postcode.v2.js';
+        s.src = 'https://t1.kakaocdn.net/mapjsapi/bundle/postcode/prod/postcode.v2.js';
         s.onload = fill;
         document.head.appendChild(s);
     } else { fill(); }

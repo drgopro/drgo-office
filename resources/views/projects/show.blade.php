@@ -2058,7 +2058,7 @@ function searchProjectAddress() {
     }).open();
     if (typeof daum === 'undefined' || !daum.Postcode) {
         const script = document.createElement('script');
-        script.src = '//t1.daumcdn.net/mapjsapi/bundle/postcode/prod/postcode.v2.js';
+        script.src = 'https://t1.kakaocdn.net/mapjsapi/bundle/postcode/prod/postcode.v2.js';
         script.onload = open;
         document.head.appendChild(script);
     } else { open(); }
