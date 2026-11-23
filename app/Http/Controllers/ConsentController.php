@@ -99,7 +99,21 @@ class ConsentController extends Controller
             }
         }
 
-        $project = $estimate->project_id ? Project::find($estimate->project_id) : null;
+        self::applyMarketingToProject($estimate);
+    }
+
+    /**
+     * 견적서에 기록된 마케팅 선택을 연동 프로젝트에 반영 — 동의 당시 프로젝트가 없다가 나중에 연결된 경우에도 호출 (피드백 #294).
+     * 의뢰자 본인의 선택이므로 프로젝트에 직원이 정해 둔 값보다 우선한다. 선택 기록이 없으면 건드리지 않는다.
+     */
+    public static function applyMarketingToProject(Estimate $estimate): void
+    {
+        $record = $estimate->agreements['marketing'] ?? null;
+        if (empty($record['at']) || ! $estimate->project_id) {
+            return;
+        }
+        $agreed = self::isAgreed($record);
+        $project = Project::find($estimate->project_id);
         if ($project && $project->marketing_consent !== $agreed) {
             $project->forceFill(['marketing_consent' => $agreed, 'marketing_consent_updated_at' => now()])->save();
         }

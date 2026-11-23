@@ -34,7 +34,8 @@ class EstimatePaymentSync
                 'amount' => (int) $estimate->total_amount,
                 'items' => self::chargeItems($estimate),
                 'method' => $method,
-                'paid_at' => now()->toDateString(),
+                // 결제 후 뒤늦게 프로젝트를 연결한 경우에도 실제 결제일로 남긴다
+                'paid_at' => ($estimate->paid_at ?? now())->toDateString(),
                 'memo' => "견적서 #{$estimate->display_no} 결제완료 자동 기록",
                 'recorded_by' => Auth::id(),
             ]);
@@ -57,6 +58,31 @@ class EstimatePaymentSync
         }
 
         self::syncSchedules($estimate, '결제완료');
+    }
+
+    /**
+     * 결제완료된 견적서에 프로젝트가 뒤늦게 연결되거나 바뀐 경우 — 결제 내역을 그 프로젝트로 맞춘다.
+     * 이미 기록된 결제·환불 내역과 이 견적서의 청구는 새 프로젝트로 함께 옮기고, 없으면 새로 기록한다.
+     * 이전 프로젝트 고유의 청구(이 견적서 것이 아닌 청구)에 걸려 있던 연결만 해제한다.
+     */
+    public static function projectLinked(Estimate $estimate): void
+    {
+        ProjectBilling::where('estimate_id', $estimate->id)
+            ->where('project_id', '!=', $estimate->project_id)
+            ->get()->each->update(['project_id' => $estimate->project_id]);
+
+        ProjectPayment::where('estimate_id', $estimate->id)
+            ->where('project_id', '!=', $estimate->project_id)
+            ->get()->each(function (ProjectPayment $row) use ($estimate): void {
+                $billing = $row->billing;
+                $foreign = $billing && (int) $billing->estimate_id !== (int) $estimate->id;
+                $row->update(['project_id' => $estimate->project_id] + ($foreign ? ['billing_id' => null] : []));
+                if ($foreign) {
+                    $billing->refreshStatus();
+                }
+            });
+
+        self::estimatePaid($estimate, $estimate->payapp_paid_at ? '페이앱' : '수동 기록');
     }
 
     /**

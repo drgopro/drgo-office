@@ -2193,6 +2193,9 @@ function buildEstimateBody() {
 
 async function saveEstimate(silent = false) {
     const body = buildEstimateBody();
+    // 의뢰자 미연결 견적서는 프로젝트 연동 없이 발행된다 — 발행 전환 때 한 번 확인 (피드백 #293)
+    if (body.status === 'issued' && lastSavedStatus !== 'issued' && !body.client_id
+        && !confirm('의뢰자가 연결되지 않아 프로젝트와 연동되지 않습니다.\n(닉네임 칸에서 의뢰자를 검색해 선택하면 프로젝트를 지정할 수 있습니다)\n\n그대로 발행할까요?')) return;
     const res = await fetch(`/api/estimates/${estId}`, {method:'PATCH', headers:H, body:JSON.stringify(body)});
     if (res.ok) {
         lastSnapshot = JSON.stringify(body);

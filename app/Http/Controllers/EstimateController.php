@@ -577,6 +577,7 @@ class EstimateController extends Controller
             }
             $becameCancelled = ($validated['status'] ?? null) === 'cancelled' && $estimate->status === 'paid';
             $oldItemsForStock = $estimate->product_items; // 직접발송 재고 연동 — 저장 전 스냅샷
+            $oldProjectId = $estimate->project_id;
 
             // validated()는 와일드카드 규칙 순서로 키를 재조립하므로 항목별 필드 구성이 다르면
             // (예: 구버전 스냅샷에 category 없음) 숫자 키 순서가 뒤섞여 JSON에 배열 대신 객체로
@@ -652,6 +653,16 @@ class EstimateController extends Controller
                 EstimatePaymentSync::estimatePaid($estimate->fresh(), '수동 기록');
             } elseif ($becameCancelled) {
                 EstimatePaymentSync::estimateCancelled($estimate->fresh());
+            }
+
+            // 프로젝트가 새로 연결되거나 바뀐 저장 — 이미 받아 둔 포트폴리오 동의와 결제 내역을 그 프로젝트로 넘긴다
+            // (동의·결제 당시 프로젝트가 없던 견적서가 통계·프로젝트 결제 내역에서 빠지던 문제, 피드백 #293 #294)
+            $linked = $estimate->fresh();
+            if ($linked->project_id && (int) $linked->project_id !== (int) $oldProjectId) {
+                ConsentController::applyMarketingToProject($linked);
+                if ($linked->status === 'paid' && ! $becamePaid) {
+                    EstimatePaymentSync::projectLinked($linked);
+                }
             }
 
             // 과거 자동 생성된 연동 청구(입금 이력 없는 미입금 건) 정리 — 연동만으로 잔금이 잡히지 않도록
