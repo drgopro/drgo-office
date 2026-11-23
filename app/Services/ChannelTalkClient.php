@@ -2,9 +2,12 @@
 
 namespace App\Services;
 
+use App\Models\User;
+use App\Notifications\ServerErrorAlert;
 use Illuminate\Http\Client\RequestException;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Http;
+use Illuminate\Support\Facades\Notification;
 
 /**
  * 채널톡 Open API 클라이언트 — 팀챗(그룹) 메시지 발송.
@@ -109,11 +112,11 @@ class ChannelTalkClient
             $body = mb_substr((string) $e->response?->body(), 0, 300);
             $this->log('전송 실패 HTTP '.$status, $text, 'url='.$url."\n".$body);
 
-            return ['ok' => false, 'error' => "채널톡 응답 오류 (HTTP {$status}): ".$body];
+            return $this->sendFailed("채널톡 응답 오류 (HTTP {$status}): ".$body);
         } catch (\Throwable $e) {
             $this->log('전송 실패', $text, '통신 오류: '.$e->getMessage());
 
-            return ['ok' => false, 'error' => '채널톡 통신 실패: '.mb_substr($e->getMessage(), 0, 120)];
+            return $this->sendFailed('채널톡 통신 실패: '.mb_substr($e->getMessage(), 0, 120));
         }
 
         $this->log(
@@ -123,10 +126,32 @@ class ChannelTalkClient
         );
 
         if (! $res->successful()) {
-            return ['ok' => false, 'error' => '채널톡 응답 오류 (HTTP '.$res->status().'): '.mb_substr($res->body(), 0, 200)];
+            return $this->sendFailed('채널톡 응답 오류 (HTTP '.$res->status().'): '.mb_substr($res->body(), 0, 200));
         }
 
         return ['ok' => true];
+    }
+
+    /**
+     * 발송 실패 — 관리자에게 오피스 알림(벨·웹푸시)을 6시간에 한 번 보낸다.
+     * 톡방 알림이 조용히 끊겨도 직원이 알 수 있게 한다 (피드백 #296).
+     *
+     * @return array{ok:false, error:string}
+     */
+    private function sendFailed(string $error): array
+    {
+        try {
+            if (Cache::add('channeltalk.send-failed-alert', 1, now()->addHours(6))) {
+                Notification::send(
+                    User::whereIn('role', ['master', 'admin'])->where('is_active', true)->get(),
+                    new ServerErrorAlert('채널톡 알림 발송 실패', $error, '상세 기록: /admin/channeltalk-log')
+                );
+            }
+        } catch (\Throwable) {
+            // 알림 실패가 본 동작을 깨면 안 됨
+        }
+
+        return ['ok' => false, 'error' => $error];
     }
 
     /**
