@@ -1026,7 +1026,7 @@
                     <div style="display:grid; grid-template-columns:1fr 1fr; gap:10px;">
                         <div>
                             <div style="font-size:12px;color:var(--text-muted);margin-bottom:4px;">결제 금액 (원) *</div>
-                            <input type="number" id="payAmount" min="0" value="{{ $payment['amount'] ?? '' }}" oninput="window.payAmountManual=true; recalcPayAmount();" style="width:100%; padding:9px 12px; background:var(--surface2); border:1px solid var(--border); border-radius:8px; color:var(--text); font-size:14px; outline:none;">
+                            <input type="number" id="payAmount" value="{{ $payment['amount'] ?? '' }}" oninput="window.payAmountManual=true; recalcPayAmount();" style="width:100%; padding:9px 12px; background:var(--surface2); border:1px solid var(--border); border-radius:8px; color:var(--text); font-size:14px; outline:none;">
                             <div style="display:flex; justify-content:space-between; align-items:center; margin-top:4px;">
                                 <span id="payAmountNote" style="font-size:12px; color:var(--text-muted);">(항목 합산 자동 반영)</span>
                                 <button type="button" onclick="window.payAmountManual=false; recalcPayAmount();" style="background:none; border:none; color:var(--accent); font-size:12px; cursor:pointer; padding:0;">↻ 항목 합산으로 재설정</button>

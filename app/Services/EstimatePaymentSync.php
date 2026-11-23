@@ -25,7 +25,8 @@ class EstimatePaymentSync
      */
     public static function estimatePaid(Estimate $estimate, string $method = '페이앱'): void
     {
-        if ($estimate->project_id && (int) $estimate->total_amount > 0
+        // 마이너스 견적서(차감 정산)도 음수 금액으로 기록한다 — 0원만 제외
+        if ($estimate->project_id && (int) $estimate->total_amount !== 0
             && ! ProjectPayment::where('estimate_id', $estimate->id)->where('type', 'charge')->exists()) {
             ProjectPayment::create([
                 'project_id' => $estimate->project_id,
@@ -93,7 +94,7 @@ class EstimatePaymentSync
     public static function estimateTotalsChanged(Estimate $estimate): void
     {
         $total = (int) $estimate->total_amount;
-        if ($total <= 0) {
+        if ($total === 0) {
             return;
         }
 

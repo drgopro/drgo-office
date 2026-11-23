@@ -72,4 +72,23 @@ class ProjectPaymentNegativeItemTest extends TestCase
 
         $this->assertSame(70000, (int) $payment->fresh()->amount); // 100,000 − 30,000
     }
+
+    public function test_payment_saves_and_updates_with_negative_total_for_a_deduction_estimate(): void
+    {
+        // 환불·재방문 정산용 마이너스 견적서를 연동하면 결제 금액 자체가 음수 — 422 없이 저장·수정 (피드백 #292)
+        $project = $this->makeProject();
+        $admin = $this->admin();
+
+        $this->actingAs($admin)->postJson("/api/projects/{$project->id}/payment", [
+            'amount' => -1132200,
+            'paid_at' => '2026-11-20',
+            'items' => [['name' => '환불 정산', 'qty' => 1, 'price' => -1132200, 'source' => 'estimate']],
+        ])->assertOk();
+
+        $payment = ProjectPayment::where('project_id', $project->id)->where('type', 'charge')->firstOrFail();
+        $this->assertSame(-1132200, $payment->amount);
+
+        $this->actingAs($admin)->patchJson("/api/projects/{$project->id}/payments/{$payment->id}", ['amount' => -1000000])->assertOk();
+        $this->assertSame(-1000000, $payment->fresh()->amount);
+    }
 }

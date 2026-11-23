@@ -63,7 +63,7 @@ class RevenueLedger
         // 입양 — 연동 charge가 없는 결제완료 견적: 같은 프로젝트의 같은 금액 미연동 charge를 이 견적의
         // 결제로 본다 (프로젝트에 수동 기록 + 견적서 결제완료 표시가 따로 된 이중 기록을 한 번만 집계)
         $adoptedChargeId = null;
-        if (! $charge && $estimate->status === 'paid' && $estimate->project_id && (int) $estimate->total_amount > 0) {
+        if (! $charge && $estimate->status === 'paid' && $estimate->project_id && (int) $estimate->total_amount !== 0) {
             $takenIds = RevenueEntry::where('kind', 'estimate_paid')
                 ->where('estimate_id', '!=', $estimate->id)->whereNotNull('payment_id')->pluck('payment_id');
             $charge = ProjectPayment::where('project_id', $estimate->project_id)
@@ -78,8 +78,8 @@ class RevenueLedger
 
         [$serviceTotal, $productTotal] = self::splitTotals($estimate);
         $total = $serviceTotal + $productTotal;
-        if ($total <= 0) {
-            return;
+        if ($total === 0) {
+            return; // 마이너스 견적서(차감 정산)는 음수 매출로 남긴다 — 0원만 제외
         }
 
         // 인식일 — 프로젝트 완료 시 완료일, 아니면 결제일 (재계산에도 안정적이도록 이전 값 보존 폴백)
@@ -195,7 +195,7 @@ class RevenueLedger
     /** 미연동 charge의 입양자 — 같은 프로젝트·같은 금액·자기 charge가 없는 결제완료 견적 */
     private static function findAdopter(ProjectPayment $payment): ?Estimate
     {
-        if ($payment->type !== 'charge' || $payment->estimate_id || ! $payment->project_id || (int) $payment->amount <= 0) {
+        if ($payment->type !== 'charge' || $payment->estimate_id || ! $payment->project_id || (int) $payment->amount === 0) {
             return null;
         }
         $withOwnCharge = ProjectPayment::where('type', 'charge')->whereNotNull('estimate_id')->pluck('estimate_id');

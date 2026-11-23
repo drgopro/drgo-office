@@ -816,7 +816,7 @@ class ProjectController extends Controller
     {
         $validated = $request->validate([
             'estimate_id' => 'nullable|integer|exists:estimates,id',
-            'amount' => 'nullable|integer|min:0',
+            'amount' => 'nullable|integer', // 음수 허용 — 환불·재방문 정산용 마이너스 견적서(차감 정산) 연동 (피드백 #292)
             'paid_at' => 'nullable|date',
             'method' => 'nullable|string|max:30',
             'items' => 'nullable|array',
@@ -1302,7 +1302,7 @@ class ProjectController extends Controller
         }
 
         $validated = $request->validate([
-            'amount' => 'nullable|integer|min:0',
+            'amount' => 'nullable|integer', // 음수 허용 — 마이너스 견적서(차감 정산)
             'paid_at' => 'nullable|date',
             'method' => 'nullable|string|max:50',
             'items' => 'nullable|array',

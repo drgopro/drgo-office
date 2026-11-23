@@ -10,6 +10,7 @@ use App\Models\Project;
 use App\Models\ProjectPayment;
 use App\Models\RevenueEntry;
 use App\Models\User;
+use App\Services\EstimatePaymentSync;
 use App\Services\RevenueLedger;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Tests\TestCase;
@@ -82,6 +83,33 @@ class RevenueLedgerTest extends TestCase
         // 결제 이력이 있는 견적서는 원장 행이 정확히 1건 (재저장에도 멱등)
         $estimate->touch();
         $this->assertSame(1, RevenueEntry::where('estimate_id', $estimate->id)->count());
+    }
+
+    public function test_negative_deduction_estimate_is_recorded_as_negative_charge_and_revenue(): void
+    {
+        // 마이너스 견적서(차감 정산)가 결제완료되면 프로젝트 결제 내역과 매출 원장에 음수로 남는다 (피드백 #292)
+        $estimate = $this->makePaidEstimate([
+            'project_id' => $this->project->id,
+            'paid_at' => '2026-11-20 10:00:00',
+            'product_items' => [
+                ['name' => '카메라 반품', 'sale_price' => -300000, 'qty' => 1, 'subtotal' => -300000, 'is_service' => false],
+                ['name' => '세팅비 정산', 'sale_price' => -100000, 'qty' => 1, 'subtotal' => -100000, 'is_service' => true],
+            ],
+            'product_total' => -400000,
+            'total_amount' => -400000,
+        ]);
+
+        EstimatePaymentSync::estimatePaid($estimate);
+        EstimatePaymentSync::estimatePaid($estimate); // 다시 불려도 중복 기록 없음
+
+        $charges = ProjectPayment::where('estimate_id', $estimate->id)->where('type', 'charge')->get();
+        $this->assertCount(1, $charges);
+        $this->assertSame(-400000, $charges[0]->amount);
+
+        $entries = RevenueEntry::where('estimate_id', $estimate->id)->get();
+        $this->assertCount(1, $entries);
+        $this->assertSame('2026-11-20', $entries[0]->recognized_on->toDateString());
+        $this->assertSame([-300000, -100000, -400000], [$entries[0]->product_amount, $entries[0]->service_amount, $entries[0]->amount]);
     }
 
     public function test_project_completion_moves_recognition_date_and_back(): void
@@ -292,6 +320,29 @@ class RevenueLedgerTest extends TestCase
         $this->assertSame(1, RevenueEntry::count());
         $this->assertSame($again->id, RevenueEntry::first()->payment_id);
         $this->assertSame(400000, (int) RevenueEntry::sum('amount'));
+    }
+
+    public function test_negative_manual_charge_and_matching_deduction_estimate_count_once(): void
+    {
+        $deduction = [
+            'project_id' => $this->project->id,
+            'product_items' => [['name' => '반품 정산', 'sale_price' => -400000, 'qty' => 1, 'subtotal' => -400000, 'is_service' => false]],
+            'product_total' => -400000, 'total_amount' => -400000,
+        ];
+
+        // 수동 음수 결제 먼저, 마이너스 견적서 결제완료 나중
+        $charge = $this->pay(['type' => 'charge', 'amount' => -400000, 'paid_at' => '2026-11-20']);
+        $estimate = $this->makePaidEstimate($deduction);
+        $this->assertSame(1, RevenueEntry::count());
+        $this->assertSame(-400000, (int) RevenueEntry::sum('amount'));
+
+        // 반대 순서도 한 번만
+        RevenueEntry::query()->delete();
+        $charge->delete();
+        $estimate->touch();
+        $this->pay(['type' => 'charge', 'amount' => -400000, 'paid_at' => '2026-11-20']);
+        $this->assertSame(1, RevenueEntry::count());
+        $this->assertSame(-400000, (int) RevenueEntry::sum('amount'));
     }
 
     public function test_no_adoption_when_amount_differs(): void
