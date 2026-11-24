@@ -60,6 +60,7 @@ use App\Http\Controllers\WikiTemplateController;
 use App\Http\Controllers\WorkTypeController;
 use App\Models\ClientFieldDefinition;
 use App\Models\ConsultationType;
+use App\Models\Notice;
 use App\Models\ProjectFieldDefinition;
 use App\Models\User;
 use App\Services\ChannelTalkClient;
@@ -583,7 +584,14 @@ Route::middleware('auth')->group(function () {
     // 위키
     Route::get('/wiki', [WikiController::class, 'index'])->name('wiki.index');
     Route::get('/wiki/create', [WikiController::class, 'create'])->name('wiki.create');
-    Route::get('/wiki/{wiki}', [WikiController::class, 'show'])->name('wiki.show');
+    Route::get('/wiki/{wiki}', [WikiController::class, 'show'])->name('wiki.show')
+        // 공지사항 게시판으로 이관된 옛 위키 공지 링크(/wiki/{원본 id}) → 새 공지로 이동
+        ->missing(function (Request $request) {
+            $notice = Notice::where('legacy_wiki_id', (int) $request->route('wiki'))->first();
+            abort_unless($notice, 404);
+
+            return redirect()->route('notices.show', $notice);
+        });
     Route::post('/wiki', [WikiController::class, 'store'])->name('wiki.store');
     Route::patch('/wiki/{wiki}', [WikiController::class, 'update'])->name('wiki.update');
     Route::delete('/wiki/{wiki}', [WikiController::class, 'destroy'])->name('wiki.destroy');

@@ -6,6 +6,7 @@ use App\Models\Notice;
 use App\Models\NoticeCategory;
 use App\Models\NoticeRead;
 use App\Models\User;
+use App\Models\Wiki;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Tests\TestCase;
 
@@ -144,5 +145,31 @@ class NoticeBoardTest extends TestCase
 
         $this->actingAs($admin)->deleteJson("/notices/{$notice->id}")->assertOk();
         $this->assertNull(Notice::find($notice->id));
+    }
+
+    public function test_copy_link_uses_notice_url_not_wiki_url(): void
+    {
+        $admin = $this->admin();
+        $notice = Notice::create(['title' => '링크 공지', 'content' => '<p>x</p>', 'created_by' => $admin->id]);
+
+        $html = $this->actingAs($admin)->get("/notices/{$notice->id}")->assertOk()->getContent();
+
+        $this->assertStringContainsString(json_encode(route('notices.show', $notice)), $html);
+        $this->assertStringNotContainsString("'/wiki/' +", $html);
+    }
+
+    public function test_legacy_wiki_link_redirects_to_migrated_notice(): void
+    {
+        $admin = $this->admin();
+        $wiki = Wiki::create(['title' => '옛 공지', 'type' => 'notice', 'content' => 'x', 'is_draft' => false, 'created_by' => $admin->id]);
+        $wiki->delete(); // 이관 후 위키 원본은 보관함(소프트 삭제)
+        $notice = Notice::create(['title' => '옛 공지', 'content' => 'x', 'legacy_wiki_id' => $wiki->id, 'created_by' => $admin->id]);
+
+        $this->actingAs($admin)->get("/wiki/{$wiki->id}")->assertRedirect(route('notices.show', $notice));
+    }
+
+    public function test_unknown_wiki_link_still_returns_404(): void
+    {
+        $this->actingAs($this->admin())->get('/wiki/999999')->assertNotFound();
     }
 }

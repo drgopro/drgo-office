@@ -431,9 +431,9 @@
 
 @push('scripts')
 <script>
-// 위키 문서 링크 복사 (내부 공유용)
+// 공지 링크 복사 (내부 공유용) — 공지는 /notices/{id} (위키와 번호 체계가 다름)
 async function copyWikiLink(){
-    const url = location.origin + '/wiki/' + {{ $notice->id }};
+    const url = {!! json_encode(route('notices.show', $notice)) !!};
     const btn = document.getElementById('copyWikiLinkBtn');
     const done = () => {
         if(!btn) return;
