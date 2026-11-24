@@ -10,11 +10,11 @@ use App\Models\PayappPayment;
 use App\Models\Product;
 use App\Models\Project;
 use App\Models\Setting;
-use App\Services\ChannelTalkClient;
 use App\Services\EstimatePaymentSync;
 use App\Services\EstimateReview\EstimateReviewService;
 use App\Services\EstimateStockSync;
 use App\Services\ExchangeRateService;
+use App\Services\OfficeAlert;
 use App\Services\PayAppClient;
 use App\Services\PaymentCompleteAlert;
 use App\Services\RevenueLedger;
@@ -1095,16 +1095,25 @@ class EstimateController extends Controller
         return response('SUCCESS');
     }
 
-    /** 페이앱 결제금액-총액 불일치 채널톡 경고 — 통지 응답을 막지 않도록 실패는 무시 */
+    /** 페이앱 결제금액-총액 불일치 경고 — 관리자 종 알림 + 캘린더 등록. 통지 응답을 막지 않도록 실패는 무시 */
     private function alertPayappMismatch(Estimate $estimate, int $paidPrice, bool $resolved): void
     {
         rescue(function () use ($estimate, $paidPrice, $resolved) {
-            $msg = ($resolved
-                ? "⚠️ [확인 필요] 견적서 #{$estimate->display_no} — 청구 시점 금액 ".number_format($paidPrice).'원으로 결제완료 처리했지만, 현재 견적 총액('.number_format((int) $estimate->total_amount).'원)과 다릅니다. 결제요청 후 총액이 변동된 건이니 견적서를 확인해주세요.'
-                : "🚨 [결제 보류] 견적서 #{$estimate->display_no} — 결제 금액 ".number_format($paidPrice).'원이 견적 총액('.number_format((int) $estimate->total_amount).'원)과 달라 결제완료 처리를 보류했습니다. 확인 후 수동 처리해주세요.')
-                ."\n".url("/estimates/{$estimate->id}/edit")
-                ."\n".app(ChannelTalkClient::class)->mentionAll();
-            app(ChannelTalkClient::class)->sendGroupMessage($msg);
+            $no = $estimate->display_no ?? $estimate->id;
+            $paid = number_format($paidPrice).'원';
+            $total = number_format((int) $estimate->total_amount).'원';
+            $url = url("/estimates/{$estimate->id}/edit");
+            [$title, $body] = $resolved
+                ? ["⚠️ 견적서 #{$no} 결제 금액 확인 필요", "청구 시점 금액 {$paid}으로 결제완료 처리했지만 현재 견적 총액({$total})과 다릅니다. 결제요청 후 총액이 바뀐 건이니 견적서를 확인해 주세요."]
+                : ["🚨 견적서 #{$no} 결제완료 보류", "결제 금액 {$paid}이 견적 총액({$total})과 달라 결제완료 처리를 보류했습니다. 확인 후 수동으로 처리해 주세요."];
+
+            OfficeAlert::raise($title, $body, $url, "payapp-mismatch-{$estimate->id}", [
+                'date' => now()->toDateString(),
+                'title' => ($resolved ? '[확인] ' : '[결제 보류] ')."견적서 #{$no} 결제 금액 불일치",
+                'description' => $body."\n".$url,
+                'source_type' => 'payment_mismatch',
+                'source_id' => $estimate->id,
+            ]);
         }, report: false);
     }
 

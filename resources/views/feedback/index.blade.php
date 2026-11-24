@@ -95,6 +95,10 @@
     .fb-reject-input-wrap.show { display:flex; }
     .fb-reject-input-wrap input { flex:1; background:var(--surface); border:1px solid var(--border); border-radius:8px; padding:6px 10px; color:var(--text); font-size:13px; outline:none; }
 
+    .fb-viewer-panel > summary { cursor:pointer; list-style:none; display:flex; align-items:center; justify-content:space-between; margin-bottom:0; }
+    .fb-viewer-panel > summary::-webkit-details-marker { display:none; }
+    .fb-viewer-panel > summary::after { content:'▾'; font-size:12px; color:var(--text-muted); transition:transform .15s; }
+    .fb-viewer-panel[open] > summary::after { transform:rotate(180deg); }
     /* AI 검수 — 마스터·지정 열람자 전용 펼침 영역 */
     .fb-review { margin-top:14px; border:1px solid var(--border); border-left:3px solid var(--accent); border-radius:10px; background:var(--surface2); }
     .fb-review > summary { display:flex; align-items:center; gap:8px; flex-wrap:wrap; padding:10px 12px; font-size:13px; font-weight:700; color:var(--text); cursor:pointer; list-style:none; }
@@ -251,15 +255,16 @@
         </div>
         @if($isDeveloper)
         {{-- AI 검수 열람자 지정 — 마스터 전용. 마스터는 항상 볼 수 있고, 여기서 고른 사용자만 추가로 본다 --}}
-        <div class="fb-panel">
-            <div class="fb-panel-title">AI 검수 열람자</div>
-            <div class="fb-guide" style="margin-bottom:10px;">마스터는 항상 볼 수 있습니다. 추가로 볼 사용자를 고르세요.</div>
+        {{-- 기본 접힘 — 자주 바꾸지 않는 설정이라 펼쳐야 보인다 --}}
+        <details class="fb-panel fb-viewer-panel" id="fbViewerPanel">
+            <summary class="fb-panel-title">AI 검수 열람자</summary>
+            <div class="fb-guide" style="margin:10px 0;">마스터는 항상 볼 수 있습니다. 추가로 볼 사용자를 고르세요.</div>
             <div id="fbViewerList" class="fb-viewer-list">불러오는 중…</div>
             <div style="display:flex; align-items:center; gap:8px; margin-top:10px;">
                 <button type="button" class="fb-dev-btn" onclick="fbSaveViewers()">저장</button>
                 <span id="fbViewerMsg" style="font-size:12px; color:var(--text-muted);"></span>
             </div>
-        </div>
+        </details>
         @endif
         <div class="fb-panel">
             <div class="fb-panel-title">작성 가이드</div>

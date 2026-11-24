@@ -41,8 +41,8 @@ Schedule::command('contracts:sync-calendar --force')->monthlyOn(1, '03:00')->wit
 // 서버 디스크 사용률 점검 — 80% 초과 시 관리자 알림 (매일 오전 8시)
 Schedule::command('disk:check')->dailyAt('08:00')->withoutOverlapping();
 
-// SSL 인증서 만료 감시 — 만료 7일 전부터 매일 채널톡 알림 (수동 설치 인증서 교체 깜빡임 방지)
-Schedule::command('ssl:check-expiry')->dailyAt('08:10')->withoutOverlapping()->when($channelTalkOn);
+// SSL 인증서 만료 감시 — 만료 7일 전부터 매일 관리자 알림(종) + 만료일 캘린더 등록
+Schedule::command('ssl:check-expiry')->dailyAt('08:10')->withoutOverlapping();
 
 // 한국 공휴일(대체공휴일 포함) 자동 동기화 — 주 1회면 충분 (정부 발표 반영 지연 대비)
 Schedule::command('holidays:sync')->weeklyOn(1, '03:20')->withoutOverlapping();

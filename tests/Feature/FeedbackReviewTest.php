@@ -371,6 +371,15 @@ class FeedbackReviewTest extends TestCase
         $this->actingAs($viewer)->getJson('/api/feedback?type=bug')->assertJsonPath('posts.0.review', null);
     }
 
+    public function test_review_viewer_panel_is_collapsed_by_default(): void
+    {
+        $html = $this->actingAs($this->admin)->get('/feedback')->assertOk()->getContent();
+
+        $this->assertMatchesRegularExpression('/<details class="fb-panel fb-viewer-panel" id="fbViewerPanel">/', $html); // open 속성 없음 = 접힘
+        $this->assertStringContainsString('<summary class="fb-panel-title">AI 검수 열람자</summary>', $html);
+        $this->assertStringContainsString('id="fbViewerList"', $html);
+    }
+
     public function test_only_master_can_change_review_viewers(): void
     {
         $plainAdmin = User::factory()->create(['role' => 'admin']);

@@ -3,11 +3,14 @@
 namespace Tests\Feature;
 
 use App\Models\Estimate;
+use App\Models\Schedule;
 use App\Models\Setting;
 use App\Models\User;
+use App\Notifications\AdminAlert;
 use App\Services\PayAppClient;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Http;
+use Illuminate\Support\Facades\Notification;
 use Tests\TestCase;
 
 class EstimatePayAppTest extends TestCase
@@ -332,6 +335,27 @@ class EstimatePayAppTest extends TestCase
         $fresh = $estimate->fresh();
         $this->assertSame('issued', $fresh->status); // 보류 유지
         $this->assertNull($fresh->payapp_paid_at);
+    }
+
+    public function test_price_mismatch_hold_alerts_admins_and_registers_calendar_once(): void
+    {
+        Notification::fake();
+        Http::fake();
+        $admin = User::factory()->create(['role' => 'admin']);
+        $estimate = $this->makeEstimate([
+            'payapp_mul_no' => '98765', 'payapp_req_price' => 1498500, 'total_amount' => 1500000,
+            'status' => 'issued',
+        ]);
+
+        $this->post('/api/payapp/feedback', $this->feedbackPayload($estimate, ['price' => '990000']))->assertOk();
+        $this->post('/api/payapp/feedback', $this->feedbackPayload($estimate, ['price' => '990000']))->assertOk(); // 재통지
+
+        Notification::assertSentTo($admin, AdminAlert::class, fn (AdminAlert $n) => str_contains($n->title, '결제완료 보류')
+            && str_contains($n->url, "/estimates/{$estimate->id}/edit"));
+        $events = Schedule::where('source_type', 'payment_mismatch')->where('source_id', $estimate->id)->get();
+        $this->assertCount(1, $events);
+        $this->assertStringContainsString('[결제 보류]', $events->first()->title);
+        Http::assertNotSent(fn ($r) => str_contains($r->url(), 'api.channel.io'));
     }
 
     public function test_payapp_request_records_requested_price(): void

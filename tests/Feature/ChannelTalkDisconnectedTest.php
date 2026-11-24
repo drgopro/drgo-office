@@ -74,10 +74,11 @@ class ChannelTalkDisconnectedTest extends TestCase
             ->filter(fn ($e) => $e->filtersPass($this->app))
             ->map(fn ($e) => (string) $e->command)->implode("\n");
 
-        foreach (['drgo:watch-boards', 'schedules:channeltalk-digest', 'todos:remind', 'marketing:consent-digest', 'ssl:check-expiry'] as $command) {
+        foreach (['drgo:watch-boards', 'schedules:channeltalk-digest', 'todos:remind', 'marketing:consent-digest'] as $command) {
             $this->assertStringNotContainsString($command, $due);
         }
         $this->assertStringContainsString('shipments:refresh', $due); // 다른 예약 작업은 그대로
+        $this->assertStringContainsString('ssl:check-expiry', $due); // SSL 감시는 관리자 알림으로 전환되어 계속 실행
 
         config(['services.channeltalk.enabled' => true]);
         $dueOn = collect($schedule->events())
