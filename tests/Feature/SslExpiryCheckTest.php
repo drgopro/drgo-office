@@ -17,6 +17,7 @@ class SslExpiryCheckTest extends TestCase
     {
         parent::setUp();
         config([
+            'services.channeltalk.enabled' => true,
             'services.channeltalk.access_key' => 'k',
             'services.channeltalk.access_secret' => 's',
             'services.channeltalk.group' => '아웃바운드',

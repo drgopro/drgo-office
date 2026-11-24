@@ -19,6 +19,7 @@ class ChannelTalkSendFailureAlertTest extends TestCase
     {
         parent::setUp();
         config([
+            'services.channeltalk.enabled' => true,
             'services.channeltalk.access_key' => 'test-key',
             'services.channeltalk.access_secret' => 'test-secret',
             'services.channeltalk.group' => '오피스알림',
@@ -48,7 +49,7 @@ class ChannelTalkSendFailureAlertTest extends TestCase
 
         $this->assertTrue(app(ChannelTalkClient::class)->sendGroupMessage('테스트')['ok']);
 
-        config(['services.channeltalk.access_key' => '']); // 연동 안 한 환경(개발 등)은 알리지 않음
+        config(['services.channeltalk.enabled' => true, 'services.channeltalk.access_key' => '']); // 연동 안 한 환경(개발 등)은 알리지 않음
         $this->assertFalse(app(ChannelTalkClient::class)->sendGroupMessage('테스트')['ok']);
 
         Notification::assertNothingSent();

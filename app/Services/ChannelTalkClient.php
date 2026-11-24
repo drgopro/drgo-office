@@ -24,9 +24,18 @@ class ChannelTalkClient
 
     private const MAX_LOG_BYTES = 5 * 1024 * 1024;
 
+    public const DISABLED_MESSAGE = '채널톡 연동이 해제되어 있습니다 (CHANNELTALK_ENABLED=false).';
+
+    /** 연동 스위치 — 꺼져 있으면 어떤 경로로도 채널톡 API를 호출하지 않는다 */
+    public static function enabled(): bool
+    {
+        return (bool) config('services.channeltalk.enabled');
+    }
+
     public function isConfigured(): bool
     {
-        return (string) config('services.channeltalk.access_key') !== ''
+        return self::enabled()
+            && (string) config('services.channeltalk.access_key') !== ''
             && (string) config('services.channeltalk.access_secret') !== ''
             && (string) config('services.channeltalk.group') !== '';
     }
@@ -83,6 +92,9 @@ class ChannelTalkClient
      */
     public function sendGroupMessage(string $text, ?string $groupOverride = null): array
     {
+        if (! self::enabled()) {
+            return ['ok' => false, 'error' => self::DISABLED_MESSAGE];
+        }
         $text = $this->resolveMentions($text); // 지연 멘션 자리표시자 → 실제 멘션 태그 (큐·즉시 발송 공통)
         $group = trim((string) ($groupOverride ?? config('services.channeltalk.group')));
         if ((string) config('services.channeltalk.access_key') === ''
@@ -162,6 +174,9 @@ class ChannelTalkClient
      */
     public function listGroups(): array
     {
+        if (! self::enabled()) {
+            return ['ok' => false, 'error' => self::DISABLED_MESSAGE];
+        }
         if ((string) config('services.channeltalk.access_key') === ''
             || (string) config('services.channeltalk.access_secret') === '') {
             return ['ok' => false, 'error' => '채널톡 연동 정보가 설정되지 않았습니다.'];

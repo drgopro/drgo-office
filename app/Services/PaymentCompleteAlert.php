@@ -24,7 +24,7 @@ class PaymentCompleteAlert
     {
         try {
             $group = trim((string) Setting::get('payment_alert_group', ''));
-            if ($group === '') {
+            if ($group === '' || ! ChannelTalkClient::enabled()) {
                 return; // 톡방 미설정 — 기능 꺼짐
             }
 

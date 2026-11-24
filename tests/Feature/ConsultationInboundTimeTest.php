@@ -111,6 +111,7 @@ class ConsultationInboundTimeTest extends TestCase
     private function configureChannelTalk(): void
     {
         config([
+            'services.channeltalk.enabled' => true,
             'services.channeltalk.access_key' => 'test-key',
             'services.channeltalk.access_secret' => 'test-secret',
             'services.channeltalk.group' => '테스트그룹',

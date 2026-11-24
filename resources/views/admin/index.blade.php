@@ -1068,6 +1068,9 @@
     {{-- 결제 알림 — 페이앱 결제완료 시 채널톡 톡방 알림 + 담당자 멘션 --}}
     <div class="tab-panel" id="panel-paymentAlert">
         <div class="settings-form">
+            @unless(config('services.channeltalk.enabled'))
+            <div class="ct-off-banner" style="margin-bottom:14px; padding:10px 14px; border-radius:8px; background:#fff4e5; border:1px solid #f0c98a; color:#8a5a12; font-size:13px; font-weight:600;">채널톡 연동이 해제되어 있어 이 알림은 발송되지 않습니다.</div>
+            @endunless
             <div class="cf-hint" style="margin-bottom:14px;">
                 페이앱 결제가 완료된 견적서를 채널톡 팀챗 톡방으로 알립니다.<br>
                 <span style="opacity:0.75;">① 채널톡에서 팀챗 그룹을 <b>공개</b>로 만들고 (비공개 그룹은 API 발송 불가) ② 아래에 그룹 이름을 입력·저장한 뒤 ③ [테스트 발송]으로 연결을 확인하세요. 담당자는 채널톡 멘션으로 개인 알림을 받습니다.</span>
@@ -1090,6 +1093,9 @@
     {{-- 게시물 알림 — drgo.pro 게시판 채널톡 톡방 --}}
     <div class="tab-panel" id="panel-postAlert">
         <div class="settings-form">
+            @unless(config('services.channeltalk.enabled'))
+            <div class="ct-off-banner" style="margin-bottom:14px; padding:10px 14px; border-radius:8px; background:#fff4e5; border:1px solid #f0c98a; color:#8a5a12; font-size:13px; font-weight:600;">채널톡 연동이 해제되어 있어 이 알림은 발송되지 않습니다.</div>
+            @endunless
             <div class="cf-hint" style="margin-bottom:14px;">
                 drgo.pro 게시판 새 글/답변/댓글(5분 주기 폴링)이 이 톡방으로 알림됩니다.<br>
                 <span style="opacity:0.75;">Free(자유게시판) 소식에는 아래에서 고른 담당자가 멘션되어 개인 알림을 받습니다. 톡방은 채널톡에서 <b>공개</b> 그룹이어야 합니다. 위키 새 글 알림은 왼쪽 '위키 알림'에서 따로 설정합니다.</span>
@@ -1113,6 +1119,9 @@
     {{-- 위키 알림 — 위키 새 글 전용 톡방 + 담당자 --}}
     <div class="tab-panel" id="panel-wikiAlert">
         <div class="settings-form">
+            @unless(config('services.channeltalk.enabled'))
+            <div class="ct-off-banner" style="margin-bottom:14px; padding:10px 14px; border-radius:8px; background:#fff4e5; border:1px solid #f0c98a; color:#8a5a12; font-size:13px; font-weight:600;">채널톡 연동이 해제되어 있어 이 알림은 발송되지 않습니다.</div>
+            @endunless
             <div class="cf-hint" style="margin-bottom:14px;">
                 위키에 새 글이 발행되면 이 톡방으로 알림됩니다 (임시저장 → 발행 포함, 공지사항은 기존 전체 멘션 알림 유지).<br>
                 <span style="opacity:0.75;">톡방을 비워두면 게시물 알림 톡방으로 발송됩니다. 담당자를 고르면 알림에서 멘션되어 개인 알림을 받습니다. 톡방은 채널톡에서 <b>공개</b> 그룹이어야 합니다.</span>
@@ -1136,6 +1145,9 @@
     {{-- 마케팅 알림 — 마케팅 활용 동의/거부 다이제스트 톡방 + 담당자 --}}
     <div class="tab-panel" id="panel-marketingAlert">
         <div class="settings-form">
+            @unless(config('services.channeltalk.enabled'))
+            <div class="ct-off-banner" style="margin-bottom:14px; padding:10px 14px; border-radius:8px; background:#fff4e5; border:1px solid #f0c98a; color:#8a5a12; font-size:13px; font-weight:600;">채널톡 연동이 해제되어 있어 이 알림은 발송되지 않습니다.</div>
+            @endunless
             <div class="cf-hint" style="margin-bottom:14px;">
                 전날 마케팅 활용 <b>동의/거부</b>로 변경된 프로젝트 목록이 매일 오전 9시 5분 이 톡방으로 발송됩니다 (변경이 없으면 발송하지 않음).<br>
                 <span style="opacity:0.75;">비워두면 기본 팀챗 그룹(.env CHANNELTALK_GROUP, 아웃바운드)으로 발송됩니다. 담당자를 고르면 알림에서 멘션되어 개인 알림을 받습니다. 톡방은 채널톡에서 <b>공개</b> 그룹이어야 합니다.</span>
@@ -1159,6 +1171,9 @@
     {{-- 캘린더 알림 톡방 — 담당자 지정 알림 + D-2 일정 다이제스트 --}}
     <div class="tab-panel" id="panel-calendarAlert">
         <div class="settings-form">
+            @unless(config('services.channeltalk.enabled'))
+            <div class="ct-off-banner" style="margin-bottom:14px; padding:10px 14px; border-radius:8px; background:#fff4e5; border:1px solid #f0c98a; color:#8a5a12; font-size:13px; font-weight:600;">채널톡 연동이 해제되어 있어 이 알림은 발송되지 않습니다.</div>
+            @endunless
             <div class="cf-hint" style="margin-bottom:14px;">
                 캘린더 일정의 담당자 지정/제외 알림과 매일 오전 9시 D-2 일정 알림(방문의뢰·원격/방송룸)이 발송되는 톡방입니다.<br>
                 <span style="opacity:0.75;">비워두면 기본 팀챗 그룹(.env CHANNELTALK_GROUP)으로 발송됩니다. 톡방은 채널톡에서 <b>공개</b> 그룹이어야 합니다.</span>

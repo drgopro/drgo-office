@@ -23,6 +23,7 @@ class PaymentCompleteAlertTest extends TestCase
         parent::setUp();
         $this->admin = User::factory()->create(['role' => 'admin', 'display_name' => '이수호', 'email' => 'suho@drgo.pro']);
         config([
+            'services.channeltalk.enabled' => true,
             'services.channeltalk.access_key' => 'k',
             'services.channeltalk.access_secret' => 's',
             'services.channeltalk.group' => '팀챗기본',

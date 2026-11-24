@@ -60,6 +60,8 @@ return [
     // 채널톡 팀챗 알림 — 채널톡 설정 > API 관리에서 액세스 키/시크릿 발급
     // group: 메시지를 받을 팀챗 그룹 이름(또는 그룹 ID)
     'channeltalk' => [
+        // 연동 스위치 — 채널톡 해지(2026-11)로 기본 꺼짐. 꺼져 있으면 키가 있어도 채널톡 API를 호출하지 않는다
+        'enabled' => (bool) env('CHANNELTALK_ENABLED', false),
         'access_key' => env('CHANNELTALK_ACCESS_KEY'),
         'access_secret' => env('CHANNELTALK_ACCESS_SECRET'),
         'group' => env('CHANNELTALK_GROUP'),

@@ -21,6 +21,7 @@ class PostAlertTest extends TestCase
         parent::setUp();
         $this->admin = User::factory()->create(['role' => 'admin', 'display_name' => '김광래', 'email' => 'kk@drgo.pro']);
         config([
+            'services.channeltalk.enabled' => true,
             'services.channeltalk.access_key' => 'k',
             'services.channeltalk.access_secret' => 's',
             'services.channeltalk.group' => '아웃바운드',

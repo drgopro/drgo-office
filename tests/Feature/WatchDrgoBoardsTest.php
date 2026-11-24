@@ -20,6 +20,7 @@ class WatchDrgoBoardsTest extends TestCase
             'services.drgo_board.token' => 'test-token',
             'services.drgo_board.feed_url' => 'https://drgo.pro/board-feed.php',
             'services.drgo_board.boards' => 'free',
+            'services.channeltalk.enabled' => true,
             'services.channeltalk.access_key' => 'k',
             'services.channeltalk.access_secret' => 's',
             'services.channeltalk.group' => '오피스',

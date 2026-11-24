@@ -38,6 +38,7 @@ class NotificationQueueTest extends TestCase
     {
         parent::setUp();
         config([
+            'services.channeltalk.enabled' => true,
             'services.channeltalk.access_key' => 'k',
             'services.channeltalk.access_secret' => 's',
             'services.channeltalk.group' => '팀챗기본',

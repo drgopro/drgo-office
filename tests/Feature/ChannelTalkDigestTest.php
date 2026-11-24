@@ -17,6 +17,7 @@ class ChannelTalkDigestTest extends TestCase
     {
         parent::setUp();
         config([
+            'services.channeltalk.enabled' => true,
             'services.channeltalk.access_key' => 'test-key',
             'services.channeltalk.access_secret' => 'test-secret',
             'services.channeltalk.group' => '오피스알림',
@@ -292,7 +293,7 @@ class ChannelTalkDigestTest extends TestCase
 
     public function test_digest_skips_gracefully_when_not_configured(): void
     {
-        config(['services.channeltalk.access_key' => '']);
+        config(['services.channeltalk.enabled' => true, 'services.channeltalk.access_key' => '']);
         Http::fake();
 
         $this->artisan('schedules:channeltalk-digest')->assertSuccessful();

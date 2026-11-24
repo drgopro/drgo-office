@@ -27,6 +27,7 @@ class ProjectAssigneeAlertTest extends TestCase
     {
         parent::setUp();
         config([
+            'services.channeltalk.enabled' => true,
             'services.channeltalk.access_key' => 'test-key',
             'services.channeltalk.access_secret' => 'test-secret',
             'services.channeltalk.group' => '아웃바운드',
@@ -135,7 +136,7 @@ class ProjectAssigneeAlertTest extends TestCase
 
     public function test_nothing_is_sent_when_channeltalk_is_not_configured(): void
     {
-        config(['services.channeltalk.access_key' => '']);
+        config(['services.channeltalk.enabled' => true, 'services.channeltalk.access_key' => '']);
 
         $this->actingAs($this->admin)->postJson("/clients/{$this->client->id}/projects", [
             'name' => '세팅', 'project_type' => 'visit', 'assigned_user_id' => $this->kim->id,

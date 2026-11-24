@@ -149,6 +149,7 @@ class TodoMiniProjectTest extends TestCase
     private function fakeChannel(): void
     {
         config([
+            'services.channeltalk.enabled' => true,
             'services.channeltalk.access_key' => 'k', 'services.channeltalk.access_secret' => 's',
             'services.channeltalk.group' => '오피스알림',
         ]);

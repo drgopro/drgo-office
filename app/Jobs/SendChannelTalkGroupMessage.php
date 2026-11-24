@@ -42,6 +42,9 @@ class SendChannelTalkGroupMessage implements ShouldQueue
 
     public function handle(ChannelTalkClient $client): void
     {
+        if (! ChannelTalkClient::enabled()) {
+            return; // 연동 해제 — 재시도 없이 버린다
+        }
         $res = $client->sendGroupMessage($this->text, $this->group);
         if ($res['ok'] ?? false) {
             return;
