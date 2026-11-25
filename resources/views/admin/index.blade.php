@@ -1172,8 +1172,22 @@
     <div class="tab-panel" id="panel-calendarAlert">
         <div class="settings-form">
             @unless(config('services.channeltalk.enabled'))
-            <div class="ct-off-banner" style="margin-bottom:14px; padding:10px 14px; border-radius:8px; background:#fff4e5; border:1px solid #f0c98a; color:#8a5a12; font-size:13px; font-weight:600;">채널톡 연동이 해제되어 있어 이 알림은 발송되지 않습니다.</div>
+            <div class="ct-off-banner" style="margin-bottom:14px; padding:10px 14px; border-radius:8px; background:#fff4e5; border:1px solid #f0c98a; color:#8a5a12; font-size:13px; font-weight:600;">채널톡 연동이 해제되어 있어 아래 채널톡 톡방으로는 발송되지 않습니다. Mattermost 웹훅은 그대로 동작합니다.</div>
             @endunless
+            {{-- Mattermost — 채널톡 대체. 웹훅 주소는 채널 쓰기 권한이라 코드가 아닌 이 설정에 저장 --}}
+            <div class="cf-hint" style="margin-bottom:10px;">
+                <b>Mattermost</b> — 일정 담당자 지정/제외, 일정 삭제, 매일 오전 9시 D-2 일정 알림(방문의뢰·원격/방송룸)을 이 웹훅 채널로 보냅니다.<br>
+                <span style="opacity:0.75;">Mattermost &gt; 통합 &gt; 수신 웹훅에서 만든 주소(https://…/hooks/…)를 붙여 넣고 저장한 뒤 [테스트 발송]으로 확인하세요.</span>
+            </div>
+            <div class="field-group">
+                <div class="field-label">Mattermost 캘린더 알림 웹훅 URL</div>
+                <input class="field-input" id="mmCalWebhook" placeholder="https://mm.example.com/hooks/xxxxxxxx" autocomplete="off" spellcheck="false">
+            </div>
+            <div style="display:flex; align-items:center; gap:10px; margin-bottom:22px;">
+                <button class="btn-save" onclick="saveCalendarAlertSettings('mmCalSaveMsg')">저장</button>
+                <button class="btn-save" style="background:none; border:1px solid var(--border); color:var(--text);" onclick="testAlertRoom('mattermost-calendar-test', 'mmCalSaveMsg')">테스트 발송</button>
+                <span class="save-msg" id="mmCalSaveMsg"></span>
+            </div>
             <div class="cf-hint" style="margin-bottom:14px;">
                 캘린더 일정의 담당자 지정/제외 알림과 매일 오전 9시 D-2 일정 알림(방문의뢰·원격/방송룸)이 발송되는 톡방입니다.<br>
                 <span style="opacity:0.75;">비워두면 기본 팀챗 그룹(.env CHANNELTALK_GROUP)으로 발송됩니다. 톡방은 채널톡에서 <b>공개</b> 그룹이어야 합니다.</span>
@@ -1531,16 +1545,25 @@ async function loadCalendarAlertSettings() {
         const res = await fetch('/api/settings', { headers: { 'Accept': 'application/json' } });
         const settings = res.ok ? await res.json() : {};
         document.getElementById('calAlertGroup').value = settings.calendar_alert_group || '';
+        document.getElementById('mmCalWebhook').value = settings.mattermost_calendar_webhook || '';
         calAlertLoaded = true;
     } catch (e) { /* 입력만 비워둠 */ }
 }
-async function saveCalendarAlertSettings() {
+async function saveCalendarAlertSettings(msgId = 'calAlertSaveMsg') {
+    const webhook = document.getElementById('mmCalWebhook').value.trim();
+    if (webhook && !/^https:\/\/[^\/\s]+\/hooks\/[A-Za-z0-9]+\/?$/.test(webhook)) {
+        flashSaveMsg(msgId, 'Mattermost 웹훅 주소 형식이 아닙니다 (https://…/hooks/…)', 5000);
+        return;
+    }
     const res = await fetch('/api/settings', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', 'X-CSRF-TOKEN': CSRF, 'Accept': 'application/json' },
-        body: JSON.stringify({ calendar_alert_group: document.getElementById('calAlertGroup').value.trim() }),
+        body: JSON.stringify({
+            calendar_alert_group: document.getElementById('calAlertGroup').value.trim(),
+            mattermost_calendar_webhook: webhook,
+        }),
     });
-    flashSaveMsg('calAlertSaveMsg', res.ok ? '저장되었습니다.' : '저장 실패');
+    flashSaveMsg(msgId, res.ok ? '저장되었습니다.' : '저장 실패');
 }
 
 // 알림 톡방 테스트 발송 공용 — /api/admin/{endpoint}로 POST, 결과를 메시지 영역에 표시

@@ -7,6 +7,7 @@ use App\Models\Setting;
 use App\Models\Team;
 use App\Models\User;
 use App\Services\ChannelTalkClient;
+use App\Services\MattermostClient;
 use App\Services\SidebarMenu;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -126,7 +127,7 @@ class AdminController extends Controller
             'seller_biz_type', 'seller_biz_item', 'seller_phone',
             'seller_stamp_path', 'calendar_visit_options', 'project_cancel_reasons',
             'payment_alert_group', 'payment_alert_managers',
-            'post_alert_group', 'free_post_alert_managers', 'wiki_post_alert_group', 'wiki_post_alert_managers', 'calendar_alert_group',
+            'post_alert_group', 'free_post_alert_managers', 'wiki_post_alert_group', 'wiki_post_alert_managers', 'calendar_alert_group', 'mattermost_calendar_webhook',
             'marketing_alert_group', 'marketing_alert_managers',
             'payment_bank_account', 'terms_penalty_enabled', 'terms_marketing_enabled', 'terms_marketing_html', 'terms_marketing_version',
         ]);
@@ -144,7 +145,7 @@ class AdminController extends Controller
             'seller_biz_type', 'seller_biz_item', 'seller_phone',
             'calendar_visit_options', 'project_cancel_reasons',
             'payment_alert_group', 'payment_alert_managers',
-            'post_alert_group', 'free_post_alert_managers', 'wiki_post_alert_group', 'wiki_post_alert_managers', 'calendar_alert_group',
+            'post_alert_group', 'free_post_alert_managers', 'wiki_post_alert_group', 'wiki_post_alert_managers', 'calendar_alert_group', 'mattermost_calendar_webhook',
             'marketing_alert_group', 'marketing_alert_managers',
             'payment_bank_account', 'terms_penalty_enabled', 'terms_marketing_enabled', 'terms_penalty_sections', 'terms_marketing_html', 'terms_marketing_version',
         ]));
@@ -152,7 +153,7 @@ class AdminController extends Controller
 
     public function updateSettings(Request $request)
     {
-        $keys = ['seller_name', 'seller_biz_no', 'seller_address', 'seller_biz_type', 'seller_biz_item', 'seller_phone', 'calendar_visit_options', 'project_cancel_reasons', 'payment_alert_group', 'payment_alert_managers', 'post_alert_group', 'free_post_alert_managers', 'wiki_post_alert_group', 'wiki_post_alert_managers', 'calendar_alert_group', 'marketing_alert_group', 'marketing_alert_managers', 'payment_bank_account', 'terms_penalty_enabled', 'terms_marketing_enabled', 'terms_penalty_sections', 'terms_marketing_html', 'terms_marketing_version'];
+        $keys = ['seller_name', 'seller_biz_no', 'seller_address', 'seller_biz_type', 'seller_biz_item', 'seller_phone', 'calendar_visit_options', 'project_cancel_reasons', 'payment_alert_group', 'payment_alert_managers', 'post_alert_group', 'free_post_alert_managers', 'wiki_post_alert_group', 'wiki_post_alert_managers', 'calendar_alert_group', 'mattermost_calendar_webhook', 'mattermost_calendar_webhook', 'marketing_alert_group', 'marketing_alert_managers', 'payment_bank_account', 'terms_penalty_enabled', 'terms_marketing_enabled', 'terms_penalty_sections', 'terms_marketing_html', 'terms_marketing_version'];
 
         foreach ($keys as $key) {
             if ($request->has($key)) {
@@ -273,6 +274,21 @@ class AdminController extends Controller
         return ($res['ok'] ?? false)
             ? response()->json(['message' => '테스트 메시지를 보냈습니다. '.($group !== '' ? "'{$group}'" : '기본 팀챗').' 톡방을 확인하세요.'])
             : response()->json(['message' => $this->paymentAlertFailureMessage($channelTalk, $group ?: '(기본 그룹)', $res['error'] ?? '알 수 없는 오류')], 502);
+    }
+
+    /** Mattermost 캘린더 알림 웹훅 연결 확인 — 저장된 웹훅으로 테스트 메시지 발송 */
+    public function mattermostCalendarTest(MattermostClient $mattermost)
+    {
+        $url = MattermostClient::webhook();
+        if ($url === '') {
+            return response()->json(['message' => '먼저 Mattermost 웹훅 주소를 저장하세요.'], 422);
+        }
+
+        $res = $mattermost->send($url, '✅ [테스트] 닥터고블린 오피스 캘린더 알림 연결 확인 — 일정 담당자 지정·삭제 알림과 매일 오전 9시 D-2 일정 알림이 이 채널로 옵니다.');
+
+        return $res['ok']
+            ? response()->json(['message' => '테스트 메시지를 보냈습니다. Mattermost 채널을 확인하세요.'])
+            : response()->json(['message' => '발송 실패: '.$res['error']], 502);
     }
 
     public function calendarAlertTest(ChannelTalkClient $channelTalk)

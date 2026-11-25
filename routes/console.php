@@ -1,6 +1,7 @@
 <?php
 
 use App\Models\AgentEvent;
+use App\Services\MattermostClient;
 use Illuminate\Foundation\Inspiring;
 use Illuminate\Support\Facades\Artisan;
 use Illuminate\Support\Facades\Schedule;
@@ -26,8 +27,9 @@ Schedule::command('drgo:watch-boards')->everyMinute()->withoutOverlapping(10)->w
 // 컴퓨존 시세 자동 갱신 (매일 새벽 5시 30분)
 Schedule::command('products:refresh-market-prices')->dailyAt('05:30')->withoutOverlapping();
 
-// 채널톡 팀챗 일정 알림 — 2일 뒤 일정을 매일 아침 9시 발송 (미설정 시 자동 건너뜀)
-Schedule::command('schedules:channeltalk-digest')->dailyAt('09:00')->withoutOverlapping()->when($channelTalkOn);
+// D-2 일정 알림 — 2일 뒤 방문·원격 일정을 매일 아침 9시 Mattermost(웹훅 설정 시)·채널톡으로 발송
+Schedule::command('schedules:channeltalk-digest')->dailyAt('09:00')->withoutOverlapping()
+    ->when(fn (): bool => $channelTalkOn() || MattermostClient::isValidWebhook(MattermostClient::webhook())); // Mattermost 또는 채널톡
 
 // 할 일 리마인드 — 마감 D-1·경과 미완료 할 일을 완료 안 한 담당자에게 매일 아침 멘션
 Schedule::command('todos:remind')->dailyAt('09:00')->withoutOverlapping()->when($channelTalkOn);

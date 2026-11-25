@@ -28,7 +28,11 @@ class ChannelTalkNotifier
     /** 일정 담당자 추가/제거 알림 (assignee id 배열) — 캘린더 알림 톡방(설정) 또는 기본 그룹 */
     public function scheduleAssigneesChanged(Schedule $schedule, array $addedIds, array $removedIds): void
     {
-        if (! $this->client->isConfigured() || (! $addedIds && ! $removedIds)) {
+        if (! $addedIds && ! $removedIds) {
+            return;
+        }
+        $this->mattermostAssigneesChanged($schedule, $addedIds, $removedIds);
+        if (! $this->client->isConfigured()) {
             return;
         }
 
@@ -54,7 +58,11 @@ class ChannelTalkNotifier
      */
     public function scheduleDeleted(Schedule $schedule, string $reason, ?string $deletedBy = null, int $bulkCount = 1): void
     {
-        if (! $this->client->isConfigured() || $schedule->is_private) {
+        if ($schedule->is_private) {
+            return;
+        }
+        $this->mattermostScheduleDeleted($schedule, $reason, $deletedBy, $bulkCount);
+        if (! $this->client->isConfigured()) {
             return;
         }
 
@@ -73,6 +81,51 @@ class ChannelTalkNotifier
         } catch (\Throwable $e) {
             Log::warning('채널톡 일정 삭제 알림 실패: '.$e->getMessage());
         }
+    }
+
+    /** Mattermost 캘린더 알림 — 담당자 지정/제외 (채널톡과 별개로, 웹훅이 설정돼 있으면 발송) */
+    private function mattermostAssigneesChanged(Schedule $schedule, array $addedIds, array $removedIds): void
+    {
+        try {
+            $label = self::mattermostLabel($schedule);
+            if ($addedIds) {
+                MattermostClient::calendar("🔔 {$label} 일정 담당자 지정: ".self::assigneeNames($addedIds));
+            }
+            if ($removedIds) {
+                MattermostClient::calendar("🔕 {$label} 일정 담당 제외: ".self::assigneeNames($removedIds));
+            }
+        } catch (\Throwable $e) {
+            Log::warning('Mattermost 담당자 알림 실패: '.$e->getMessage());
+        }
+    }
+
+    /** Mattermost 캘린더 알림 — 일정 삭제 */
+    private function mattermostScheduleDeleted(Schedule $schedule, string $reason, ?string $deletedBy, int $bulkCount): void
+    {
+        try {
+            $bulk = $bulkCount > 1 ? ' 외 반복 일정 '.($bulkCount - 1).'건' : '';
+            $assigneeIds = $schedule->assignees->pluck('id')->all();
+            MattermostClient::calendar(
+                '🗑 '.self::mattermostLabel($schedule)."{$bulk} 일정이 삭제되었습니다".($deletedBy ? " — 처리: {$deletedBy}" : '')
+                ."\n사유: {$reason}".($assigneeIds ? "\n담당: ".self::assigneeNames($assigneeIds) : '')
+            );
+        } catch (\Throwable $e) {
+            Log::warning('Mattermost 일정 삭제 알림 실패: '.$e->getMessage());
+        }
+    }
+
+    /** Mattermost용 일정 표기 — **제목** (월/일) */
+    private static function mattermostLabel(Schedule $schedule): string
+    {
+        $date = $schedule->start_date?->format('m/d');
+
+        return '**'.str_replace('*', '', (string) $schedule->title).'**'.($date ? " ({$date})" : '');
+    }
+
+    /** 담당자(assignee) 이름 목록 — Mattermost 계정 연결 전이라 멘션 대신 이름으로 표시 */
+    public static function assigneeNames(array $assigneeIds): string
+    {
+        return Assignee::whereIn('id', $assigneeIds)->pluck('name')->filter()->implode(', ') ?: '—';
     }
 
     /** 캘린더 알림 톡방(관리 > 설정 > 캘린더 > 알림 톡방) — 비어 있으면 null(기본 그룹) */
