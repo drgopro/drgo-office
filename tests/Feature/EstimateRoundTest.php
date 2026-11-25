@@ -176,9 +176,18 @@ class EstimateRoundTest extends TestCase
         $res->assertOk()
             ->assertSee('본 견적 (1차) '.number_format(500000).'원 결제하기')
             ->assertSee('2차 추가 '.number_format(150000).'원 결제하기')
-            ->assertSee('https://payapp.example/pay/p1')
-            ->assertSee('https://payapp.example/pay/r2')
+            ->assertDontSee('https://payapp.example/pay/p1') // 결제 링크는 페이지에 싣지 않는다 (동의 확인 후 발급)
+            ->assertDontSee('https://payapp.example/pay/r2')
             ->assertSee('작성 중인 3차 금액('.number_format(80000).'원)은 발행 후 결제하실 수 있습니다');
+
+        // 동의를 마치면 차수별 결제 링크가 발급된다
+        $parent->refresh()->forceFill(['agreements' => [
+            'penalty' => ['at' => now()->toDateTimeString()],
+            'marketing' => ['at' => now()->toDateTimeString(), 'agreed' => false],
+        ]])->save();
+        $this->postJson("/estimate-view/{$token}/pay-link", ['estimate_id' => $round2->id])
+            ->assertOk()->assertJson(['url' => 'https://payapp.example/pay/r2']);
+        $this->postJson("/estimate-view/{$token}/pay-link", ['estimate_id' => $round3->id])->assertStatus(422); // 미발행 차수
 
         // 1차 결제 완료 후 — 1차 버튼은 사라지고 2차 버튼만 남음
         $parent->update(['status' => 'paid']);

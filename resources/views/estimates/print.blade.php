@@ -250,11 +250,11 @@
     // 페이앱 결제요청은 견적서(차수) 단위라 합산 한 건으로 묶지 않고 순차/병행 결제한다.
     $payables = collect();
     if ($estimate->status === 'issued' && $estimate->payapp_payurl && (int) $estimate->total_amount > 0) {
-        $payables->push(['label' => $rounds->isNotEmpty() ? '본 견적 (1차)' : '', 'amount' => (int) $estimate->total_amount, 'url' => $estimate->payapp_payurl]);
+        $payables->push(['id' => $estimate->id, 'label' => $rounds->isNotEmpty() ? '본 견적 (1차)' : '', 'amount' => (int) $estimate->total_amount]);
     }
     foreach ($rounds as $r) {
         if ($r->status === 'issued' && $r->payapp_payurl && (int) $r->total_amount > 0) {
-            $payables->push(['label' => $r->round.'차 추가', 'amount' => (int) $r->total_amount, 'url' => $r->payapp_payurl]);
+            $payables->push(['id' => $r->id, 'label' => $r->round.'차 추가', 'amount' => (int) $r->total_amount]);
         }
     }
     // 아직 결제할 수 없는 양수 차수 — 작성 중/보류(발행 전)
@@ -283,16 +283,13 @@
         <div class="pay-col">
             @php
                 // 위약 카드가 숨김이면 결제를 잠그지 않는다 — 보이지 않는 동의를 요구하지 않음
-                $penaltyEnabled = ($settings['terms_penalty_enabled'] ?? '1') !== '0';
-                $penaltyAgreed = ! $penaltyEnabled || !empty(($estimate->agreements ?? [])['penalty']['at']);
-                // 마케팅 활용은 동의/동의 안 함 중 하나를 골라야 결제 가능 (카드가 숨김이면 요구하지 않음)
-                $marketingEnabled = ($settings['terms_marketing_enabled'] ?? '1') !== '0';
-                $marketingChosen = ! $marketingEnabled || !empty(($estimate->agreements ?? [])['marketing']['at']);
-                $payReady = $penaltyAgreed && $marketingChosen;
-                $payMissing = collect([$penaltyAgreed ? null : '‘위약 안내’ 동의', $marketingChosen ? null : '‘포트폴리오 사용’ 동의 여부 선택'])->filter()->implode(' · ');
+                // 결제 전 필수 — 위약 동의 + 포트폴리오 사용 동의 여부 선택. 서버 결제 관문(pay-link)과 같은 기준
+                $payBlockers = \App\Http\Controllers\ConsentController::paymentBlockers($estimate);
+                $payReady = $payBlockers === [];
+                $payMissing = implode(' · ', $payBlockers);
             @endphp
             @foreach($payables as $p)
-                <button class="pay-btn {{ $payReady ? '' : 'locked' }}" data-missing="{{ $payMissing }}" data-url="{{ $p['url'] }}" data-amount="{{ number_format($p['amount']) }}"
+                <button class="pay-btn {{ $payReady ? '' : 'locked' }}" data-missing="{{ $payMissing }}" data-id="{{ $p['id'] }}" data-amount="{{ number_format($p['amount']) }}"
                     onclick="payClick(this)">💳 {{ $p['label'] !== '' ? $p['label'].' ' : '' }}{{ number_format($p['amount']) }}원 결제하기</button>
             @endforeach
             @unless($payReady)
@@ -707,7 +704,6 @@ function showMobileSaveOverlay(dataUrl, blob, filename){
 @php
     $ag = $estimate->agreements ?? [];
     $termsBase = url('/estimate-view/'.$estimate->share_token.'/terms');
-    $bankAccount = trim((string) ($settings['payment_bank_account'] ?? ''));
     $showPenalty = ($settings['terms_penalty_enabled'] ?? '1') !== '0';
     $showMarketing = ($settings['terms_marketing_enabled'] ?? '1') !== '0';
 @endphp
@@ -750,14 +746,13 @@ function showMobileSaveOverlay(dataUrl, blob, filename){
 <div id="payMethod">
     <h3>결제 수단을 선택해 주세요 <span id="pmAmount" style="color:#3b5ea0;"></span></h3>
     <a class="pm-btn pm-card" id="pmCardBtn" href="#" target="_blank" rel="noopener">💳 카드 결제 (간편·휴대폰)</a>
-    @if($bankAccount !== '')
-    <button class="pm-btn pm-bank" onclick="document.getElementById('bankInfo').style.display='block'; this.style.display='none'">🏦 계좌이체로 결제</button>
+    {{-- 계좌 정보도 결제 링크와 함께 동의 확인 후 서버에서 받아 채운다 --}}
+    <button class="pm-btn pm-bank" style="display:none" onclick="document.getElementById('bankInfo').style.display='block'; this.style.display='none'">🏦 계좌이체로 결제</button>
     <div id="bankInfo">
-        <b>{{ $bankAccount }}</b><br>
+        <b id="bankAccountText"></b><br>
         입금자명은 <b>{{ $estimate->client_nickname ?: $estimate->client_name ?: '주문자명' }}</b>(으)로 부탁드립니다.<br>
         입금 확인 후 결제 완료 처리해 드립니다. (영업시간 기준)
     </div>
-    @endif
     <button class="pm-close" onclick="closePayMethod()">닫기</button>
 </div>
 
@@ -771,22 +766,47 @@ function openTerms(type) {
 window.addEventListener('focus', () => {
     if (termsOpened) { termsOpened = false; location.reload(); }
 });
-function payClick(btn) {
-    if (btn.classList.contains('locked')) {
-        alert('결제 전에 아래 항목을 마쳐 주세요.\n— ' + (btn.dataset.missing || '동의 항목'));
-        document.querySelector('.consent-row').scrollIntoView({ behavior: 'smooth', block: 'center' });
-        return;
+function payLocked(missing) {
+    alert('결제 전에 아래 항목을 마쳐 주세요.\n— ' + (missing || '동의 항목'));
+    const row = document.querySelector('.consent-row');
+    if (row) row.scrollIntoView({ behavior: 'smooth', block: 'center' });
+}
+// 결제 링크는 페이지에 없다 — 서버가 동의를 확인한 뒤에만 내준다
+async function payClick(btn) {
+    if (btn.classList.contains('locked')) { payLocked(btn.dataset.missing); return; }
+    if (btn.dataset.busy) return;
+    btn.dataset.busy = '1';
+    try {
+        const res = await fetch({!! json_encode(url('/estimate-view/'.$estimate->share_token.'/pay-link')) !!}, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json', 'X-CSRF-TOKEN': '{{ csrf_token() }}', 'Accept': 'application/json' },
+            body: JSON.stringify({ estimate_id: Number(btn.dataset.id) }),
+        });
+        const data = await res.json().catch(() => ({}));
+        if (res.status === 403) { payLocked((data.missing || []).join(' · ')); return; }
+        if (!res.ok || !data.url) { alert(data.message || '잠시 후 다시 시도해 주세요.'); return; }
+        document.getElementById('pmCardBtn').href = data.url;
+        const bankBtn = document.querySelector('.pm-bank');
+        if (data.bank_account) {
+            document.getElementById('bankAccountText').textContent = data.bank_account;
+            bankBtn.style.display = 'block';
+        } else {
+            bankBtn.style.display = 'none';
+        }
+        document.getElementById('pmAmount').textContent = btn.dataset.amount + '원';
+        document.getElementById('payMethodBg').style.display = 'block';
+        document.getElementById('payMethod').style.display = 'block';
+    } catch (e) {
+        alert('잠시 후 다시 시도해 주세요.');
+    } finally {
+        delete btn.dataset.busy;
     }
-    document.getElementById('pmCardBtn').href = btn.dataset.url;
-    document.getElementById('pmAmount').textContent = btn.dataset.amount + '원';
-    document.getElementById('payMethodBg').style.display = 'block';
-    document.getElementById('payMethod').style.display = 'block';
 }
 function closePayMethod() {
     document.getElementById('payMethodBg').style.display = 'none';
     document.getElementById('payMethod').style.display = 'none';
     const b = document.getElementById('bankInfo');
-    if (b) { b.style.display = 'none'; const bb = document.querySelector('.pm-bank'); if (bb) bb.style.display = 'block'; }
+    if (b) { b.style.display = 'none'; const bb = document.querySelector('.pm-bank'); if (bb && document.getElementById('bankAccountText').textContent) bb.style.display = 'block'; }
 }
 </script>
 @endif

@@ -89,6 +89,7 @@ Route::match(['get', 'post'], '/estimate-view/{token}', [EstimateController::cla
 Route::get('/terms/{type}', [ConsentController::class, 'publicTerms'])->name('terms.public');
 Route::get('/estimate-view/{token}/terms/{type}', [ConsentController::class, 'estimateTerms']);
 Route::post('/estimate-view/{token}/agree', [ConsentController::class, 'agree']);
+Route::post('/estimate-view/{token}/pay-link', [ConsentController::class, 'payLink'])->middleware('throttle:30,1'); // 동의 확인 후에만 결제 링크 발급
 // 직인 이미지 — 견적서(내부·공개) 판매처 영역 배경용 (로그인 불필요)
 Route::get('/seller-stamp', [EstimateController::class, 'sellerStamp'])->name('seller.stamp');
 // 페이앱 결제 결과 통지 (feedbackurl — 연동 KEY/VALUE + 견적서 토큰으로 검증, CSRF 제외)

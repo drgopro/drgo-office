@@ -104,15 +104,68 @@ class EstimateConsentTest extends TestCase
         $this->assertSame($first, $this->estimate->fresh()->agreements['penalty']['at']);
     }
 
-    public function test_bank_transfer_option_shown_only_with_account_setting(): void
+    public function test_page_never_contains_payment_link_or_bank_account(): void
     {
-        $this->get("/estimate-view/{$this->estimate->share_token}")->assertOk()->assertDontSee('계좌이체로 결제');
-
         Setting::set('payment_bank_account', '국민은행 000000-00-000000 (주)닥터고블린컴퍼니');
-        $res = $this->get("/estimate-view/{$this->estimate->share_token}")->assertOk();
-        $res->assertSee('계좌이체로 결제');
-        $res->assertSee('국민은행 000000-00-000000');
-        $res->assertSee('이콘타'); // 입금자명 안내
+        $agreeAll = ['penalty' => ['at' => now()->toDateTimeString()], 'marketing' => ['at' => now()->toDateTimeString(), 'agreed' => true]];
+
+        foreach ([null, $agreeAll] as $agreements) {
+            $this->estimate->forceFill(['agreements' => $agreements])->save();
+            $this->get("/estimate-view/{$this->estimate->share_token}")->assertOk()
+                ->assertSee('결제하기')
+                ->assertDontSee('payapp.example/pay/1')
+                ->assertDontSee('000000-00-000000')
+                ->assertSee('이콘타'); // 입금자명 안내
+        }
+    }
+
+    public function test_pay_link_refused_until_both_consents_are_done(): void
+    {
+        $url = "/estimate-view/{$this->estimate->share_token}/pay-link";
+        $payload = ['estimate_id' => $this->estimate->id];
+
+        $this->postJson($url, $payload)->assertForbidden()
+            ->assertJson(['missing' => ['‘위약 안내’ 동의', '‘포트폴리오 사용’ 동의 여부 선택']])
+            ->assertJsonMissing(['url' => 'https://payapp.example/pay/1']);
+
+        $this->postJson("/estimate-view/{$this->estimate->share_token}/agree", ['type' => 'penalty'])->assertOk();
+        $this->postJson($url, $payload)->assertForbidden()->assertJson(['missing' => ['‘포트폴리오 사용’ 동의 여부 선택']]);
+
+        // 동의하지 않음도 '선택'이므로 결제 가능
+        $this->postJson("/estimate-view/{$this->estimate->share_token}/agree", ['type' => 'marketing', 'agree' => false])->assertOk();
+        $this->postJson($url, $payload)->assertOk()->assertJson(['url' => 'https://payapp.example/pay/1']);
+    }
+
+    public function test_pay_link_returns_bank_account_only_after_consent(): void
+    {
+        Setting::set('payment_bank_account', '국민은행 000000-00-000000 (주)닥터고블린컴퍼니');
+        $url = "/estimate-view/{$this->estimate->share_token}/pay-link";
+
+        $this->postJson($url, ['estimate_id' => $this->estimate->id])->assertForbidden()->assertJsonMissing(['bank_account' => '국민은행 000000-00-000000 (주)닥터고블린컴퍼니']);
+
+        $this->estimate->forceFill(['agreements' => ['penalty' => ['at' => now()->toDateTimeString()], 'marketing' => ['at' => now()->toDateTimeString(), 'agreed' => true]]])->save();
+        $this->postJson($url, ['estimate_id' => $this->estimate->id])->assertOk()
+            ->assertJson(['bank_account' => '국민은행 000000-00-000000 (주)닥터고블린컴퍼니']);
+    }
+
+    public function test_pay_link_rejects_other_estimate_and_unissued(): void
+    {
+        $this->estimate->forceFill(['agreements' => ['penalty' => ['at' => now()->toDateTimeString()], 'marketing' => ['at' => now()->toDateTimeString()]]])->save();
+        $other = $this->estimate->replicate()->fill(['share_token' => Str::random(48), 'payapp_payurl' => 'https://payapp.example/pay/other']);
+        $other->save();
+
+        $this->postJson("/estimate-view/{$this->estimate->share_token}/pay-link", ['estimate_id' => $other->id])->assertStatus(422);
+
+        $this->estimate->forceFill(['status' => 'paid'])->save();
+        $this->postJson("/estimate-view/{$this->estimate->share_token}/pay-link", ['estimate_id' => $this->estimate->id])->assertStatus(422);
+    }
+
+    public function test_pay_link_skips_consents_hidden_by_settings(): void
+    {
+        Setting::set('terms_penalty_enabled', '0');
+        Setting::set('terms_marketing_enabled', '0');
+
+        $this->postJson("/estimate-view/{$this->estimate->share_token}/pay-link", ['estimate_id' => $this->estimate->id])->assertOk();
     }
 
     public function test_consent_cards_can_be_hidden_by_settings(): void

@@ -80,6 +80,57 @@ class ConsentController extends Controller
         return response()->json(['ok' => true, 'at' => $agreements[$type]['at'], 'agreed' => $agreed]);
     }
 
+    /**
+     * 결제 전에 남은 동의 항목 — 비어 있으면 결제 가능. 화면 잠금과 서버 결제 관문이 같은 기준을 쓴다.
+     * 관리자 설정에서 숨긴 카드는 요구하지 않는다.
+     *
+     * @return array<int, string>
+     */
+    public static function paymentBlockers(Estimate $estimate): array
+    {
+        $agreements = $estimate->agreements ?? [];
+        $blockers = [];
+        if ((string) Setting::get('terms_penalty_enabled', '1') !== '0' && empty($agreements['penalty']['at'])) {
+            $blockers[] = '‘위약 안내’ 동의';
+        }
+        if ((string) Setting::get('terms_marketing_enabled', '1') !== '0' && empty($agreements['marketing']['at'])) {
+            $blockers[] = '‘포트폴리오 사용’ 동의 여부 선택';
+        }
+
+        return $blockers;
+    }
+
+    /**
+     * 결제 링크 발급 — 결제 링크는 페이지에 싣지 않고, 동의를 서버에서 확인한 뒤에만 내준다.
+     * (화면 잠금만으로는 페이지 소스의 링크로 동의를 건너뛸 수 있었다)
+     */
+    public function payLink(Request $request, string $token)
+    {
+        abort_if(strlen($token) < 32, 404);
+        $estimate = Estimate::where('share_token', $token)->firstOrFail();
+        $targetId = (int) $request->validate(['estimate_id' => 'required|integer'])['estimate_id'];
+
+        $target = $targetId === $estimate->id
+            ? $estimate
+            : $estimate->rounds()->whereKey($targetId)->first();
+        if (! $target || $target->status !== 'issued' || ! $target->payapp_payurl || (int) $target->total_amount <= 0) {
+            return response()->json(['message' => '결제할 수 없는 견적입니다. 페이지를 새로고침해 주세요.'], 422);
+        }
+
+        $blockers = self::paymentBlockers($estimate);
+        if ($blockers !== []) {
+            return response()->json([
+                'message' => '결제 전에 아래 항목을 마쳐 주세요.',
+                'missing' => $blockers,
+            ], 403);
+        }
+
+        return response()->json([
+            'url' => $target->payapp_payurl,
+            'bank_account' => trim((string) Setting::get('payment_bank_account', '')),
+        ]);
+    }
+
     /** 마케팅 기록이 '동의'인지 — 이전 기록(agreed 키 없음)은 동의만 있었으므로 동의로 본다 */
     public static function isAgreed(?array $record): bool
     {
