@@ -100,7 +100,7 @@ class EstimatePayAppTest extends TestCase
         $estimate->update(['status' => 'issued']);
         $this->get($estimate->publicUrl())
             ->assertSee('1,500,000원 결제하기')
-            ->assertSee('https://www.payapp.kr/L/abcdef', false);
+            ->assertDontSee('https://www.payapp.kr/L/abcdef', false); // 링크는 동의 확인 후 pay-link로만 발급
 
         // 결제 완료 후 — 완료 표시
         $estimate->update(['status' => 'paid']);
