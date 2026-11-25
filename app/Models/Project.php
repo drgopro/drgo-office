@@ -195,6 +195,12 @@ class Project extends Model
         return $this->hasMany(ProjectFeedback::class)->orderByDesc('created_at');
     }
 
+    /** 피드백 스레드 — 글만 최신순 (답글은 각 글의 replies) */
+    public function feedbackThreads()
+    {
+        return $this->hasMany(ProjectFeedback::class)->whereNull('parent_id')->orderByDesc('created_at')->orderByDesc('id');
+    }
+
     // 하위 호환 — 기존 코드의 ->memos() 호출 지원
     public function memos()
     {

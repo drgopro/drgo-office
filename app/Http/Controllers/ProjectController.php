@@ -13,15 +13,18 @@ use App\Models\ProjectSubtag;
 use App\Models\Schedule;
 use App\Models\User;
 use App\Models\WorkType;
+use App\Notifications\MentionAlert;
 use App\Services\ChannelTalkNotifier;
 use App\Services\EstimatePaymentSync;
 use App\Services\EstimateStockSync;
+use App\Services\MentionService;
 use Carbon\Carbon;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Log;
 use Illuminate\Validation\Rule;
 
 class ProjectController extends Controller
@@ -318,7 +321,7 @@ class ProjectController extends Controller
     // 상세
     public function show(Project $project)
     {
-        $project->load('client', 'assignedUser', 'extraAssignees:id,display_name,username', 'completedBy:id,display_name,username', 'consultations.consultant', 'documents', 'memos.user');
+        $project->load('client', 'assignedUser', 'extraAssignees:id,display_name,username', 'completedBy:id,display_name,username', 'consultations.consultant', 'documents', 'feedbackThreads.user', 'feedbackThreads.replies.user');
 
         return view('projects.show', compact('project'));
     }
@@ -332,30 +335,96 @@ class ProjectController extends Controller
     }
 
     // 피드백 추가
+    /**
+     * 피드백 글·답글 등록 (라우트 호환을 위해 메서드명 유지) — 슬랙 스레드처럼 글 아래 답글 1단계.
+     * 알림: 새 글 → 프로젝트 담당자 전원, 답글 → 스레드 참여자(글쓴이·앞선 답글 작성자),
+     *
+     * @이름 태그 → 담당자가 아니어도 그 사람. 본인에게는 보내지 않고, 한 사람에게 한 번만 보낸다.
+     */
     public function storeMemo(Request $request, Project $project)
     {
         $validated = $request->validate([
             'content' => 'required|string|max:2000',
+            'parent_id' => 'nullable|integer',
         ]);
 
-        $feedback = $project->feedbacks()->create([
+        $parent = null;
+        if (! empty($validated['parent_id'])) {
+            $parent = ProjectFeedback::where('project_id', $project->id)->whereNull('parent_id')
+                ->find($validated['parent_id']);
+            abort_unless($parent, 422, '답글을 달 수 없는 글입니다.');
+        }
+
+        // 중복 전송 방지 (연타·IME Enter 이중 발화) — 10초 내 같은 내용은 새로 만들지 않는다
+        $duplicate = $project->feedbacks()->where('user_id', Auth::id())
+            ->where('parent_id', $parent?->id)->where('content', $validated['content'])
+            ->where('created_at', '>=', now()->subSeconds(10))->first();
+
+        $feedback = $duplicate ?? $project->feedbacks()->create([
             'user_id' => Auth::id(),
+            'parent_id' => $parent?->id,
             'content' => $validated['content'],
         ]);
+
+        if (! $duplicate) {
+            $this->notifyFeedback($project, $feedback, $parent);
+        }
 
         $feedback->load('user');
 
         return response()->json([
             'id' => $feedback->id,
+            'parent_id' => $feedback->parent_id,
             'content' => $feedback->content,
             'user_name' => $feedback->user?->display_name,
             'created_at' => $feedback->created_at->format('Y.m.d H:i'),
         ], 201);
     }
 
+    /** 피드백 알림 — 태그(멘션) > 담당자/스레드 참여자 순으로, 사람마다 가장 중요한 알림 하나만 */
+    private function notifyFeedback(Project $project, ProjectFeedback $feedback, ?ProjectFeedback $parent): void
+    {
+        $me = Auth::user();
+        $myName = $me->display_name ?: $me->username;
+        $excerpt = mb_substr(preg_replace('/\s+/u', ' ', $feedback->content), 0, 80);
+        $thread = $parent ?? $feedback;
+        $url = '/projects/'.$project->id.'#pfb-'.$thread->id; // 상대 경로 — 알림 클릭 시 탭 종류를 경로 첫 마디로 판별
+        $notified = collect([$me->id]);
+
+        $send = function ($users, string $title, string $tag) use ($project, $excerpt, $url, &$notified) {
+            foreach ($users as $user) {
+                if ($notified->contains($user->id) || ! $user->is_active) {
+                    continue;
+                }
+                $notified->push($user->id);
+                try {
+                    $user->notify(new MentionAlert($title, $project->name.' — '.$excerpt, $url, $tag));
+                } catch (\Throwable $e) {
+                    Log::warning('프로젝트 피드백 알림 실패: '.$e->getMessage());
+                }
+            }
+        };
+
+        // 1) @태그 — 담당자가 아니어도 호출
+        $send(MentionService::users($feedback->content),
+            "📣 {$myName}님이 프로젝트 피드백에서 회원님을 태그했습니다", 'project-feedback-mention-'.$feedback->id);
+
+        if ($parent) {
+            // 2) 답글 — 스레드 참여자
+            $participantIds = $parent->replies()->pluck('user_id')->push($parent->user_id)->filter()->unique();
+            $send(User::whereIn('id', $participantIds)->get(),
+                "↩ {$myName}님이 피드백 스레드에 답글을 남겼습니다", 'project-feedback-reply-'.$feedback->id);
+        } else {
+            // 2) 새 글 — 프로젝트 담당자 전원
+            $send(User::whereIn('id', $project->assigneeUserIds())->get(),
+                "💬 담당 프로젝트에 새 피드백 — {$myName}", 'project-feedback-'.$feedback->id);
+        }
+    }
+
     // 피드백 삭제 (라우트 호환을 위해 메서드명/파라미터명 유지)
     public function destroyMemo(ProjectFeedback $memo)
     {
+        $memo->replies()->delete(); // 글을 지우면 스레드 답글도 함께 (FK cascade 미지원 DB 대비)
         $memo->delete();
 
         return response()->json(['message' => '삭제되었습니다.']);

@@ -877,12 +877,20 @@ window.drgoTabs = {
         // 1) URL이 정확히 일치하는 탭이 있으면 활성화만 (재로드 없음).
         //    단, 탭 안에서 다른 화면으로 이동(드리프트)해 있으면 요청한 화면으로 복귀 —
         //    메뉴를 눌렀는데 견적서 등 엉뚱한 페이지가 그대로 보이는 문제 방지
-        const existing = this.tabs.find(t => t.url === url);
+        // 알림 링크의 #앵커(예: /projects/5#pfb-12)는 같은 화면의 위치 지정 — 이미 열린 탭을 찾아 앵커만 넘긴다
+        const hashAt = url.indexOf('#');
+        const baseUrl = hashAt >= 0 ? url.slice(0, hashAt) : url;
+        const existing = this.tabs.find(t => t.url === url) || (hashAt >= 0 ? this.tabs.find(t => t.url === baseUrl) : null);
         if (existing) {
             // 제목을 넘기지 않으면 라벨로 복귀 (이전 세션에 저장된 게시물 제목 등 잔여 제목 제거) — 멀티 인스턴스 탭은 페이지가 setActiveTitle로 관리
             if (title || !this._isMultiInstance(type, url)) { existing.title = title || null; this.render(); this._save(); }
             const iframe = document.querySelector('#pane-' + existing.id + ' iframe');
-            if (iframe && this._iframeDrifted(iframe, url)) iframe.src = url;
+            if (iframe && hashAt >= 0) {
+                try {
+                    const loc = iframe.contentWindow.location;
+                    if (loc.pathname + loc.search === baseUrl) { loc.hash = url.slice(hashAt); } else { iframe.src = url; }
+                } catch (e) { iframe.src = url; }
+            } else if (iframe && this._iframeDrifted(iframe, url)) iframe.src = url;
             this.activate(existing.id);
             return;
         }

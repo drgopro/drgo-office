@@ -3,6 +3,35 @@
 @section('title', $project->name . ' - 닥터고블린 오피스')
 
 @push('styles')
+<style>
+    /* 프로젝트 피드백 스레드 */
+    .pfb-compose { display:flex; gap:8px; margin-bottom:14px; }
+    .pfb-compose textarea { flex:1; resize:none; }
+    .pfb-compose .btn-save, .pfb-reply-box .btn-save { align-self:flex-end; white-space:nowrap; }
+    .pfb-thread { border-bottom:1px solid var(--border); padding:10px 0; border-radius:8px; transition:background .4s, box-shadow .4s; }
+    .pfb-thread.pfb-focus { background:rgba(91,141,239,.10); box-shadow:inset 3px 0 0 var(--accent); }
+    .pfb-item { display:flex; gap:10px; }
+    .pfb-avatar { width:30px; height:30px; border-radius:50%; background:var(--surface2); display:flex; align-items:center; justify-content:center; font-size:12px; font-weight:700; color:var(--accent); flex-shrink:0; }
+    .pfb-avatar.sm { width:24px; height:24px; font-size:11px; }
+    .pfb-main { flex:1; min-width:0; }
+    .pfb-head { display:flex; align-items:center; gap:6px; flex-wrap:wrap; }
+    .pfb-name { font-size:13px; font-weight:600; }
+    .pfb-time { font-size:12px; color:var(--text-muted); }
+    .pfb-actions { margin-left:auto; display:flex; gap:4px; }
+    .pfb-actions button { background:none; border:none; color:var(--text-muted); font-size:12px; cursor:pointer; padding:2px 6px; border-radius:5px; font-family:inherit; }
+    .pfb-actions button:hover { background:var(--surface2); color:var(--text); }
+    .pfb-actions .pfb-del:hover { color:var(--red, #c03838); }
+    .pfb-text { font-size:14px; margin-top:4px; white-space:pre-wrap; word-break:break-word; }
+    .pfb-mention { color:var(--accent); font-weight:700; background:rgba(91,141,239,.10); border-radius:4px; padding:0 2px; }
+    .pfb-replies-toggle { margin-top:6px; background:none; border:none; padding:0; color:var(--accent); font-size:13px; font-weight:600; cursor:pointer; font-family:inherit; }
+    .pfb-replies { display:none; margin:8px 0 0 40px; padding-left:12px; border-left:2px solid var(--border); }
+    .pfb-thread.open .pfb-replies { display:block; }
+    .pfb-reply { padding:6px 0; }
+    .pfb-reply-box { display:flex; gap:8px; margin-top:6px; }
+    .pfb-reply-box textarea { flex:1; resize:none; min-height:36px; }
+    .pfb-empty { padding:20px; text-align:center; color:var(--text-muted); font-size:14px; }
+    @media (max-width:640px) { .pfb-replies { margin-left:14px; } }
+</style>
 @include('partials.ux-v2-styles')
 <style>
     .page-wrap { padding:24px 32px; max-width:1400px; margin:0 auto; }
@@ -373,6 +402,7 @@
 
 @section('content')
 @include('partials.assignee-options')
+@include('partials.mention-autocomplete')
 @php
     $projectDocs = $project->documents->sortByDesc('created_at')->values()->map(fn($d) => [
         'name' => $d->file_name,
@@ -1340,30 +1370,58 @@
             @endif
         </div>
 
-        <!-- 피드백 -->
-        <div class="info-card full">
+        <!-- 피드백 — 슬랙 스레드처럼 글 아래 답글. 새 글은 담당자, 답글은 스레드 참여자, @태그는 그 사람에게 알림 -->
+        <div class="info-card full" id="pfbCard">
             <div class="card-title">피드백</div>
-            <div style="display:flex; gap:8px; margin-bottom:14px;">
-                <textarea id="projectMemoInput" class="field-textarea" rows="2" placeholder="피드백을 입력하세요..." style="flex:1; resize:none;"></textarea>
-                <button class="btn-save" onclick="addProjectMemo()" style="align-self:flex-end; white-space:nowrap;">추가</button>
+            <div class="pfb-compose">
+                <textarea id="projectMemoInput" class="field-textarea" rows="2" data-mention placeholder="피드백 입력 — 담당자에게 알림, @이름으로 태그" onkeydown="if(event.key==='Enter'&&(event.metaKey||event.ctrlKey)){event.preventDefault();addProjectMemo();}"></textarea>
+                <button class="btn-save" onclick="addProjectMemo()">추가</button>
             </div>
             <div id="projectMemoThread">
-                @forelse($project->memos as $memo)
-                    <div style="display:flex; gap:10px; padding:10px 0; border-bottom:1px solid var(--border);" id="pmemo-{{ $memo->id }}">
-                        <div style="width:30px; height:30px; border-radius:50%; background:var(--surface2); display:flex; align-items:center; justify-content:center; font-size:12px; font-weight:700; color:var(--accent); flex-shrink:0;">{{ mb_substr($memo->user?->display_name ?? '?', 0, 1) }}</div>
-                        <div style="flex:1; min-width:0;">
-                            <div style="display:flex; justify-content:space-between; align-items:center;">
-                                <div>
-                                    <span style="font-size:13px; font-weight:600;">{{ $memo->user?->display_name ?? '알 수 없음' }}</span>
-                                    <span style="font-size:12px; color:var(--text-muted); margin-left:6px;">{{ $memo->created_at->format('Y.m.d H:i') }}</span>
+                @php
+                    $pfbMention = fn ($text) => preg_replace('/@([\p{L}\p{N}_.\-]+)/u', '<span class="pfb-mention">@$1</span>', e($text));
+                @endphp
+                @forelse($project->feedbackThreads as $memo)
+                    <div class="pfb-thread" id="pfb-{{ $memo->id }}">
+                        <div class="pfb-item" id="pmemo-{{ $memo->id }}">
+                            <div class="pfb-avatar">{{ mb_substr($memo->user?->display_name ?? '?', 0, 1) }}</div>
+                            <div class="pfb-main">
+                                <div class="pfb-head">
+                                    <span class="pfb-name">{{ $memo->user?->display_name ?? '알 수 없음' }}</span>
+                                    <span class="pfb-time">{{ $memo->created_at->format('Y.m.d H:i') }}</span>
+                                    <span class="pfb-actions">
+                                        <button type="button" onclick="pfbToggleReply({{ $memo->id }})">답글</button>
+                                        <button type="button" class="pfb-del" onclick="deleteProjectMemo({{ $memo->id }}, {{ $memo->replies->count() }})">삭제</button>
+                                    </span>
                                 </div>
-                                <button onclick="deleteProjectMemo({{ $memo->id }})" style="background:none; border:none; color:var(--text-muted); font-size:12px; cursor:pointer; opacity:0.5;" onmouseover="this.style.opacity=1;this.style.color='var(--red)'" onmouseout="this.style.opacity=0.5;this.style.color='var(--text-muted)'">삭제</button>
+                                <div class="pfb-text">{!! $pfbMention($memo->content) !!}</div>
+                                @if($memo->replies->isNotEmpty())
+                                    <button type="button" class="pfb-replies-toggle" onclick="pfbToggleReplies({{ $memo->id }})">답글 {{ $memo->replies->count() }}개</button>
+                                @endif
                             </div>
-                            <div style="font-size:14px; margin-top:4px; white-space:pre-wrap; word-break:break-word;">{{ $memo->content }}</div>
+                        </div>
+                        <div class="pfb-replies" id="pfbReplies{{ $memo->id }}">
+                            @foreach($memo->replies as $reply)
+                                <div class="pfb-item pfb-reply" id="pmemo-{{ $reply->id }}">
+                                    <div class="pfb-avatar sm">{{ mb_substr($reply->user?->display_name ?? '?', 0, 1) }}</div>
+                                    <div class="pfb-main">
+                                        <div class="pfb-head">
+                                            <span class="pfb-name">{{ $reply->user?->display_name ?? '알 수 없음' }}</span>
+                                            <span class="pfb-time">{{ $reply->created_at->format('Y.m.d H:i') }}</span>
+                                            <span class="pfb-actions"><button type="button" class="pfb-del" onclick="deleteProjectMemo({{ $reply->id }}, 0)">삭제</button></span>
+                                        </div>
+                                        <div class="pfb-text">{!! $pfbMention($reply->content) !!}</div>
+                                    </div>
+                                </div>
+                            @endforeach
+                            <div class="pfb-reply-box" id="pfbReplyBox{{ $memo->id }}">
+                                <textarea class="field-textarea" rows="1" data-mention id="pfbReplyInput{{ $memo->id }}" placeholder="답글 (@이름으로 태그)" onkeydown="if(event.key==='Enter'&&(event.metaKey||event.ctrlKey)){event.preventDefault();pfbReply({{ $memo->id }});}"></textarea>
+                                <button class="btn-save" onclick="pfbReply({{ $memo->id }})">답글</button>
+                            </div>
                         </div>
                     </div>
                 @empty
-                    <div style="padding:20px; text-align:center; color:var(--text-muted); font-size:14px;" id="pmemoEmpty">피드백이 없습니다.</div>
+                    <div class="pfb-empty" id="pmemoEmpty">피드백이 없습니다.</div>
                 @endforelse
             </div>
         </div>
@@ -2671,30 +2729,61 @@ document.addEventListener('mouseup', () => {
     });
 })();
 
-// 프로젝트 메모
+// 프로젝트 피드백 — 글/스레드 답글
+async function pfbPost(content, parentId) {
+    const res = await fetch(`/api/projects/{{ $project->id }}/memos`, {
+        method:'POST',
+        headers:{'Content-Type':'application/json','X-CSRF-TOKEN':document.querySelector('meta[name="csrf-token"]').content,'Accept':'application/json'},
+        body:JSON.stringify({ content, parent_id: parentId || null })
+    });
+    if (!res.ok) { alert('피드백 등록에 실패했습니다.'); return false; }
+    const data = await res.json().catch(() => ({}));
+    // 등록한 스레드로 돌아오도록 해시를 남기고 새로고침
+    location.hash = 'pfb-' + (parentId || data.id);
+    location.reload();
+    return true;
+}
 async function addProjectMemo() {
     const textarea = document.getElementById('projectMemoInput');
     const content = textarea.value.trim();
     if (!content) return;
-    const res = await fetch(`/api/projects/{{ $project->id }}/memos`, {
-        method:'POST',
-        headers:{'Content-Type':'application/json','X-CSRF-TOKEN':document.querySelector('meta[name="csrf-token"]').content,'Accept':'application/json'},
-        body:JSON.stringify({ content })
-    });
-    if (res.ok) {
-        textarea.value = '';
-        location.reload();
-    } else { alert('메모 추가 실패'); }
+    if (await pfbPost(content, null)) textarea.value = '';
 }
-async function deleteProjectMemo(id) {
-    if (!confirm('이 메모를 삭제하시겠습니까?')) return;
+async function pfbReply(threadId) {
+    const input = document.getElementById('pfbReplyInput' + threadId);
+    const content = input.value.trim();
+    if (!content) return;
+    if (await pfbPost(content, threadId)) input.value = '';
+}
+function pfbToggleReplies(threadId) {
+    document.getElementById('pfb-' + threadId)?.classList.toggle('open');
+}
+function pfbToggleReply(threadId) {
+    const t = document.getElementById('pfb-' + threadId);
+    if (!t) return;
+    t.classList.add('open');
+    document.getElementById('pfbReplyInput' + threadId)?.focus();
+}
+async function deleteProjectMemo(id, replyCount) {
+    if (!confirm(replyCount ? `이 글을 삭제하면 답글 ${replyCount}개도 함께 삭제됩니다. 삭제할까요?` : '삭제하시겠습니까?')) return;
     await fetch(`/api/project-memos/${id}`, {
         method:'DELETE',
         headers:{'X-CSRF-TOKEN':document.querySelector('meta[name="csrf-token"]').content,'Accept':'application/json'}
     });
-    const el = document.getElementById('pmemo-' + id);
-    if (el) el.remove();
+    (document.getElementById('pfb-' + id) || document.getElementById('pmemo-' + id))?.remove();
 }
+// 알림으로 들어오면(#pfb-글번호) 그 스레드를 펼치고 강조 — 이미 열린 탭에서 앵커만 바뀌어도 동작
+function pfbFocusFromHash() {
+    const m = location.hash.match(/^#pfb-(\d+)$/);
+    if (!m) return;
+    const t = document.getElementById('pfb-' + m[1]);
+    if (!t) return;
+    t.classList.add('open', 'pfb-focus');
+    setTimeout(() => t.scrollIntoView({ behavior: 'smooth', block: 'center' }), 150);
+    setTimeout(() => t.classList.remove('pfb-focus'), 4200);
+}
+pfbFocusFromHash();
+window.addEventListener('hashchange', pfbFocusFromHash);
 
 // ── 동적 필드(관리자 정의 custom_data) 로드/편집 ──
 const PROJECT_ID = {{ $project->id }};
