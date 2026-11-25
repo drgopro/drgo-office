@@ -132,4 +132,54 @@ class MattermostCalendarAlertTest extends TestCase
         $this->actingAs($admin)->getJson('/api/settings')->assertOk()
             ->assertJson([MattermostClient::CALENDAR_WEBHOOK => self::HOOK]);
     }
+
+    public function test_assignee_with_mattermost_username_is_tagged_others_shown_by_name(): void
+    {
+        $kim = User::factory()->create(['display_name' => '김기사', 'mattermost_username' => 'kim.drgo']);
+        $schedule = $this->makeSchedule();
+        $schedule->syncAssigneesOrdered([
+            Assignee::where('user_id', $kim->id)->value('id'), // 계정 생성 시 자동으로 만들어지는 담당자
+            Assignee::create(['name' => '외부기사'])->id,
+        ], notify: false);
+
+        $this->artisan('schedules:channeltalk-digest')->assertSuccessful();
+
+        $this->assertSentToHook('(담당: @kim.drgo, 외부기사)');
+    }
+
+    public function test_assignee_change_tags_mattermost_username(): void
+    {
+        $park = User::factory()->create(['mattermost_username' => 'park']);
+        $schedule = $this->makeSchedule();
+
+        $schedule->syncAssigneesOrdered([Assignee::where('user_id', $park->id)->value('id')]);
+
+        $this->assertSentToHook('일정 담당자 지정: @park');
+    }
+
+    public function test_master_sets_mattermost_username_normalized(): void
+    {
+        $master = User::factory()->create(['role' => 'master']);
+        $user = User::factory()->create();
+
+        $this->actingAs($master)->patchJson("/api/admin/users/{$user->id}/account", ['mattermost_username' => '@Kim.Drgo'])->assertOk();
+        $this->assertSame('kim.drgo', $user->fresh()->mattermost_username);
+        $this->actingAs($master)->getJson('/api/admin/users')->assertOk()->assertJsonFragment(['mattermost_username' => 'kim.drgo']);
+
+        $this->actingAs($master)->patchJson("/api/admin/users/{$user->id}/account", ['mattermost_username' => '김 기사'])->assertStatus(422);
+
+        $this->actingAs($master)->patchJson("/api/admin/users/{$user->id}/account", ['mattermost_username' => null])->assertOk();
+        $this->assertNull($user->fresh()->mattermost_username);
+    }
+
+    public function test_user_sets_own_mattermost_username_in_profile(): void
+    {
+        $user = User::factory()->create(['display_name' => '본인']);
+
+        $this->actingAs($user)->get('/profile')->assertOk()->assertSee('Mattermost 아이디');
+        $this->actingAs($user)->patch('/profile', ['display_name' => '본인', 'mattermost_username' => 'me_01'])->assertRedirect();
+        $this->assertSame('me_01', $user->fresh()->mattermost_username);
+
+        $this->actingAs($user)->patch('/profile', ['display_name' => '본인', 'mattermost_username' => 'bad name!'])->assertSessionHasErrors('mattermost_username');
+    }
 }

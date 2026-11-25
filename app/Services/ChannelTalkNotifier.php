@@ -122,10 +122,10 @@ class ChannelTalkNotifier
         return '**'.str_replace('*', '', (string) $schedule->title).'**'.($date ? " ({$date})" : '');
     }
 
-    /** 담당자(assignee) 이름 목록 — Mattermost 계정 연결 전이라 멘션 대신 이름으로 표시 */
+    /** 담당자(assignee) 표기 — Mattermost 아이디가 등록된 사람은 @아이디로 태그(개인 알림), 아니면 이름 */
     public static function assigneeNames(array $assigneeIds): string
     {
-        return Assignee::whereIn('id', $assigneeIds)->pluck('name')->filter()->implode(', ') ?: '—';
+        return MattermostClient::assigneeMentions(Assignee::with('user')->whereIn('id', $assigneeIds)->get());
     }
 
     /** 캘린더 알림 톡방(관리 > 설정 > 캘린더 > 알림 톡방) — 비어 있으면 null(기본 그룹) */

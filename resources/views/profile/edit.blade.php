@@ -76,6 +76,14 @@
                     <div class="field-hint" style="color:var(--red)">{{ $message }}</div>
                 @enderror
             </div>
+            <div class="field-group">
+                <label class="field-label">Mattermost 아이디</label>
+                <input type="text" name="mattermost_username" class="field-input" value="{{ old('mattermost_username', $user->mattermost_username) }}" placeholder="예: kim.drgo (@ 없이)" autocomplete="off" spellcheck="false">
+                <div class="field-hint">입력하면 일정 담당자 알림에서 @아이디로 태그되어 Mattermost 개인 알림을 받습니다. Mattermost 프로필의 사용자명과 같아야 합니다.</div>
+                @error('mattermost_username')
+                    <div class="field-hint" style="color:var(--red)">{{ $message }}</div>
+                @enderror
+            </div>
             <button type="submit" class="btn-save">저장</button>
         </form>
     </div>

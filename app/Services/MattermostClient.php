@@ -3,7 +3,9 @@
 namespace App\Services;
 
 use App\Jobs\SendMattermostMessage;
+use App\Models\Assignee;
 use App\Models\Setting;
+use App\Models\User;
 use Illuminate\Support\Facades\Http;
 
 /**
@@ -24,6 +26,36 @@ class MattermostClient
     public static function isValidWebhook(string $url): bool
     {
         return (bool) preg_match('#^https://[^/\s]+/hooks/[A-Za-z0-9]+/?$#', $url);
+    }
+
+    /** Mattermost 아이디 규칙 — 영문 소문자·숫자·. _ - (앞의 @는 저장 시 떼어낸다) */
+    public const USERNAME_RULE = 'nullable|string|max:64|regex:/^@?[A-Za-z0-9._-]+$/';
+
+    public static function normalizeUsername(?string $username): ?string
+    {
+        $value = strtolower(ltrim(trim((string) $username), '@'));
+
+        return $value !== '' ? $value : null;
+    }
+
+    /** 사용자 표기 — Mattermost 아이디가 있으면 @아이디(개인 알림), 없으면 이름 */
+    public static function mention(?User $user, string $fallbackName): string
+    {
+        $username = $user?->mattermost_username;
+
+        return $username ? '@'.$username : $fallbackName;
+    }
+
+    /**
+     * 캘린더 담당자(assignee) 목록 표기 — 연결된 오피스 계정의 Mattermost 아이디로 태그.
+     *
+     * @param  iterable<Assignee>  $assignees
+     */
+    public static function assigneeMentions(iterable $assignees): string
+    {
+        return collect($assignees)
+            ->map(fn (Assignee $a) => self::mention($a->user, (string) $a->name))
+            ->filter()->unique()->implode(', ') ?: '—';
     }
 
     /** 캘린더 알림 — 웹훅이 설정돼 있을 때만 큐로 발송 (요청이 외부 응답을 기다리지 않도록) */

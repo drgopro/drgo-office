@@ -1224,6 +1224,10 @@
             <input class="field-input" type="email" id="accEmail">
         </div>
         <div class="field-group">
+            <div class="field-label">Mattermost 아이디 <span style="font-size:12px;color:var(--text-muted);">(알림 태그용, @ 없이)</span></div>
+            <input class="field-input" id="accMattermost" placeholder="예: kim.drgo" autocomplete="off" spellcheck="false">
+        </div>
+        <div class="field-group">
             <div class="field-label">비밀번호 변경 <span style="font-size:12px;color:var(--text-muted);">(입력 시에만 변경)</span></div>
             <div style="position:relative;">
                 <input class="field-input" type="password" id="accPassword" placeholder="새 비밀번호 (8자 이상)" style="padding-right:40px;">
@@ -1996,7 +2000,7 @@ async function loadUsers() {
             <td><select class="inline-select us" onchange="if(this.value==='resigned'&&!confirm('퇴사 처리하면 이 계정은 로그인과 접근이 차단되고 담당자 목록에서 빠집니다.\\n(기록·작성물은 모두 보존) 저장을 눌러야 적용됩니다.')){this.value='${u.status}';}">${statusOpts}</select>${resignedTag}</td>
             <td style="display:flex;gap:4px;">
                 <button class="btn-sm" onclick="saveUser(${u.id}, this)">저장</button>
-                ${currentRole==='master'?`<button class="btn-sm" style="background:var(--surface2);color:var(--text-muted);border:1px solid var(--border);" onclick="openAccountModal(${u.id},'${(u.username||'').replace(/'/g,"\\'")}','${(u.display_name||'').replace(/'/g,"\\'")}','${(u.email||'').replace(/'/g,"\\'")}')">수정</button>`:''}
+                ${currentRole==='master'?`<button class="btn-sm" style="background:var(--surface2);color:var(--text-muted);border:1px solid var(--border);" onclick="openAccountModal(${u.id},'${(u.username||'').replace(/'/g,"\\'")}','${(u.display_name||'').replace(/'/g,"\\'")}','${(u.email||'').replace(/'/g,"\\'")}','${(u.mattermost_username||'').replace(/'/g,"\\'")}')">수정</button>`:''}
             </td>
         </tr>`;
     }).join('');
@@ -2075,11 +2079,12 @@ function togglePwVisibility(inputId, btn) {
 }
 
 // ── 계정 수정 모달 (master 전용) ──
-function openAccountModal(id, username, displayName, email) {
+function openAccountModal(id, username, displayName, email, mattermost) {
     document.getElementById('accUserId').value = id;
     document.getElementById('accUsername').value = username || '';
     document.getElementById('accDisplayName').value = displayName || '';
     document.getElementById('accEmail').value = email || '';
+    document.getElementById('accMattermost').value = mattermost || '';
     document.getElementById('accPassword').value = '';
     document.getElementById('accountModalOverlay').classList.add('open');
 }
@@ -2094,6 +2099,7 @@ async function saveAccount() {
         username: document.getElementById('accUsername').value,
         display_name: document.getElementById('accDisplayName').value,
         email: document.getElementById('accEmail').value || null,
+        mattermost_username: document.getElementById('accMattermost').value.trim() || null,
     };
     const pw = document.getElementById('accPassword').value;
     if (pw) body.password = pw;

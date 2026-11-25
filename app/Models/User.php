@@ -18,6 +18,7 @@ class User extends Authenticatable
         'username',
         'display_name',
         'email',
+        'mattermost_username', // Mattermost 알림 태그용 아이디 (@ 없이)
         'password',
         'role',
         'team_id',

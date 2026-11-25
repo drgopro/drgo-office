@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Services\MattermostClient;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Hash;
@@ -21,7 +22,9 @@ class ProfileController extends Controller
         $validated = $request->validate([
             'display_name' => 'required|string|max:50',
             'email' => 'nullable|email|max:255',
-        ]);
+            'mattermost_username' => MattermostClient::USERNAME_RULE,
+        ], ['mattermost_username.regex' => 'Mattermost 아이디는 영문·숫자·. _ - 만 쓸 수 있습니다.']);
+        $validated['mattermost_username'] = MattermostClient::normalizeUsername($validated['mattermost_username'] ?? null);
 
         $user->update($validated);
 

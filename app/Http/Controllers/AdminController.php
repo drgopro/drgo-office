@@ -374,6 +374,7 @@ class AdminController extends Controller
                 'username' => $u->username,
                 'display_name' => $u->display_name,
                 'email' => $u->email,
+                'mattermost_username' => $u->mattermost_username,
                 'role' => $u->role,
                 'team_id' => $u->team_id,
                 'team_name' => $u->team?->name,
@@ -459,8 +460,12 @@ class AdminController extends Controller
             'username' => 'sometimes|string|max:50|unique:users,username,'.$user->id,
             'display_name' => 'sometimes|string|max:50',
             'email' => 'nullable|email|max:100',
+            'mattermost_username' => MattermostClient::USERNAME_RULE,
             'password' => 'nullable|string|min:8',
         ]);
+        if (array_key_exists('mattermost_username', $validated)) {
+            $validated['mattermost_username'] = MattermostClient::normalizeUsername($validated['mattermost_username']);
+        }
 
         if (isset($validated['password']) && $validated['password']) {
             $validated['password'] = Hash::make($validated['password']);

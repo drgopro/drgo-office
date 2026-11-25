@@ -61,7 +61,7 @@ class SendChannelTalkDigest extends Command
 
         $weekday = ['일', '월', '화', '수', '목', '금', '토'][$target->dayOfWeek];
         $header = "📅 D-{$days} 일정 알림 — {$target->format('m/d')} ({$weekday}) {$schedules->count()}건";
-        // 같은 줄을 채널별로 — 채널톡은 담당자 멘션(개인 알림), Mattermost는 계정 연결 전이라 이름
+        // 같은 줄을 채널별로 — 채널톡은 매니저 멘션, Mattermost는 @아이디 태그(아이디 미등록자는 이름)
         $line = function (Schedule $s, string $who): string {
             $time = $s->start_time ? substr($s->start_time, 0, 5) : '종일';
             $category = self::COLOR_LABELS[$s->color] ?? '';
@@ -75,7 +75,7 @@ class SendChannelTalkDigest extends Command
 
         $failed = false;
         if ($useMattermost) {
-            $lines = $schedules->map(fn (Schedule $s) => $line($s, $s->assignees->pluck('name')->filter()->implode(', ')));
+            $lines = $schedules->map(fn (Schedule $s) => $line($s, $s->assignees->isNotEmpty() ? MattermostClient::assigneeMentions($s->assignees) : ''));
             $result = $mattermost->send($mattermostUrl, "{$header}\n\n".$lines->implode("\n"));
             if (! $result['ok']) {
                 $this->error('Mattermost: '.$result['error']);
