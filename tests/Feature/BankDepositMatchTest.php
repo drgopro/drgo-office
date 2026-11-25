@@ -11,6 +11,7 @@ use App\Models\Setting;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Http;
+use Illuminate\Support\Str;
 use Tests\TestCase;
 
 /** 입금 내역 ↔ 견적서 수동 매칭 — 후보 추천, 결제완료(계좌이체) 전환, 분할 입금, 해제 */
@@ -167,5 +168,78 @@ class BankDepositMatchTest extends TestCase
             ->assertSee('id="depMatchOverlay"', false)
             ->assertSee('depMatchCell', false)
             ->assertSee('견적서 매칭');
+    }
+
+    public function test_estimate_issued_after_gate_holds_paid_until_consent_then_settles_on_agree(): void
+    {
+        $estimate = $this->makeEstimate(['issued_at' => now(), 'share_token' => Str::random(48)]);
+        $deposit = $this->makeDeposit(500000);
+
+        $this->actingAs($this->admin)->postJson("/api/bank-deposits/{$deposit->id}/match", ['estimate_id' => $estimate->id])
+            ->assertOk()
+            ->assertJson(['paid' => false, 'consent_required' => true])
+            ->assertJson(['missing' => ['‘위약 안내’ 동의', '‘포트폴리오 사용’ 동의 여부 선택']]);
+        $this->assertSame('issued', $estimate->fresh()->status);
+
+        $this->actingAs($this->admin)->getJson('/api/bank-deposits')->assertOk()
+            ->assertJsonPath('data.0.consent_pending', true);
+
+        // 의뢰자가 위약만 동의 — 아직 보류
+        $this->postJson("/estimate-view/{$estimate->share_token}/agree", ['type' => 'penalty'])->assertOk();
+        $this->assertSame('issued', $estimate->fresh()->status);
+
+        // 포트폴리오 선택까지 마치면 자동 결제완료(계좌이체)
+        $this->postJson("/estimate-view/{$estimate->share_token}/agree", ['type' => 'marketing', 'agree' => false])->assertOk();
+        $this->assertSame('paid', $estimate->fresh()->status);
+        $this->assertNotNull($estimate->fresh()->paid_at);
+    }
+
+    public function test_estimate_issued_after_gate_with_consent_is_paid_immediately(): void
+    {
+        $estimate = $this->makeEstimate(['issued_at' => now()]);
+        $estimate->forceFill(['agreements' => [
+            'penalty' => ['at' => now()->toDateTimeString()],
+            'marketing' => ['at' => now()->toDateTimeString(), 'agreed' => true],
+        ]])->save();
+        $deposit = $this->makeDeposit(500000);
+
+        $this->actingAs($this->admin)->postJson("/api/bank-deposits/{$deposit->id}/match", ['estimate_id' => $estimate->id])
+            ->assertOk()->assertJson(['paid' => true, 'consent_required' => false]);
+        $this->assertSame('paid', $estimate->fresh()->status);
+    }
+
+    public function test_estimate_issued_before_gate_keeps_old_behavior(): void
+    {
+        $estimate = $this->makeEstimate(['issued_at' => '2026-11-20 10:00:00']);
+        $deposit = $this->makeDeposit(500000);
+
+        $this->actingAs($this->admin)->postJson("/api/bank-deposits/{$deposit->id}/match", ['estimate_id' => $estimate->id])
+            ->assertOk()->assertJson(['paid' => true]);
+    }
+
+    public function test_round_uses_parent_consent_and_settles_when_parent_consent_completes(): void
+    {
+        $parent = $this->makeEstimate(['status' => 'paid', 'issued_at' => now(), 'share_token' => Str::random(48)]);
+        $round = $this->makeEstimate(['parent_estimate_id' => $parent->id, 'round' => 2, 'issued_at' => now(), 'total_amount' => 150000]);
+        $deposit = $this->makeDeposit(150000);
+
+        $this->actingAs($this->admin)->postJson("/api/bank-deposits/{$deposit->id}/match", ['estimate_id' => $round->id])
+            ->assertOk()->assertJson(['paid' => false, 'consent_required' => true]);
+
+        $this->postJson("/estimate-view/{$parent->share_token}/agree", ['type' => 'penalty'])->assertOk();
+        $this->postJson("/estimate-view/{$parent->share_token}/agree", ['type' => 'marketing', 'agree' => true])->assertOk();
+
+        $this->assertSame('paid', $round->fresh()->status);
+    }
+
+    public function test_agree_does_not_settle_cancelled_or_unfunded_estimates(): void
+    {
+        $estimate = $this->makeEstimate(['issued_at' => now(), 'share_token' => Str::random(48)]);
+        $this->makeDeposit(100000)->update(['estimate_id' => $estimate->id]); // 금액 미달
+
+        $this->postJson("/estimate-view/{$estimate->share_token}/agree", ['type' => 'penalty'])->assertOk();
+        $this->postJson("/estimate-view/{$estimate->share_token}/agree", ['type' => 'marketing', 'agree' => true])->assertOk();
+
+        $this->assertSame('issued', $estimate->fresh()->status);
     }
 }

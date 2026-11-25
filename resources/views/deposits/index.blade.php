@@ -298,6 +298,7 @@ function depMatchCell(d) {
     if (d.estimate_id && d.estimate) {
         return `<div style="display:flex;align-items:center;gap:6px;flex-wrap:wrap;">
             <span class="pa-badge paid">견적서 #${_esc(String(d.estimate.display_no ?? d.estimate_id))} 매칭</span>
+            ${d.consent_pending ? '<span class="pa-badge waiting" title="입금은 확인됐지만 의뢰자 동의(위약·포트폴리오 선택)가 남아 결제완료를 보류 중 — 동의하면 자동 결제완료">동의 확인 필요</span>' : ''}
             <button type="button" class="raw-btn" onclick="depUnmatch(${d.id})">해제</button>
         </div>`;
     }
@@ -365,8 +366,10 @@ async function depMatchConfirm(estimateId, totalAmount, matchedSum) {
     const r = await res.json().catch(() => ({}));
     if (!res.ok) { alert(r.message || '매칭에 실패했습니다.'); return; }
     alert(r.paid
-        ? `견적서 #${r.estimate_no} 결제완료(계좌이체) 처리되었습니다.\n결제완료 톡방 알림이 발송됩니다.`
-        : `매칭이 기록되었습니다 — 입금 합계 ${fmt(r.matched_sum)} / ${fmt(r.total_amount)}원 (결제완료 전환 전)`);
+        ? `견적서 #${r.estimate_no} 결제완료(계좌이체) 처리되었습니다.`
+        : r.consent_required
+            ? `입금은 확인됐지만 의뢰자가 아직 동의하지 않아 결제완료를 보류했습니다.\n남은 항목: ${(r.missing || []).join(' · ')}\n의뢰자가 견적서 링크에서 동의를 마치면 자동으로 결제완료 처리됩니다.`
+            : `매칭이 기록되었습니다 — 입금 합계 ${fmt(r.matched_sum)} / ${fmt(r.total_amount)}원 (결제완료 전환 전)`);
     closeDepMatch();
     loadDeposits();
 }

@@ -6,6 +6,8 @@ use App\Models\Client;
 use App\Models\Estimate;
 use App\Models\Project;
 use App\Models\Setting;
+use App\Services\BankDepositSettlement;
+use Carbon\Carbon;
 use Illuminate\Http\Request;
 
 /**
@@ -20,6 +22,9 @@ use Illuminate\Http\Request;
 class ConsentController extends Controller
 {
     public const TYPES = ['penalty', 'marketing'];
+
+    /** 계좌이체 입금 매칭에도 동의를 요구하는 기준 — 이 시각 이후 발행된 견적서부터 (이전 발행분은 기존대로) */
+    public const DEPOSIT_GATE_SINCE = '2026-11-25 00:00:00';
 
     /** 공개 전문 — 홈페이지 게시용 (최신본 단일 원본). 위약은 활성 섹션 전체를 담는다 */
     public function publicTerms(string $type)
@@ -75,6 +80,13 @@ class ConsentController extends Controller
             if ($type === 'marketing') {
                 $this->applyMarketingChoice($estimate, $agreed);
             }
+
+            // 동의 전에 입금이 먼저 매칭돼 결제완료를 보류했던 건 — 동의가 끝나면 이어서 결제완료 처리
+            if (self::paymentBlockers($estimate) === []) {
+                foreach ($estimate->rounds()->get()->prepend($estimate) as $target) {
+                    BankDepositSettlement::settle($target);
+                }
+            }
         }
 
         return response()->json(['ok' => true, 'at' => $agreements[$type]['at'], 'agreed' => $agreed]);
@@ -98,6 +110,22 @@ class ConsentController extends Controller
         }
 
         return $blockers;
+    }
+
+    /**
+     * 계좌이체 입금으로 결제완료 처리하기 전 남은 동의 — 기준일 이후 발행된 견적서만 요구한다.
+     * 차수(추가 견적)는 동의가 본 견적서에 기록되므로 본 견적서 기준으로 본다.
+     *
+     * @return array<int, string>
+     */
+    public static function depositBlockers(Estimate $estimate): array
+    {
+        if (! $estimate->issued_at || $estimate->issued_at->lt(Carbon::parse(self::DEPOSIT_GATE_SINCE))) {
+            return [];
+        }
+        $root = $estimate->parent_estimate_id ? ($estimate->parent ?? $estimate) : $estimate;
+
+        return self::paymentBlockers($root);
     }
 
     /**

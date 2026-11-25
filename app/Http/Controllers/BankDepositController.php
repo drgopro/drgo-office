@@ -5,10 +5,9 @@ namespace App\Http\Controllers;
 use App\Models\BankDeposit;
 use App\Models\Estimate;
 use App\Models\PayappPayment;
+use App\Services\BankDepositSettlement;
 use App\Services\DepositSmsParser;
-use App\Services\EstimatePaymentSync;
 use App\Services\PayAppClient;
-use App\Services\PaymentCompleteAlert;
 use Carbon\Carbon;
 use Carbon\CarbonInterface;
 use Illuminate\Http\JsonResponse;
@@ -196,8 +195,18 @@ class BankDepositController extends Controller
         $page = $query->orderByDesc('received_at')->orderByDesc('id')
             ->paginate((int) ($validated['per_page'] ?? 20));
 
+        // 입금은 다 됐지만 의뢰자 동의가 남아 결제완료를 보류 중인 건 표시
+        $items = collect($page->items())->each(function (BankDeposit $d) {
+            $e = $d->estimate;
+            $d->setAttribute('consent_pending', $e
+                && in_array($e->status, BankDepositSettlement::SETTLEABLE_STATUSES, true)
+                && ConsentController::depositBlockers($e) !== []
+                && (int) BankDeposit::where('estimate_id', $e->id)->sum('amount') >= (int) $e->total_amount
+                && (int) $e->total_amount > 0);
+        });
+
         return response()->json([
-            'data' => $page->items(),
+            'data' => $items->values(),
             'total' => $page->total(),
             'current_page' => $page->currentPage(),
             'last_page' => $page->lastPage(),
@@ -286,20 +295,18 @@ class BankDepositController extends Controller
 
         $deposit->update(['estimate_id' => $estimate->id, 'matched_at' => now(), 'matched_by' => $request->user()->id]);
 
-        // 분할 입금 지원 — 이 견적서에 매칭된 입금 합계가 견적 금액 이상이면 결제완료
+        // 분할 입금 지원 — 이 견적서에 매칭된 입금 합계가 견적 금액 이상이면 결제완료.
+        // 단, 의뢰자 동의(위약·포트폴리오 선택)가 남았으면 보류하고 동의가 끝나는 즉시 결제완료로 이어진다
         $matchedSum = (int) BankDeposit::where('estimate_id', $estimate->id)->sum('amount');
-        $paid = false;
-        if ($matchedSum >= (int) $estimate->total_amount && (int) $estimate->total_amount > 0) {
-            $estimate->update(['status' => 'paid', 'paid_at' => $deposit->received_at ?? now()]);
-            EstimatePaymentSync::estimatePaid($estimate->fresh(), '계좌이체');
-            EstimatePaymentSync::syncProjectBilling($estimate->fresh());
-            PaymentCompleteAlert::estimatePaid($estimate->fresh(), [], '계좌이체');
-            $paid = true;
-        }
+        $fullyDeposited = $matchedSum >= (int) $estimate->total_amount && (int) $estimate->total_amount > 0;
+        $missing = $fullyDeposited ? ConsentController::depositBlockers($estimate) : [];
+        $paid = $fullyDeposited && $missing === [] && BankDepositSettlement::settle($estimate);
 
         return response()->json([
             'ok' => true,
             'paid' => $paid,
+            'consent_required' => $missing !== [],
+            'missing' => $missing,
             'matched_sum' => $matchedSum,
             'total_amount' => (int) $estimate->total_amount,
             'estimate_no' => $estimate->display_no,
