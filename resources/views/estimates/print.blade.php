@@ -283,13 +283,15 @@
         <div class="pay-col">
             @php
                 // 위약 카드가 숨김이면 결제를 잠그지 않는다 — 보이지 않는 동의를 요구하지 않음
-                // 결제 전 필수 — 위약 동의 + 포트폴리오 사용 동의 여부 선택. 서버 결제 관문(pay-link)과 같은 기준
+                // 결제 전 필수 — 위약 동의 + 포트폴리오 사용 동의 여부 선택. 서버 결제 이동(payRedirect)과 같은 기준
                 $payBlockers = \App\Http\Controllers\ConsentController::paymentBlockers($estimate);
                 $payReady = $payBlockers === [];
                 $payMissing = implode(' · ', $payBlockers);
+                // 결제 이동 주소 — 항상 오피스 도메인(APP_URL). 홈페이지(drgo.pro) 경유로 열려도 새 창 이동이라 막히지 않는다
+                $payBase = rtrim((string) config('app.url'), '/').'/estimate-view/'.$estimate->share_token.'/pay';
             @endphp
             @foreach($payables as $p)
-                <button class="pay-btn {{ $payReady ? '' : 'locked' }}" data-missing="{{ $payMissing }}" data-id="{{ $p['id'] }}" data-amount="{{ number_format($p['amount']) }}"
+                <button class="pay-btn {{ $payReady ? '' : 'locked' }}" data-missing="{{ $payMissing }}" data-pay="{{ $payReady ? $payBase.'/'.$p['id'] : '' }}" data-amount="{{ number_format($p['amount']) }}"
                     onclick="payClick(this)">💳 {{ $p['label'] !== '' ? $p['label'].' ' : '' }}{{ number_format($p['amount']) }}원 결제하기</button>
             @endforeach
             @unless($payReady)
@@ -746,13 +748,16 @@ function showMobileSaveOverlay(dataUrl, blob, filename){
 <div id="payMethod">
     <h3>결제 수단을 선택해 주세요 <span id="pmAmount" style="color:#3b5ea0;"></span></h3>
     <a class="pm-btn pm-card" id="pmCardBtn" href="#" target="_blank" rel="noopener">💳 카드 결제 (간편·휴대폰)</a>
-    {{-- 계좌 정보도 결제 링크와 함께 동의 확인 후 서버에서 받아 채운다 --}}
-    <button class="pm-btn pm-bank" style="display:none" onclick="document.getElementById('bankInfo').style.display='block'; this.style.display='none'">🏦 계좌이체로 결제</button>
+    {{-- 계좌 정보는 동의를 마친 뒤 렌더링된 페이지에만 싣는다 (동의하면 페이지가 새로고침된다) --}}
+    @php $payBankAccount = \App\Http\Controllers\ConsentController::paymentBlockers($estimate) === [] ? trim((string) ($settings['payment_bank_account'] ?? '')) : ''; @endphp
+    @if($payBankAccount !== '')
+    <button class="pm-btn pm-bank" onclick="document.getElementById('bankInfo').style.display='block'; this.style.display='none'">🏦 계좌이체로 결제</button>
     <div id="bankInfo">
-        <b id="bankAccountText"></b><br>
+        <b>{{ $payBankAccount }}</b><br>
         입금자명은 <b>{{ $estimate->client_nickname ?: $estimate->client_name ?: '주문자명' }}</b>(으)로 부탁드립니다.<br>
         입금 확인 후 결제 완료 처리해 드립니다. (영업시간 기준)
     </div>
+    @endif
     <button class="pm-close" onclick="closePayMethod()">닫기</button>
 </div>
 
@@ -766,47 +771,28 @@ function openTerms(type) {
 window.addEventListener('focus', () => {
     if (termsOpened) { termsOpened = false; location.reload(); }
 });
+// 결제 이동 주소에서 동의가 남아 돌려보낸 경우 안내
+if (new URLSearchParams(location.search).get('pay') === 'blocked') {
+    setTimeout(() => payLocked(@json(implode(' · ', \App\Http\Controllers\ConsentController::paymentBlockers($estimate))) || '결제할 수 없는 상태입니다. 담당자에게 문의해 주세요.'), 300);
+}
 function payLocked(missing) {
     alert('결제 전에 아래 항목을 마쳐 주세요.\n— ' + (missing || '동의 항목'));
     const row = document.querySelector('.consent-row');
     if (row) row.scrollIntoView({ behavior: 'smooth', block: 'center' });
 }
-// 결제 링크는 페이지에 없다 — 서버가 동의를 확인한 뒤에만 내준다
-async function payClick(btn) {
-    if (btn.classList.contains('locked')) { payLocked(btn.dataset.missing); return; }
-    if (btn.dataset.busy) return;
-    btn.dataset.busy = '1';
-    try {
-        const res = await fetch({!! json_encode(url('/estimate-view/'.$estimate->share_token.'/pay-link')) !!}, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json', 'X-CSRF-TOKEN': '{{ csrf_token() }}', 'Accept': 'application/json' },
-            body: JSON.stringify({ estimate_id: Number(btn.dataset.id) }),
-        });
-        const data = await res.json().catch(() => ({}));
-        if (res.status === 403) { payLocked((data.missing || []).join(' · ')); return; }
-        if (!res.ok || !data.url) { alert(data.message || '잠시 후 다시 시도해 주세요.'); return; }
-        document.getElementById('pmCardBtn').href = data.url;
-        const bankBtn = document.querySelector('.pm-bank');
-        if (data.bank_account) {
-            document.getElementById('bankAccountText').textContent = data.bank_account;
-            bankBtn.style.display = 'block';
-        } else {
-            bankBtn.style.display = 'none';
-        }
-        document.getElementById('pmAmount').textContent = btn.dataset.amount + '원';
-        document.getElementById('payMethodBg').style.display = 'block';
-        document.getElementById('payMethod').style.display = 'block';
-    } catch (e) {
-        alert('잠시 후 다시 시도해 주세요.');
-    } finally {
-        delete btn.dataset.busy;
-    }
+// 결제 링크는 페이지에 없다 — [카드 결제]는 오피스의 결제 이동 주소로 가고, 서버가 동의를 다시 확인한 뒤 페이앱으로 넘긴다
+function payClick(btn) {
+    if (btn.classList.contains('locked') || !btn.dataset.pay) { payLocked(btn.dataset.missing); return; }
+    document.getElementById('pmCardBtn').href = btn.dataset.pay;
+    document.getElementById('pmAmount').textContent = btn.dataset.amount + '원';
+    document.getElementById('payMethodBg').style.display = 'block';
+    document.getElementById('payMethod').style.display = 'block';
 }
 function closePayMethod() {
     document.getElementById('payMethodBg').style.display = 'none';
     document.getElementById('payMethod').style.display = 'none';
     const b = document.getElementById('bankInfo');
-    if (b) { b.style.display = 'none'; const bb = document.querySelector('.pm-bank'); if (bb && document.getElementById('bankAccountText').textContent) bb.style.display = 'block'; }
+    if (b) { b.style.display = 'none'; const bb = document.querySelector('.pm-bank'); if (bb) bb.style.display = 'block'; }
 }
 </script>
 @endif

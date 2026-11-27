@@ -104,68 +104,86 @@ class EstimateConsentTest extends TestCase
         $this->assertSame($first, $this->estimate->fresh()->agreements['penalty']['at']);
     }
 
-    public function test_page_never_contains_payment_link_or_bank_account(): void
+    private function agreeAll(): void
     {
-        Setting::set('payment_bank_account', '국민은행 000000-00-000000 (주)닥터고블린컴퍼니');
-        $agreeAll = ['penalty' => ['at' => now()->toDateTimeString()], 'marketing' => ['at' => now()->toDateTimeString(), 'agreed' => true]];
-
-        foreach ([null, $agreeAll] as $agreements) {
-            $this->estimate->forceFill(['agreements' => $agreements])->save();
-            $this->get("/estimate-view/{$this->estimate->share_token}")->assertOk()
-                ->assertSee('결제하기')
-                ->assertDontSee('payapp.example/pay/1')
-                ->assertDontSee('000000-00-000000')
-                ->assertSee('이콘타'); // 입금자명 안내
-        }
+        $this->estimate->forceFill(['agreements' => [
+            'penalty' => ['at' => now()->toDateTimeString()],
+            'marketing' => ['at' => now()->toDateTimeString(), 'agreed' => false],
+        ]])->save();
     }
 
-    public function test_pay_link_refused_until_both_consents_are_done(): void
+    private function payUrl(?int $estimateId = null): string
     {
-        $url = "/estimate-view/{$this->estimate->share_token}/pay-link";
-        $payload = ['estimate_id' => $this->estimate->id];
+        return "/estimate-view/{$this->estimate->share_token}/pay/".($estimateId ?? $this->estimate->id);
+    }
 
-        $this->postJson($url, $payload)->assertForbidden()
-            ->assertJson(['missing' => ['‘위약 안내’ 동의', '‘포트폴리오 사용’ 동의 여부 선택']])
-            ->assertJsonMissing(['url' => 'https://payapp.example/pay/1']);
+    public function test_page_never_contains_payapp_link_and_shows_bank_only_after_consent(): void
+    {
+        Setting::set('payment_bank_account', '국민은행 000000-00-000000 (주)닥터고블린컴퍼니');
+
+        $this->get("/estimate-view/{$this->estimate->share_token}")->assertOk()
+            ->assertSee('결제하기')
+            ->assertDontSee('payapp.example/pay/1')
+            ->assertDontSee('000000-00-000000')
+            ->assertDontSee('data-pay="http', false);
+
+        $this->agreeAll();
+        $this->get("/estimate-view/{$this->estimate->share_token}")->assertOk()
+            ->assertDontSee('payapp.example/pay/1')
+            ->assertSee('000000-00-000000')
+            ->assertSee('이콘타') // 입금자명 안내
+            // 결제 이동 주소는 항상 오피스 도메인(APP_URL) — 홈페이지 도메인 경유로 열려도 막히지 않는다
+            ->assertSee('data-pay="'.rtrim(config('app.url'), '/').'/estimate-view/'.$this->estimate->share_token.'/pay/'.$this->estimate->id.'"', false);
+    }
+
+    public function test_pay_redirect_blocked_until_both_consents_are_done(): void
+    {
+        $back = $this->estimate->publicUrl().'?pay=blocked';
+
+        $this->get($this->payUrl())->assertRedirect($back);
 
         $this->postJson("/estimate-view/{$this->estimate->share_token}/agree", ['type' => 'penalty'])->assertOk();
-        $this->postJson($url, $payload)->assertForbidden()->assertJson(['missing' => ['‘포트폴리오 사용’ 동의 여부 선택']]);
+        $this->get($this->payUrl())->assertRedirect($back);
 
         // 동의하지 않음도 '선택'이므로 결제 가능
         $this->postJson("/estimate-view/{$this->estimate->share_token}/agree", ['type' => 'marketing', 'agree' => false])->assertOk();
-        $this->postJson($url, $payload)->assertOk()->assertJson(['url' => 'https://payapp.example/pay/1']);
+        $this->get($this->payUrl())->assertRedirect('https://payapp.example/pay/1');
     }
 
-    public function test_pay_link_returns_bank_account_only_after_consent(): void
+    public function test_pay_redirect_works_without_session_or_csrf_like_cross_domain_visit(): void
     {
-        Setting::set('payment_bank_account', '국민은행 000000-00-000000 (주)닥터고블린컴퍼니');
-        $url = "/estimate-view/{$this->estimate->share_token}/pay-link";
+        $this->agreeAll();
 
-        $this->postJson($url, ['estimate_id' => $this->estimate->id])->assertForbidden()->assertJsonMissing(['bank_account' => '국민은행 000000-00-000000 (주)닥터고블린컴퍼니']);
-
-        $this->estimate->forceFill(['agreements' => ['penalty' => ['at' => now()->toDateTimeString()], 'marketing' => ['at' => now()->toDateTimeString(), 'agreed' => true]]])->save();
-        $this->postJson($url, ['estimate_id' => $this->estimate->id])->assertOk()
-            ->assertJson(['bank_account' => '국민은행 000000-00-000000 (주)닥터고블린컴퍼니']);
+        // 홈페이지(drgo.pro) 경유 열람 — 오피스 세션 쿠키 없이 새 창으로 이동해도 결제창으로 간다
+        $this->withHeaders(['Referer' => 'https://drgo.pro/estimate-view/'.$this->estimate->share_token])
+            ->get($this->payUrl())->assertRedirect('https://payapp.example/pay/1');
     }
 
-    public function test_pay_link_rejects_other_estimate_and_unissued(): void
+    public function test_blocked_notice_on_return(): void
     {
-        $this->estimate->forceFill(['agreements' => ['penalty' => ['at' => now()->toDateTimeString()], 'marketing' => ['at' => now()->toDateTimeString()]]])->save();
+        $this->get("/estimate-view/{$this->estimate->share_token}?pay=blocked")->assertOk()
+            ->assertSee("get('pay') === 'blocked'", false);
+    }
+
+    public function test_pay_redirect_rejects_other_estimate_and_unissued(): void
+    {
+        $this->agreeAll();
         $other = $this->estimate->replicate()->fill(['share_token' => Str::random(48), 'payapp_payurl' => 'https://payapp.example/pay/other']);
         $other->save();
+        $back = $this->estimate->publicUrl().'?pay=blocked';
 
-        $this->postJson("/estimate-view/{$this->estimate->share_token}/pay-link", ['estimate_id' => $other->id])->assertStatus(422);
+        $this->get($this->payUrl($other->id))->assertRedirect($back);
 
         $this->estimate->forceFill(['status' => 'paid'])->save();
-        $this->postJson("/estimate-view/{$this->estimate->share_token}/pay-link", ['estimate_id' => $this->estimate->id])->assertStatus(422);
+        $this->get($this->payUrl())->assertRedirect($back);
     }
 
-    public function test_pay_link_skips_consents_hidden_by_settings(): void
+    public function test_pay_redirect_skips_consents_hidden_by_settings(): void
     {
         Setting::set('terms_penalty_enabled', '0');
         Setting::set('terms_marketing_enabled', '0');
 
-        $this->postJson("/estimate-view/{$this->estimate->share_token}/pay-link", ['estimate_id' => $this->estimate->id])->assertOk();
+        $this->get($this->payUrl())->assertRedirect('https://payapp.example/pay/1');
     }
 
     public function test_consent_cards_can_be_hidden_by_settings(): void

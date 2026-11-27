@@ -185,9 +185,8 @@ class EstimateRoundTest extends TestCase
             'penalty' => ['at' => now()->toDateTimeString()],
             'marketing' => ['at' => now()->toDateTimeString(), 'agreed' => false],
         ]])->save();
-        $this->postJson("/estimate-view/{$token}/pay-link", ['estimate_id' => $round2->id])
-            ->assertOk()->assertJson(['url' => 'https://payapp.example/pay/r2']);
-        $this->postJson("/estimate-view/{$token}/pay-link", ['estimate_id' => $round3->id])->assertStatus(422); // 미발행 차수
+        $this->get("/estimate-view/{$token}/pay/{$round2->id}")->assertRedirect('https://payapp.example/pay/r2');
+        $this->get("/estimate-view/{$token}/pay/{$round3->id}")->assertRedirect($parent->fresh()->publicUrl().'?pay=blocked'); // 미발행 차수
 
         // 1차 결제 완료 후 — 1차 버튼은 사라지고 2차 버튼만 남음
         $parent->update(['status' => 'paid']);

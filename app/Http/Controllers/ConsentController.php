@@ -129,34 +129,24 @@ class ConsentController extends Controller
     }
 
     /**
-     * 결제 링크 발급 — 결제 링크는 페이지에 싣지 않고, 동의를 서버에서 확인한 뒤에만 내준다.
-     * (화면 잠금만으로는 페이지 소스의 링크로 동의를 건너뛸 수 있었다)
+     * 결제하기 — 오피스 주소로 바로 이동(새 창)한 뒤 동의를 다시 확인하고 페이앱 결제창으로 넘긴다.
+     * 의뢰자 링크는 홈페이지 도메인(drgo.pro)을 거쳐 열려서, 화면 안의 다른 도메인 요청(fetch)은 브라우저가 막는다.
+     * 그래서 링크 이동 방식으로 처리한다. 동의가 남았거나 결제할 수 없으면 견적서로 돌려보낸다.
      */
-    public function payLink(Request $request, string $token)
+    public function payRedirect(string $token, int $estimateId)
     {
         abort_if(strlen($token) < 32, 404);
         $estimate = Estimate::where('share_token', $token)->firstOrFail();
-        $targetId = (int) $request->validate(['estimate_id' => 'required|integer'])['estimate_id'];
-
-        $target = $targetId === $estimate->id
+        $target = $estimateId === $estimate->id
             ? $estimate
-            : $estimate->rounds()->whereKey($targetId)->first();
-        if (! $target || $target->status !== 'issued' || ! $target->payapp_payurl || (int) $target->total_amount <= 0) {
-            return response()->json(['message' => '결제할 수 없는 견적입니다. 페이지를 새로고침해 주세요.'], 422);
+            : $estimate->rounds()->whereKey($estimateId)->first();
+
+        if (! $target || $target->status !== 'issued' || ! $target->payapp_payurl || (int) $target->total_amount <= 0
+            || self::paymentBlockers($estimate) !== []) {
+            return redirect()->away($estimate->publicUrl().'?pay=blocked');
         }
 
-        $blockers = self::paymentBlockers($estimate);
-        if ($blockers !== []) {
-            return response()->json([
-                'message' => '결제 전에 아래 항목을 마쳐 주세요.',
-                'missing' => $blockers,
-            ], 403);
-        }
-
-        return response()->json([
-            'url' => $target->payapp_payurl,
-            'bank_account' => trim((string) Setting::get('payment_bank_account', '')),
-        ]);
+        return redirect()->away($target->payapp_payurl);
     }
 
     /** 마케팅 기록이 '동의'인지 — 이전 기록(agreed 키 없음)은 동의만 있었으므로 동의로 본다 */
